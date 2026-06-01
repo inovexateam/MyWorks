@@ -1,0 +1,273 @@
+
+<style>
+.step-pill{display:inline-flex;align-items:center;gap:6px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:99px;padding:3px 10px;font-size:12px;color:var(--color-text-secondary);margin-bottom:12px}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.step-num.done{background:var(--color-background-success);color:var(--color-text-success)}
+.panel{display:none;padding:0}
+.panel.active{display:block}
+.code-block{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px 14px;font-family:var(--font-mono);font-size:12px;color:var(--color-text-primary);white-space:pre;overflow-x:auto;margin:8px 0 12px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;margin-right:4px}
+.tag-auto{background:var(--color-background-success);color:var(--color-text-success)}
+.tag-manual{background:var(--color-background-warning);color:var(--color-text-warning)}
+.tag-once{background:var(--color-background-info);color:var(--color-text-info)}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;text-align:center}
+.metric-val{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.metric-lbl{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+.nav-btn{cursor:pointer;padding:6px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);font-size:13px}
+.nav-btn:hover{background:var(--color-background-secondary)}
+.nav-btn.primary{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
+.progress-bar{height:4px;background:var(--color-border-tertiary);border-radius:2px;margin:12px 0 16px;overflow:hidden}
+.progress-fill{height:100%;background:var(--color-text-info);border-radius:2px;transition:width .3s}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.token-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.token-row:last-child{border-bottom:none}
+.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px}
+.badge-r{background:var(--color-background-danger);color:var(--color-text-danger)}
+.badge-g{background:var(--color-background-success);color:var(--color-text-success)}
+.warn-box{background:var(--color-background-warning);border-left:3px solid var(--color-text-warning);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:10px 12px;font-size:13px;color:var(--color-text-primary);margin:8px 0}
+.info-box{background:var(--color-background-info);border-left:3px solid var(--color-text-info);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:10px 12px;font-size:13px;color:var(--color-text-primary);margin:8px 0}
+.checklist li{font-size:13px;padding:3px 0;list-style:none;display:flex;gap:8px;align-items:flex-start}
+.checklist li::before{content:"○";color:var(--color-text-tertiary);flex-shrink:0}
+.checklist li.done::before{content:"✓";color:var(--color-text-success)}
+h3{font-size:15px;font-weight:500;margin:0 0 10px;color:var(--color-text-primary)}
+p{font-size:13px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.6}
+</style>
+
+<h2 class="sr-only">Interactive migration guide — 6 steps from git clone to running .NET 8 project</h2>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+  <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)" id="step-title">Step 1 of 6</div>
+  <div style="font-size:12px;color:var(--color-text-tertiary)">tokens saved: <span id="token-counter" style="color:var(--color-text-success);font-weight:500">0</span></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="prog" style="width:16%"></div></div>
+
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="pills">
+  <div class="step-pill"><span class="step-num active" id="p1">1</span>Clone &amp; setup</div>
+  <div class="step-pill"><span class="step-num" id="p2">2</span>Scan &amp; build map</div>
+  <div class="step-pill"><span class="step-num" id="p3">3</span>New Core project</div>
+  <div class="step-pill"><span class="step-num" id="p4">4</span>Migrate order</div>
+  <div class="step-pill"><span class="step-num" id="p5">5</span>Special patterns</div>
+  <div class="step-pill"><span class="step-num" id="p6">6</span>Token dashboard</div>
+</div>
+
+<!-- STEP 1 -->
+<div class="panel active" id="s1">
+<h3>What you need before anything</h3>
+<p>No compiled app, no DLLs, no running environment. You only need source code accessible on disk.</p>
+<div class="row">
+  <div class="metric"><div class="metric-val">0</div><div class="metric-lbl">tools to install</div></div>
+  <div class="metric"><div class="metric-val">5 min</div><div class="metric-lbl">to be ready to start</div></div>
+</div>
+<div style="margin:10px 0">
+  <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">Prerequisites checklist</div>
+  <ul class="checklist">
+    <li>VS Code installed</li>
+    <li>Claude Code extension installed (or GitHub Copilot)</li>
+    <li>.NET 8 SDK installed (<code>dotnet --version</code> must show 8.x)</li>
+    <li>Git access to your repo</li>
+    <li>Artifactory NuGet feed URL from your org</li>
+  </ul>
+</div>
+<div class="code-block">git clone https://your-org/your-aspnet-app.git
+cd your-aspnet-app
+code .                        # open in VS Code
+
+# copy .github/ folder from this solution into root
+cp -r /path/to/this-solution/.github ./
+git add .github/
+git commit -m "chore: add migration tooling"</div>
+<div class="info-box">That .github/ folder IS the entire tool. No extension to install beyond Claude Code.</div>
+</div>
+
+<!-- STEP 2 -->
+<div class="panel" id="s2">
+<h3>One command scans your entire codebase</h3>
+<p>Run this in VS Code terminal. It builds <code>CODEBASE-MAP.md</code> automatically — listing every file, its complexity, and what needs migrating. This is the only time you wait for a full scan.</p>
+<div class="code-block">dotnet run --project .github/tools/Scanner -- --solution ./YourApp.sln</div>
+<p style="margin-top:4px">No scanner tool yet? Ask Claude Code directly:</p>
+<div class="code-block">@claude scan this solution and populate .github/memory/CODEBASE-MAP.md
+Include every .cs, .aspx, .ascx, .asmx file with LOC count and complexity.
+Flag: LDAP connections, ADO.NET, Apigee calls, Ping login, Crystal Reports.</div>
+<div style="margin:10px 0">
+  <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">What gets auto-detected and flagged</div>
+  <ul class="checklist">
+    <li><span class="tag tag-auto">auto</span> All System.Web.* dependencies per file</li>
+    <li><span class="tag tag-auto">auto</span> LDAP / DirectoryServices calls → flag for manual review</li>
+    <li><span class="tag tag-auto">auto</span> ADO.NET SqlConnection → migration path: Dapper or EF Core</li>
+    <li><span class="tag tag-auto">auto</span> HttpClient / RestSharp → Apigee calls flagged as external</li>
+    <li><span class="tag tag-auto">auto</span> FormsAuthentication → Ping/OIDC replacement needed</li>
+    <li><span class="tag tag-manual">manual</span> Crystal Reports (.rpt) → needs stakeholder decision</li>
+    <li><span class="tag tag-manual">manual</span> COM Interop / GAC → assess per component</li>
+  </ul>
+</div>
+<div class="warn-box">Manual intervention #1 — after the scan, review the BLOCK entries. These are components with no automatic migration path. Decisions (Crystal Reports replacement, Apigee contract changes, Ping OIDC config) must be made by humans before those files can be migrated.</div>
+</div>
+
+<!-- STEP 3 -->
+<div class="panel" id="s3">
+<h3>Creating the new .NET 8 project — single command</h3>
+<p>The new Core project is created alongside the old one. They live in the same git repo during migration. You do NOT throw away the old app until migration is 100% verified.</p>
+<div class="code-block">@claude create the new .NET 8 solution structure alongside this
+existing app. Use the project layout from CODEBASE-MAP.md.
+Create: YourApp.Core.sln with matching projects.
+Configure nuget.config to use Artifactory only.</div>
+<p>Claude Code creates this structure:</p>
+<div class="code-block">your-repo/
+├── src-framework/          ← your EXISTING app (untouched)
+│   ├── WebApp/
+│   ├── BC/, BPC/, DAC/ ...
+│
+└── src-core/               ← NEW .NET 8 app (built here)
+    ├── WebApp.Core/        ← Razor Pages replacing .aspx
+    ├── BC.Core/            ← same business logic, no System.Web
+    ├── BPC.Core/
+    ├── DAC.Core/           ← EF Core replacing EF6/ADO.NET
+    ├── SAC.Core/           ← Apigee/external calls
+    └── YourApp.Core.sln
+    └── nuget.config        ← Artifactory only, no nuget.org</div>
+<div class="info-box">Manual intervention #2 — fill in your Artifactory URL in nuget.config and add ARTIFACTORY_USER / ARTIFACTORY_TOKEN to your environment or .env file (never commit these).</div>
+</div>
+
+<!-- STEP 4 -->
+<div class="panel" id="s4">
+<h3>Migration order — always leaf-first</h3>
+<p>The map enforces this order automatically. Each project only starts after its dependencies are ✅ DONE in the map.</p>
+<div class="row">
+  <div>
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px">Correct order</div>
+    <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+      <div style="background:var(--color-background-success);color:var(--color-text-success);padding:4px 8px;border-radius:4px">1. Utilities (no deps)</div>
+      <div style="background:var(--color-background-success);color:var(--color-text-success);padding:4px 8px;border-radius:4px">2. DAC (data access)</div>
+      <div style="background:var(--color-background-info);color:var(--color-text-info);padding:4px 8px;border-radius:4px">3. BC (uses DAC)</div>
+      <div style="background:var(--color-background-info);color:var(--color-text-info);padding:4px 8px;border-radius:4px">4. SAC (uses BC)</div>
+      <div style="background:var(--color-background-warning);color:var(--color-text-warning);padding:4px 8px;border-radius:4px">5. BPC (uses BC+SAC)</div>
+      <div style="background:var(--color-background-danger);color:var(--color-text-danger);padding:4px 8px;border-radius:4px">6. WebApp last</div>
+    </div>
+  </div>
+  <div>
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px">Single command per project</div>
+    <div class="code-block" style="margin:0;font-size:11px">@claude run migration-bundle
+for project: Utilities
+using map: .github/memory/
+CODEBASE-MAP.md</div>
+    <p style="margin-top:6px">Claude reads the map, skips ✅ files, migrates ⏳ files, marks 🚧 blockers, updates map when done.</p>
+  </div>
+</div>
+<div class="warn-box">Manual intervention #3 — after each project completes, run <code>dotnet build src-core/</code> and confirm 0 errors before moving to next project. Never migrate two projects simultaneously.</div>
+</div>
+
+<!-- STEP 5 -->
+<div class="panel" id="s5">
+<h3>Your specific patterns — migration paths</h3>
+<p>Every pattern in your app has a defined route. No guessing needed.</p>
+<div style="display:flex;flex-direction:column;gap:6px">
+  <div class="token-row"><span><b>LDAP / DirectoryServices</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Microsoft.Extensions.DirectoryServices or Novell.Directory.Ldap.NETStandard</span></div>
+  <div class="token-row"><span><b>ADO.NET SqlConnection</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Dapper (minimal change) or EF Core (full ORM)</span></div>
+  <div class="token-row"><span><b>Apigee external calls</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ IHttpClientFactory + typed clients, API key in Key Vault</span></div>
+  <div class="token-row"><span><b>Ping / SAML login</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ OpenID Connect middleware (AddOpenIdConnect), Ping as IdP</span></div>
+  <div class="token-row"><span><b>FormsAuthentication</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Cookie auth or ASP.NET Core Identity</span></div>
+  <div class="token-row"><span><b>.aspx pages</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Razor Pages (agent-ui-adapter handles all controls)</span></div>
+  <div class="token-row"><span><b>.ascx controls</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Partial Views or View Components</span></div>
+  <div class="token-row"><span><b>.asmx SOAP</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Minimal API or CoreWCF (agent-soap-wcf-migrator)</span></div>
+  <div class="token-row"><span><b>web.config</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ appsettings.json + env vars + Key Vault</span></div>
+  <div class="token-row" style="border:none"><span><b>Crystal Reports</b></span><span style="font-size:12px;color:var(--color-text-danger)">🚧 needs stakeholder decision — 4 options in map</span></div>
+</div>
+<div class="info-box">Manual intervention #4 — Ping/OIDC config needs your org's actual client ID, client secret, and discovery URL. These come from your identity team, not the code. Add them to Key Vault, never to appsettings.json.</div>
+</div>
+
+<!-- STEP 6 -->
+<div class="panel" id="s6">
+<h3>How to know you're saving tokens</h3>
+<p>The map file IS your token dashboard. Every cache hit = tokens saved. Here's how to read it.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0">
+  <div class="metric"><div class="metric-val" id="m1">0</div><div class="metric-lbl">✅ done (cache hits)</div></div>
+  <div class="metric"><div class="metric-val" id="m2">0</div><div class="metric-lbl">⏳ remaining</div></div>
+  <div class="metric"><div class="metric-val" id="m3">0</div><div class="metric-lbl">🚧 blocked</div></div>
+</div>
+<p>Drag to simulate your project size:</p>
+<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+  <span style="font-size:12px;color:var(--color-text-secondary)">Total files</span>
+  <input type="range" min="20" max="500" value="150" step="10" id="total-files" style="flex:1">
+  <span id="total-files-out" style="font-size:13px;font-weight:500;min-width:36px">150</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+  <span style="font-size:12px;color:var(--color-text-secondary)">Cache hit rate</span>
+  <input type="range" min="10" max="95" value="60" step="5" id="hit-rate" style="flex:1">
+  <span id="hit-rate-out" style="font-size:13px;font-weight:500;min-width:36px">60%</span>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
+  <div class="metric"><div class="metric-val" id="without-t" style="color:var(--color-text-danger)">225K</div><div class="metric-lbl">tokens without map</div></div>
+  <div class="metric"><div class="metric-val" id="with-t" style="color:var(--color-text-success)">93K</div><div class="metric-lbl">tokens with map</div></div>
+</div>
+<div style="text-align:center;font-size:13px;margin-top:4px">Saving <span id="saving-pct" style="font-weight:500;color:var(--color-text-success)">59%</span> — <span id="saving-abs" style="font-weight:500;color:var(--color-text-success)">132K tokens</span></div>
+<div style="margin-top:10px;font-size:12px;color:var(--color-text-tertiary)">Assumes 1,500 tokens per full analysis · 20 tokens per cache hit read</div>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
+  <button class="nav-btn" id="prev-btn" onclick="navigate(-1)" style="visibility:hidden">← Back</button>
+  <div style="display:flex;gap:4px" id="dots"></div>
+  <button class="nav-btn primary" id="next-btn" onclick="navigate(1)">Next →</button>
+</div>
+
+<script>
+let cur=1,total=6;
+const titles=['Step 1 of 6 — prerequisites','Step 2 of 6 — scan & build map','Step 3 of 6 — create Core project','Step 4 of 6 — migration order','Step 5 of 6 — your specific patterns','Step 6 of 6 — token dashboard'];
+const tokens=[0,800,1200,2400,3600,0];
+let saved=0;
+
+function buildDots(){
+  const d=document.getElementById('dots');
+  d.innerHTML='';
+  for(let i=1;i<=total;i++){
+    const s=document.createElement('div');
+    s.style.cssText=`width:6px;height:6px;border-radius:50%;background:${i===cur?'var(--color-text-info)':'var(--color-border-secondary)'};transition:background .2s`;
+    d.appendChild(s);
+  }
+}
+
+function navigate(dir){
+  if(cur+dir<1||cur+dir>total)return;
+  document.getElementById('s'+cur).classList.remove('active');
+  document.getElementById('p'+cur).classList.remove('active');
+  if(dir>0){saved+=tokens[cur-1];document.getElementById('p'+cur).classList.add('done');}
+  cur+=dir;
+  document.getElementById('s'+cur).classList.add('active');
+  document.getElementById('p'+cur).classList.add('active');
+  document.getElementById('step-title').textContent=titles[cur-1];
+  document.getElementById('prog').style.width=Math.round(cur/total*100)+'%';
+  document.getElementById('token-counter').textContent=saved.toLocaleString();
+  document.getElementById('prev-btn').style.visibility=cur>1?'visible':'hidden';
+  document.getElementById('next-btn').textContent=cur===total?'Done ✓':'Next →';
+  document.getElementById('next-btn').onclick=cur===total?()=>sendPrompt('How do I start the migration for my specific project?'):()=>navigate(1);
+  buildDots();
+  if(cur===6)calcTokens();
+}
+
+function calcTokens(){
+  const f=+document.getElementById('total-files').value;
+  const h=+document.getElementById('hit-rate').value/100;
+  const hits=Math.round(f*h),misses=f-hits;
+  document.getElementById('m1').textContent=hits;
+  document.getElementById('m2').textContent=misses;
+  document.getElementById('m3').textContent=Math.round(f*0.08);
+  const without=f*1500,withMap=hits*20+misses*1500;
+  document.getElementById('without-t').textContent=Math.round(without/1000)+'K';
+  document.getElementById('with-t').textContent=Math.round(withMap/1000)+'K';
+  const pct=Math.round((1-withMap/without)*100);
+  const abs=Math.round((without-withMap)/1000);
+  document.getElementById('saving-pct').textContent=pct+'%';
+  document.getElementById('saving-abs').textContent=abs+'K tokens';
+}
+
+document.getElementById('total-files').oninput=function(){
+  document.getElementById('total-files-out').textContent=this.value;
+  calcTokens();
+};
+document.getElementById('hit-rate').oninput=function(){
+  document.getElementById('hit-rate-out').textContent=this.value+'%';
+  calcTokens();
+};
+
+buildDots();
+calcTokens();
+</script>
