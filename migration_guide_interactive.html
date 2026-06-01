@@ -1,273 +1,1071 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>.NET Framework → Core Migration Kit</title>
 <style>
-.step-pill{display:inline-flex;align-items:center;gap:6px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:99px;padding:3px 10px;font-size:12px;color:var(--color-text-secondary);margin-bottom:12px}
-.step-num{width:20px;height:20px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
-.step-num.done{background:var(--color-background-success);color:var(--color-text-success)}
-.panel{display:none;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f6f5f0;--bg3:#eeedea;
+  --text:#1a1a18;--text2:#5a5a56;--text3:#8a8a84;
+  --border:#e0deda;--border2:#c8c7c2;
+  --blue:#185fa5;--blue-bg:#e6f1fb;--blue-text:#0c447c;
+  --green:#3b6d11;--green-bg:#eaf3de;--green-text:#27500a;
+  --amber:#854f0b;--amber-bg:#faeeda;--amber-text:#633806;
+  --red:#a32d2d;--red-bg:#fcebeb;--red-text:#791f1f;
+  --teal:#0f6e56;--teal-bg:#e1f5ee;--teal-text:#085041;
+  --purple:#534ab7;--purple-bg:#eeedfe;--purple-text:#3c3489;
+  --mono:'Courier New',monospace;
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1e1e1c;--bg2:#252522;--bg3:#2c2c29;
+    --text:#e8e6de;--text2:#a8a69e;--text3:#6a6a62;
+    --border:#38382e;--border2:#4a4a42;
+    --blue-bg:#0c2a4a;--blue-text:#85b7eb;
+    --green-bg:#142808;--green-text:#97c459;
+    --amber-bg:#2a1a04;--amber-text:#ef9f27;
+    --red-bg:#2a0c0c;--red-text:#f09595;
+    --teal-bg:#042820;--teal-text:#5dcaa5;
+    --purple-bg:#1e1c4a;--purple-text:#afa9ec;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.6}
+a{color:var(--blue-text);text-decoration:none}
+code,pre{font-family:var(--mono);font-size:12px}
+
+/* Layout */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{background:var(--bg);border-right:1px solid var(--border);padding:0;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.main{overflow:hidden}
+
+/* Sidebar */
+.sidebar-header{padding:20px 16px 12px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.sidebar-header p{font-size:11px;color:var(--text3);margin-top:3px}
+.nav-section{padding:8px 0}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:6px 16px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 16px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{background:var(--bg2);color:var(--text)}
+.nav-item.active{background:var(--blue-bg);color:var(--blue-text);border-left-color:var(--blue)}
+.nav-item .dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0}
+.nav-item.done .dot{background:var(--green)}
+.nav-item.blocked .dot{background:var(--red)}
+.nav-item.wip .dot{background:var(--amber)}
+.token-box{margin:auto 12px 12px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius);padding:10px 12px}
+.token-box .lbl{font-size:10px;color:var(--green-text);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.token-box .val{font-size:20px;font-weight:700;color:var(--green-text);margin-top:2px}
+.token-box .sub{font-size:10px;color:var(--green-text);opacity:.7}
+
+/* Main panels */
+.panel{display:none;padding:32px 40px;max-width:860px}
 .panel.active{display:block}
-.code-block{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px 14px;font-family:var(--font-mono);font-size:12px;color:var(--color-text-primary);white-space:pre;overflow-x:auto;margin:8px 0 12px}
-.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;margin-right:4px}
-.tag-auto{background:var(--color-background-success);color:var(--color-text-success)}
-.tag-manual{background:var(--color-background-warning);color:var(--color-text-warning)}
-.tag-once{background:var(--color-background-info);color:var(--color-text-info)}
-.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;text-align:center}
-.metric-val{font-size:22px;font-weight:500;color:var(--color-text-primary)}
-.metric-lbl{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
-.nav-btn{cursor:pointer;padding:6px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);font-size:13px}
-.nav-btn:hover{background:var(--color-background-secondary)}
-.nav-btn.primary{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
-.progress-bar{height:4px;background:var(--color-border-tertiary);border-radius:2px;margin:12px 0 16px;overflow:hidden}
-.progress-fill{height:100%;background:var(--color-text-info);border-radius:2px;transition:width .3s}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
-.token-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
-.token-row:last-child{border-bottom:none}
-.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px}
-.badge-r{background:var(--color-background-danger);color:var(--color-text-danger)}
-.badge-g{background:var(--color-background-success);color:var(--color-text-success)}
-.warn-box{background:var(--color-background-warning);border-left:3px solid var(--color-text-warning);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:10px 12px;font-size:13px;color:var(--color-text-primary);margin:8px 0}
-.info-box{background:var(--color-background-info);border-left:3px solid var(--color-text-info);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:10px 12px;font-size:13px;color:var(--color-text-primary);margin:8px 0}
-.checklist li{font-size:13px;padding:3px 0;list-style:none;display:flex;gap:8px;align-items:flex-start}
-.checklist li::before{content:"○";color:var(--color-text-tertiary);flex-shrink:0}
-.checklist li.done::before{content:"✓";color:var(--color-text-success)}
-h3{font-size:15px;font-weight:500;margin:0 0 10px;color:var(--color-text-primary)}
-p{font-size:13px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.6}
+.panel h2{font-size:20px;font-weight:600;margin-bottom:6px}
+.panel .subtitle{font-size:14px;color:var(--text2);margin-bottom:24px}
+
+/* Cards */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.card h3{font-size:14px;font-weight:600;margin-bottom:10px}
+
+/* Code blocks */
+.code{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;overflow-x:auto;margin:10px 0}
+.code pre{color:var(--text);white-space:pre;line-height:1.5}
+.cmd{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--text);display:flex;align-items:center;gap:10px;margin:8px 0;cursor:pointer;transition:background .15s}
+.cmd:hover{background:var(--border)}
+.cmd .prompt{color:var(--text3)}
+.cmd .copy-btn{margin-left:auto;font-size:11px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer}
+.cmd .copy-btn:hover{background:var(--bg2)}
+
+/* Tags/badges */
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-auto{background:var(--green-bg);color:var(--green-text)}
+.tag-manual{background:var(--amber-bg);color:var(--amber-text)}
+.tag-block{background:var(--red-bg);color:var(--red-text)}
+.tag-done{background:var(--teal-bg);color:var(--teal-text)}
+.tag-wip{background:var(--purple-bg);color:var(--purple-text)}
+
+/* Alert boxes */
+.alert{border-left:3px solid;border-radius:0 var(--radius) var(--radius) 0;padding:10px 14px;margin:12px 0;font-size:13px}
+.alert-info{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-text)}
+.alert-warn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber-text)}
+.alert-success{background:var(--green-bg);border-color:var(--green);color:var(--green-text)}
+.alert-danger{background:var(--red-bg);border-color:var(--red);color:var(--red-text)}
+
+/* Tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.tbl th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg2)}
+
+/* Map file display */
+.map-line{font-family:var(--mono);font-size:11px;padding:3px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:baseline}
+.map-line:last-child{border-bottom:none}
+.map-status{min-width:60px;font-weight:600}
+.s-done{color:var(--green-text)}
+.s-queue{color:var(--text3)}
+.s-block{color:var(--red-text)}
+.s-wip{color:var(--purple-text)}
+.map-file{color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.map-note{color:var(--text3);font-size:10px;min-width:160px;text-align:right}
+
+/* Token meter */
+.meter-row{display:flex;gap:6px;align-items:center;margin:4px 0}
+.meter-bar-wrap{flex:1;background:var(--bg2);border-radius:99px;height:6px;overflow:hidden}
+.meter-bar{height:100%;border-radius:99px;transition:width .4s}
+.meter-label{font-size:11px;color:var(--text2);min-width:90px}
+.meter-val{font-size:11px;color:var(--text3);min-width:54px;text-align:right}
+
+/* Migration path cards */
+.path-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.path-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.path-card .from{font-size:11px;color:var(--red-text);font-family:var(--mono);margin-bottom:4px}
+.path-card .to{font-size:11px;color:var(--green-text);font-family:var(--mono);margin-bottom:6px}
+.path-card .desc{font-size:12px;color:var(--text2)}
+
+/* Checklist */
+.checklist{list-style:none;margin:8px 0}
+.checklist li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.checklist li:last-child{border-bottom:none}
+.checklist .check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;margin-top:1px}
+.checklist .check.done{background:var(--green);border-color:var(--green);color:#fff}
+.checklist .check.done::after{content:'✓';font-size:11px}
+.checklist .item-text{flex:1}
+.checklist .item-tag{margin-left:auto;flex-shrink:0}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text);font-size:13px;cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+/* Progress steps */
+.steps{display:flex;gap:0;margin-bottom:24px}
+.step{flex:1;text-align:center;position:relative}
+.step::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
+.step:last-child::after{display:none}
+.step-circle{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text3);margin:0 auto 4px;position:relative;z-index:1;transition:all .2s}
+.step.done .step-circle{background:var(--green);border-color:var(--green);color:#fff}
+.step.active .step-circle{background:var(--blue);border-color:var(--blue);color:#fff}
+.step-label{font-size:10px;color:var(--text3)}
+.step.active .step-label{color:var(--blue-text);font-weight:600}
+.step.done .step-label{color:var(--green-text)}
+
+/* Diff view */
+.diff{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:10px 0;font-family:var(--mono);font-size:12px}
+.diff-header{background:var(--bg2);padding:6px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border)}
+.diff-line{padding:2px 12px;line-height:1.5;white-space:pre}
+.diff-old{background:#fff0f0;color:#791f1f}
+.diff-new{background:#f0fff4;color:#27500a}
+.diff-ctx{color:var(--text3)}
+@media(prefers-color-scheme:dark){
+  .diff-old{background:#2a0808;color:#f09595}
+  .diff-new{background:#081a08;color:#97c459}
+}
+
+/* Tooltip */
+[data-tip]{position:relative;cursor:help}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:4px 8px;border-radius:4px;font-size:11px;white-space:nowrap;z-index:10;pointer-events:none}
+
+/* Token dashboard */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0}
+.stat{background:var(--bg2);border-radius:var(--radius);padding:12px;text-align:center}
+.stat .num{font-size:22px;font-weight:700;color:var(--text)}
+.stat .lbl{font-size:11px;color:var(--text3);margin-top:2px}
 </style>
+</head>
+<body>
+<div class="app">
 
-<h2 class="sr-only">Interactive migration guide — 6 steps from git clone to running .NET 8 project</h2>
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>.NET Migration Kit</h1>
+    <p>Framework 4.7/4.8 → .NET 8</p>
+  </div>
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-  <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)" id="step-title">Step 1 of 6</div>
-  <div style="font-size:12px;color:var(--color-text-tertiary)">tokens saved: <span id="token-counter" style="color:var(--color-text-success);font-weight:500">0</span></div>
-</div>
-<div class="progress-bar"><div class="progress-fill" id="prog" style="width:16%"></div></div>
+  <div class="nav-section">
+    <div class="nav-label">Get started</div>
+    <div class="nav-item active" onclick="show('overview')"><span class="dot"></span>Overview</div>
+    <div class="nav-item" onclick="show('setup')"><span class="dot"></span>Setup (5 min)</div>
+    <div class="nav-item" onclick="show('scan')"><span class="dot"></span>Scan &amp; map</div>
+    <div class="nav-item" onclick="show('structure')"><span class="dot"></span>New project</div>
+  </div>
 
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="pills">
-  <div class="step-pill"><span class="step-num active" id="p1">1</span>Clone &amp; setup</div>
-  <div class="step-pill"><span class="step-num" id="p2">2</span>Scan &amp; build map</div>
-  <div class="step-pill"><span class="step-num" id="p3">3</span>New Core project</div>
-  <div class="step-pill"><span class="step-num" id="p4">4</span>Migrate order</div>
-  <div class="step-pill"><span class="step-num" id="p5">5</span>Special patterns</div>
-  <div class="step-pill"><span class="step-num" id="p6">6</span>Token dashboard</div>
+  <div class="nav-section">
+    <div class="nav-label">Migration flow</div>
+    <div class="nav-item done" id="nav-utilities" onclick="show('utilities')"><span class="dot"></span>1. Utilities</div>
+    <div class="nav-item wip" id="nav-dac" onclick="show('dac')"><span class="dot"></span>2. DAC (data layer)</div>
+    <div class="nav-item" id="nav-bc" onclick="show('bc')"><span class="dot"></span>3. BC (business)</div>
+    <div class="nav-item" id="nav-sac" onclick="show('sac')"><span class="dot"></span>4. SAC (services)</div>
+    <div class="nav-item" id="nav-bpc" onclick="show('bpc')"><span class="dot"></span>5. BPC (process)</div>
+    <div class="nav-item" id="nav-webapp" onclick="show('webapp')"><span class="dot"></span>6. WebApp / SOAP</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Patterns</div>
+    <div class="nav-item" onclick="show('ldap')"><span class="dot"></span>LDAP</div>
+    <div class="nav-item" onclick="show('ado')"><span class="dot"></span>ADO.NET</div>
+    <div class="nav-item" onclick="show('apigee')"><span class="dot"></span>Apigee calls</div>
+    <div class="nav-item" onclick="show('ping')"><span class="dot"></span>Ping / OIDC login</div>
+    <div class="nav-item blocked" onclick="show('crystal')"><span class="dot"></span>Crystal Reports</div>
+    <div class="nav-item" onclick="show('soap')"><span class="dot"></span>SOAP / ASMX</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Tools</div>
+    <div class="nav-item" onclick="show('map')"><span class="dot"></span>Codebase map</div>
+    <div class="nav-item" onclick="show('tokens')"><span class="dot"></span>Token dashboard</div>
+    <div class="nav-item" onclick="show('security')"><span class="dot"></span>Security checks</div>
+    <div class="nav-item" onclick="show('ci')"><span class="dot"></span>CI pipeline</div>
+  </div>
+
+  <div class="token-box" id="sidebar-tokens">
+    <div class="lbl">Tokens saved</div>
+    <div class="val" id="sidebar-token-val">0</div>
+    <div class="sub">this session</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- OVERVIEW -->
+<div class="panel active" id="panel-overview">
+  <h2>ASP.NET Framework → .NET 8 Migration Kit</h2>
+  <p class="subtitle">Drop the <code>.github/</code> folder into your repo. One command starts the full migration.</p>
+
+  <div class="steps" id="overview-steps">
+    <div class="step done"><div class="step-circle">✓</div><div class="step-label">Clone</div></div>
+    <div class="step done"><div class="step-circle">✓</div><div class="step-label">Setup</div></div>
+    <div class="step active"><div class="step-circle">3</div><div class="step-label">Scan</div></div>
+    <div class="step"><div class="step-circle">4</div><div class="step-label">Migrate</div></div>
+    <div class="step"><div class="step-circle">5</div><div class="step-label">Test</div></div>
+    <div class="step"><div class="step-circle">6</div><div class="step-label">Ship</div></div>
+  </div>
+
+  <div class="card">
+    <h3>How this is different from existing migration recipes</h3>
+    <table class="tbl">
+      <tr><th>Dimension</th><th>Existing recipe</th><th>This kit</th></tr>
+      <tr><td>Token load / session</td><td><span class="tag tag-block">30K–80K</span></td><td><span class="tag tag-done">~200 + on-demand</span></td></tr>
+      <tr><td>Large app duration</td><td><span class="tag tag-block">~2 days</span></td><td><span class="tag tag-done">hours</span></td></tr>
+      <tr><td>Resume after break</td><td><span class="tag tag-block">restarts from zero</span></td><td><span class="tag tag-done">reads map, continues</span></td></tr>
+      <tr><td>Multi-project support</td><td><span class="tag tag-block">one recipe, one project</span></td><td><span class="tag tag-done">single map, all projects</span></td></tr>
+      <tr><td>Blockers (Crystal, ORM)</td><td><span class="tag tag-block">silent hang</span></td><td><span class="tag tag-done">flagged, skipped, continues</span></td></tr>
+      <tr><td>External tools</td><td><span class="tag tag-block">truffleHog, SonarCloud</span></td><td><span class="tag tag-done">dotnet SDK + Artifactory only</span></td></tr>
+      <tr><td>SOAP / ASMX services</td><td><span class="tag tag-block">not covered</span></td><td><span class="tag tag-done">agent-soap-wcf-migrator</span></td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>The 4 manual interventions — everything else is automatic</h3>
+    <table class="tbl">
+      <tr><th>When</th><th>What you do</th><th>Time</th></tr>
+      <tr><td>After scan</td><td>Review BLOCK entries — decide on Crystal Reports, Apigee contracts, Ping config</td><td>30 min</td></tr>
+      <tr><td>After structure created</td><td>Add your Artifactory URL + credentials to <code>nuget.config</code></td><td>5 min</td></tr>
+      <tr><td>After each project</td><td>Run <code>dotnet build src-core/</code> — must be 0 errors</td><td>2 min</td></tr>
+      <tr><td>Ping/OIDC flagged</td><td>Provide client ID, secret, discovery URL from identity team</td><td>10 min</td></tr>
+    </table>
+  </div>
+
+  <button class="btn btn-primary" onclick="show('setup')">Start setup →</button>
 </div>
 
-<!-- STEP 1 -->
-<div class="panel active" id="s1">
-<h3>What you need before anything</h3>
-<p>No compiled app, no DLLs, no running environment. You only need source code accessible on disk.</p>
-<div class="row">
-  <div class="metric"><div class="metric-val">0</div><div class="metric-lbl">tools to install</div></div>
-  <div class="metric"><div class="metric-val">5 min</div><div class="metric-lbl">to be ready to start</div></div>
-</div>
-<div style="margin:10px 0">
-  <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">Prerequisites checklist</div>
-  <ul class="checklist">
-    <li>VS Code installed</li>
-    <li>Claude Code extension installed (or GitHub Copilot)</li>
-    <li>.NET 8 SDK installed (<code>dotnet --version</code> must show 8.x)</li>
-    <li>Git access to your repo</li>
-    <li>Artifactory NuGet feed URL from your org</li>
-  </ul>
-</div>
-<div class="code-block">git clone https://your-org/your-aspnet-app.git
-cd your-aspnet-app
-code .                        # open in VS Code
+<!-- SETUP -->
+<div class="panel" id="panel-setup">
+  <h2>Setup — 5 minutes</h2>
+  <p class="subtitle">Everything you need before typing the first migration command.</p>
 
-# copy .github/ folder from this solution into root
-cp -r /path/to/this-solution/.github ./
-git add .github/
-git commit -m "chore: add migration tooling"</div>
-<div class="info-box">That .github/ folder IS the entire tool. No extension to install beyond Claude Code.</div>
-</div>
+  <div class="card">
+    <h3>Prerequisites</h3>
+    <ul class="checklist" id="setup-checks">
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">VS Code installed</div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Claude Code extension installed</div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">.NET 8 SDK — run <code>dotnet --version</code> must show 8.x</div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Git access to your repo</div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Artifactory NuGet feed URL from your org</div></li>
+    </ul>
+  </div>
 
-<!-- STEP 2 -->
-<div class="panel" id="s2">
-<h3>One command scans your entire codebase</h3>
-<p>Run this in VS Code terminal. It builds <code>CODEBASE-MAP.md</code> automatically — listing every file, its complexity, and what needs migrating. This is the only time you wait for a full scan.</p>
-<div class="code-block">dotnet run --project .github/tools/Scanner -- --solution ./YourApp.sln</div>
-<p style="margin-top:4px">No scanner tool yet? Ask Claude Code directly:</p>
-<div class="code-block">@claude scan this solution and populate .github/memory/CODEBASE-MAP.md
-Include every .cs, .aspx, .ascx, .asmx file with LOC count and complexity.
-Flag: LDAP connections, ADO.NET, Apigee calls, Ping login, Crystal Reports.</div>
-<div style="margin:10px 0">
-  <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">What gets auto-detected and flagged</div>
-  <ul class="checklist">
-    <li><span class="tag tag-auto">auto</span> All System.Web.* dependencies per file</li>
-    <li><span class="tag tag-auto">auto</span> LDAP / DirectoryServices calls → flag for manual review</li>
-    <li><span class="tag tag-auto">auto</span> ADO.NET SqlConnection → migration path: Dapper or EF Core</li>
-    <li><span class="tag tag-auto">auto</span> HttpClient / RestSharp → Apigee calls flagged as external</li>
-    <li><span class="tag tag-auto">auto</span> FormsAuthentication → Ping/OIDC replacement needed</li>
-    <li><span class="tag tag-manual">manual</span> Crystal Reports (.rpt) → needs stakeholder decision</li>
-    <li><span class="tag tag-manual">manual</span> COM Interop / GAC → assess per component</li>
-  </ul>
-</div>
-<div class="warn-box">Manual intervention #1 — after the scan, review the BLOCK entries. These are components with no automatic migration path. Decisions (Crystal Reports replacement, Apigee contract changes, Ping OIDC config) must be made by humans before those files can be migrated.</div>
+  <div class="card">
+    <h3>Step 1 — Clone and add this kit</h3>
+    <div class="cmd"><span class="prompt">$</span><span>git clone https://your-org/your-aspnet-app.git</span><button class="copy-btn" onclick="copyCmd(this,'git clone https://your-org/your-aspnet-app.git')">copy</button></div>
+    <div class="cmd"><span class="prompt">$</span><span>cp -r /path/to/migration-kit/.github ./your-aspnet-app/</span><button class="copy-btn" onclick="copyCmd(this,'cp -r /path/to/migration-kit/.github ./')">copy</button></div>
+    <div class="cmd"><span class="prompt">$</span><span>code ./your-aspnet-app</span><button class="copy-btn" onclick="copyCmd(this,'code .')">copy</button></div>
+  </div>
+
+  <div class="card">
+    <h3>Step 2 — Configure Artifactory (one line)</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Edit <code>.github/nuget.config</code> — replace the placeholder URL with your org's real Artifactory URL:</p>
+    <div class="diff">
+      <div class="diff-header">nuget.config</div>
+      <div class="diff-line diff-old">-  value="https://artifactory.yourorg.com/artifactory/api/nuget/nuget-virtual"</div>
+      <div class="diff-line diff-new">+  value="https://YOUR-REAL-ARTIFACTORY-URL/artifactory/api/nuget/nuget-virtual"</div>
+    </div>
+    <div class="alert alert-warn">Never commit ARTIFACTORY_USER or ARTIFACTORY_TOKEN — add them as environment variables or GitHub secrets.</div>
+  </div>
+
+  <div class="card">
+    <h3>Step 3 — Start the migration</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">In VS Code, open Claude Code and type exactly this:</p>
+    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
+      <span style="color:var(--blue-text);font-weight:600">@claude</span>
+      <span style="color:var(--blue-text)">start migration</span>
+      <button class="copy-btn" onclick="copyCmd(this,'@claude start migration')">copy</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px">Claude reads CLAUDE.md (~200 tokens), scans your solution, builds the map, creates the Core project structure, and begins migrating in dependency order.</p>
+  </div>
+
+  <button class="btn btn-primary" onclick="show('scan')">Next: scan &amp; map →</button>
 </div>
 
-<!-- STEP 3 -->
-<div class="panel" id="s3">
-<h3>Creating the new .NET 8 project — single command</h3>
-<p>The new Core project is created alongside the old one. They live in the same git repo during migration. You do NOT throw away the old app until migration is 100% verified.</p>
-<div class="code-block">@claude create the new .NET 8 solution structure alongside this
-existing app. Use the project layout from CODEBASE-MAP.md.
-Create: YourApp.Core.sln with matching projects.
-Configure nuget.config to use Artifactory only.</div>
-<p>Claude Code creates this structure:</p>
-<div class="code-block">your-repo/
-├── src-framework/          ← your EXISTING app (untouched)
+<!-- SCAN -->
+<div class="panel" id="panel-scan">
+  <h2>Scan &amp; build the codebase map</h2>
+  <p class="subtitle">The map is the memory of the entire migration. Built once, read every session.</p>
+
+  <div class="card">
+    <h3>What gets auto-detected</h3>
+    <table class="tbl">
+      <tr><th>Pattern</th><th>Detection</th><th>Action</th></tr>
+      <tr><td><code>System.Web.*</code></td><td><span class="tag tag-auto">auto</span></td><td>Migration path assigned per file</td></tr>
+      <tr><td>LDAP / DirectoryServices</td><td><span class="tag tag-auto">auto</span></td><td>Flagged → Novell NETStandard package</td></tr>
+      <tr><td>ADO.NET SqlConnection</td><td><span class="tag tag-auto">auto</span></td><td>Flagged → Dapper or EF Core path</td></tr>
+      <tr><td>Apigee / HttpClient calls</td><td><span class="tag tag-auto">auto</span></td><td>Flagged → IHttpClientFactory typed client</td></tr>
+      <tr><td>FormsAuthentication</td><td><span class="tag tag-auto">auto</span></td><td>Flagged → Cookie auth / OIDC</td></tr>
+      <tr><td>Crystal Reports (.rpt)</td><td><span class="tag tag-manual">manual</span></td><td>🚧 BLOCK — stakeholder decision needed</td></tr>
+      <tr><td>COM Interop / GAC</td><td><span class="tag tag-manual">manual</span></td><td>🚧 BLOCK — assess per component</td></tr>
+      <tr><td>EDMX / EF6 models</td><td><span class="tag tag-auto">auto</span></td><td>agent-data-migrator → EF Core Code-First</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>What CODEBASE-MAP.md looks like after scan</h3>
+    <div class="code">
+      <div class="map-line"><span class="map-status s-done">✅ DONE</span><span class="map-file">src/Utilities/StringHelper.cs</span><span class="map-note">hash:a3f2c1 | cov:82%</span></div>
+      <div class="map-line"><span class="map-status s-done">✅ DONE</span><span class="map-file">src/Utilities/DateExtensions.cs</span><span class="map-note">hash:b7e4d2 | cov:79%</span></div>
+      <div class="map-line"><span class="map-status s-done">✅ DONE</span><span class="map-file">src/Utilities/ValidationHelper.cs</span><span class="map-note">hash:c9a1f3 | cov:81%</span></div>
+      <div class="map-line"><span class="map-status s-wip">🔄 WIP</span><span class="map-file">src/DAC/UserRepository.cs</span><span class="map-note">agent-data-migrator | EF6→Core</span></div>
+      <div class="map-line"><span class="map-status s-queue">⏳ QUEUE</span><span class="map-file">src/DAC/OrderRepository.cs</span><span class="map-note">wait: UserRepository done</span></div>
+      <div class="map-line"><span class="map-status s-block">🚧 BLOCK</span><span class="map-file">src/DAC/ReportService.cs</span><span class="map-note">Crystal Reports — awaiting decision</span></div>
+      <div class="map-line"><span class="map-status s-queue">⏳ QUEUE</span><span class="map-file">src/BC/OrderService.cs</span><span class="map-note">wait: DAC complete</span></div>
+      <div class="map-line"><span class="map-status s-queue">⏳ QUEUE</span><span class="map-file">src/WebApp/Pages/ProductList.aspx</span><span class="map-note">agent-ui-adapter</span></div>
+    </div>
+    <div class="alert alert-info">Every session: Claude reads this file first (~200 tokens). ✅ files = cache hit (20 tokens each). Only ⏳ QUEUE files get full analysis (~1,500 tokens each).</div>
+  </div>
+
+  <div class="card">
+    <h3>Checking token savings right now</h3>
+    <div class="cmd"><span class="prompt">$</span><span>grep -c "✅ DONE" .github/memory/CODEBASE-MAP.md</span><button class="copy-btn" onclick="copyCmd(this,'grep -c \"✅ DONE\" .github/memory/CODEBASE-MAP.md')">copy</button></div>
+    <div class="cmd"><span class="prompt">$</span><span>grep -c "⏳ QUEUE" .github/memory/CODEBASE-MAP.md</span><button class="copy-btn" onclick="copyCmd(this,'grep -c \"⏳ QUEUE\" .github/memory/CODEBASE-MAP.md')">copy</button></div>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px">Tokens saved = (hits × 1480). At 60% cache hit on 200 files: ~178,000 tokens saved per session.</p>
+  </div>
+</div>
+
+<!-- STRUCTURE -->
+<div class="panel" id="panel-structure">
+  <h2>New .NET 8 project structure</h2>
+  <p class="subtitle">Created alongside the original app. Old code is never deleted until you are ready.</p>
+
+  <div class="card">
+    <h3>Folder layout after project creation</h3>
+    <div class="code"><pre>your-repo/
+├── src-framework/          ← your EXISTING app (never touched)
 │   ├── WebApp/
-│   ├── BC/, BPC/, DAC/ ...
+│   ├── BC/
+│   ├── BPC/
+│   ├── DAC/
+│   ├── SAC/
+│   └── Utilities/
 │
-└── src-core/               ← NEW .NET 8 app (built here)
-    ├── WebApp.Core/        ← Razor Pages replacing .aspx
-    ├── BC.Core/            ← same business logic, no System.Web
-    ├── BPC.Core/
-    ├── DAC.Core/           ← EF Core replacing EF6/ADO.NET
-    ├── SAC.Core/           ← Apigee/external calls
-    └── YourApp.Core.sln
-    └── nuget.config        ← Artifactory only, no nuget.org</div>
-<div class="info-box">Manual intervention #2 — fill in your Artifactory URL in nuget.config and add ARTIFACTORY_USER / ARTIFACTORY_TOKEN to your environment or .env file (never commit these).</div>
-</div>
+├── src-core/               ← NEW .NET 8 app (built here)
+│   ├── WebApp.Core/        ← Razor Pages replacing .aspx
+│   ├── BC.Core/            ← same logic, no System.Web
+│   ├── BPC.Core/
+│   ├── DAC.Core/           ← EF Core replacing EF6 / ADO.NET
+│   ├── SAC.Core/           ← Apigee / external service calls
+│   ├── Utilities.Core/
+│   ├── YourApp.Core.sln
+│   └── nuget.config        ← Artifactory only, no nuget.org
+│
+├── .github/                ← this migration kit
+│   ├── CLAUDE.md           ← entry point, 200 tokens
+│   ├── memory/
+│   │   └── CODEBASE-MAP.md ← live progress, committed to git
+│   ├── agents/             ← loaded on demand
+│   ├── skills/             ← loaded on demand
+│   └── plugins/            ← orchestration workflows
+│
+└── nuget.config            ← Artifactory, no nuget.org</pre></div>
+    <div class="alert alert-success">Both apps live in the same git repo. Deploy the new one when ready, then decommission the old one. No big-bang cutover.</div>
+  </div>
 
-<!-- STEP 4 -->
-<div class="panel" id="s4">
-<h3>Migration order — always leaf-first</h3>
-<p>The map enforces this order automatically. Each project only starts after its dependencies are ✅ DONE in the map.</p>
-<div class="row">
-  <div>
-    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px">Correct order</div>
-    <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
-      <div style="background:var(--color-background-success);color:var(--color-text-success);padding:4px 8px;border-radius:4px">1. Utilities (no deps)</div>
-      <div style="background:var(--color-background-success);color:var(--color-text-success);padding:4px 8px;border-radius:4px">2. DAC (data access)</div>
-      <div style="background:var(--color-background-info);color:var(--color-text-info);padding:4px 8px;border-radius:4px">3. BC (uses DAC)</div>
-      <div style="background:var(--color-background-info);color:var(--color-text-info);padding:4px 8px;border-radius:4px">4. SAC (uses BC)</div>
-      <div style="background:var(--color-background-warning);color:var(--color-text-warning);padding:4px 8px;border-radius:4px">5. BPC (uses BC+SAC)</div>
-      <div style="background:var(--color-background-danger);color:var(--color-text-danger);padding:4px 8px;border-radius:4px">6. WebApp last</div>
+  <div class="card">
+    <h3>Command to create the Core structure</h3>
+    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
+      <span style="color:var(--blue-text);font-weight:600">@claude</span>
+      <span style="color:var(--blue-text)">create the new .NET 8 solution structure alongside this existing app. Use the project layout from CODEBASE-MAP.md. Configure nuget.config to use Artifactory only.</span>
     </div>
   </div>
-  <div>
-    <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px">Single command per project</div>
-    <div class="code-block" style="margin:0;font-size:11px">@claude run migration-bundle
-for project: Utilities
-using map: .github/memory/
-CODEBASE-MAP.md</div>
-    <p style="margin-top:6px">Claude reads the map, skips ✅ files, migrates ⏳ files, marks 🚧 blockers, updates map when done.</p>
+</div>
+
+<!-- UTILITIES -->
+<div class="panel" id="panel-utilities">
+  <h2>1. Utilities — migrate first</h2>
+  <p class="subtitle">No internal dependencies. Pure logic. Should compile cleanly with minimal changes.</p>
+  <div class="alert alert-success">Status: ✅ Complete — all files migrated, tested, security-cleared.</div>
+
+  <div class="card">
+    <h3>What changes in Utilities</h3>
+    <table class="tbl">
+      <tr><th>Change</th><th>Effort</th></tr>
+      <tr><td>Target framework: <code>net471</code> → <code>net8.0</code> in .csproj</td><td><span class="tag tag-auto">auto</span></td></tr>
+      <tr><td>Enable <code>&lt;Nullable&gt;enable&lt;/Nullable&gt;</code></td><td><span class="tag tag-auto">auto</span></td></tr>
+      <tr><td>Enable <code>&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;</code></td><td><span class="tag tag-auto">auto</span></td></tr>
+      <tr><td>File-scoped namespaces: <code>namespace X.Y;</code></td><td><span class="tag tag-auto">auto</span></td></tr>
+      <tr><td>Add nullable annotations to public APIs</td><td><span class="tag tag-auto">auto</span></td></tr>
+      <tr><td>Replace <code>ConfigurationManager</code> if present</td><td><span class="tag tag-auto">auto</span></td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Command</h3>
+    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
+      <span style="color:var(--blue-text);font-weight:600">@claude</span>
+      <span style="color:var(--blue-text)">run migration-bundle for project: Utilities</span>
+    </div>
+    <div class="cmd"><span class="prompt">$</span><span>dotnet build src-core/Utilities.Core/</span><button class="copy-btn" onclick="copyCmd(this,'dotnet build src-core/Utilities.Core/')">copy</button></div>
+    <div class="alert alert-info">Must be 0 errors before moving to DAC.</div>
   </div>
 </div>
-<div class="warn-box">Manual intervention #3 — after each project completes, run <code>dotnet build src-core/</code> and confirm 0 errors before moving to next project. Never migrate two projects simultaneously.</div>
+
+<!-- DAC -->
+<div class="panel" id="panel-dac">
+  <h2>2. DAC — data access layer</h2>
+  <p class="subtitle">EF6 → EF Core, ADO.NET → Dapper or EF Core, EDMX → Code-First. Highest technical complexity.</p>
+
+  <div class="card">
+    <h3>EF6 → EF Core — critical API changes</h3>
+    <div class="diff">
+      <div class="diff-header">UserRepository.cs — before / after</div>
+      <div class="diff-line diff-old">- using System.Data.Entity;</div>
+      <div class="diff-line diff-new">+ using Microsoft.EntityFrameworkCore;</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- public class MyContext : DbContext {</div>
+      <div class="diff-line diff-old">-   public MyContext() : base("name=MyDB") { }</div>
+      <div class="diff-line diff-new">+ public class AppDbContext : DbContext {</div>
+      <div class="diff-line diff-new">+   public AppDbContext(DbContextOptions&lt;AppDbContext&gt; options) : base(options) { }</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- var user = context.Users.Find(id);</div>
+      <div class="diff-line diff-new">+ var user = await context.Users.FindAsync(id, ct);</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- context.Users.Include("Address")</div>
+      <div class="diff-line diff-new">+ context.Users.Include(u =&gt; u.Address)</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- context.Database.ExecuteSqlCommand("UPDATE ...")</div>
+      <div class="diff-line diff-new">+ context.Database.ExecuteSqlInterpolated($"UPDATE ...")</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>ADO.NET → Dapper (minimal change path)</h3>
+    <div class="diff">
+      <div class="diff-header">ProductRepository.cs</div>
+      <div class="diff-line diff-old">- var cmd = new SqlCommand("SELECT * FROM Products WHERE Id=@id", conn);</div>
+      <div class="diff-line diff-old">- cmd.Parameters.AddWithValue("@id", id);</div>
+      <div class="diff-line diff-old">- var reader = cmd.ExecuteReader();</div>
+      <div class="diff-line diff-new">+ var product = await conn.QueryFirstOrDefaultAsync&lt;Product&gt;(</div>
+      <div class="diff-line diff-new">+     "SELECT * FROM Products WHERE Id=@Id", new { Id = id });</div>
+    </div>
+    <div class="alert alert-warn">ADO.NET SqlConnection itself works in .NET 8 — but migrate to Dapper or EF Core for maintainability.</div>
+  </div>
+
+  <div class="card">
+    <h3>EDMX → Code-First (run in project root)</h3>
+    <div class="cmd"><span class="prompt">$</span><span>dotnet ef dbcontext scaffold "Server=.;Database=MyDb;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models --context AppDbContext --no-onconfiguring --force</span><button class="copy-btn" onclick="copyCmd(this,'dotnet ef dbcontext scaffold \"Server=.;Database=MyDb;\" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models --context AppDbContext --no-onconfiguring --force')">copy</button></div>
+    <div class="cmd"><span class="prompt">$</span><span>dotnet ef migrations add InitialCreate --project src-core/DAC.Core/</span><button class="copy-btn" onclick="copyCmd(this,'dotnet ef migrations add InitialCreate --project src-core/DAC.Core/')">copy</button></div>
+  </div>
+
+  <div class="card">
+    <h3>Migration command</h3>
+    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
+      <span style="color:var(--blue-text);font-weight:600">@claude</span>
+      <span style="color:var(--blue-text)">run migration-bundle for project: DAC</span>
+    </div>
+  </div>
 </div>
 
-<!-- STEP 5 -->
-<div class="panel" id="s5">
-<h3>Your specific patterns — migration paths</h3>
-<p>Every pattern in your app has a defined route. No guessing needed.</p>
-<div style="display:flex;flex-direction:column;gap:6px">
-  <div class="token-row"><span><b>LDAP / DirectoryServices</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Microsoft.Extensions.DirectoryServices or Novell.Directory.Ldap.NETStandard</span></div>
-  <div class="token-row"><span><b>ADO.NET SqlConnection</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Dapper (minimal change) or EF Core (full ORM)</span></div>
-  <div class="token-row"><span><b>Apigee external calls</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ IHttpClientFactory + typed clients, API key in Key Vault</span></div>
-  <div class="token-row"><span><b>Ping / SAML login</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ OpenID Connect middleware (AddOpenIdConnect), Ping as IdP</span></div>
-  <div class="token-row"><span><b>FormsAuthentication</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Cookie auth or ASP.NET Core Identity</span></div>
-  <div class="token-row"><span><b>.aspx pages</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Razor Pages (agent-ui-adapter handles all controls)</span></div>
-  <div class="token-row"><span><b>.ascx controls</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Partial Views or View Components</span></div>
-  <div class="token-row"><span><b>.asmx SOAP</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ Minimal API or CoreWCF (agent-soap-wcf-migrator)</span></div>
-  <div class="token-row"><span><b>web.config</b></span><span style="font-size:12px;color:var(--color-text-secondary)">→ appsettings.json + env vars + Key Vault</span></div>
-  <div class="token-row" style="border:none"><span><b>Crystal Reports</b></span><span style="font-size:12px;color:var(--color-text-danger)">🚧 needs stakeholder decision — 4 options in map</span></div>
-</div>
-<div class="info-box">Manual intervention #4 — Ping/OIDC config needs your org's actual client ID, client secret, and discovery URL. These come from your identity team, not the code. Add them to Key Vault, never to appsettings.json.</div>
+<!-- BC -->
+<div class="panel" id="panel-bc">
+  <h2>3. BC — business components</h2>
+  <p class="subtitle">Pure business logic. Depends on DAC. No System.Web. Usually the cleanest migration.</p>
+
+  <div class="card">
+    <h3>Key changes</h3>
+    <div class="diff">
+      <div class="diff-header">OrderService.cs</div>
+      <div class="diff-line diff-old">- using System.Configuration;</div>
+      <div class="diff-line diff-new">+ using Microsoft.Extensions.Configuration;</div>
+      <div class="diff-line diff-old">- private static readonly ILog log = LogManager.GetLogger(typeof(OrderService));</div>
+      <div class="diff-line diff-new">+ private readonly ILogger&lt;OrderService&gt; _logger;</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- string timeout = ConfigurationManager.AppSettings["Timeout"];</div>
+      <div class="diff-line diff-new">+ string timeout = _configuration["App:Timeout"];</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- public Order GetOrder(int id) {</div>
+      <div class="diff-line diff-new">+ public async Task&lt;Order?&gt; GetOrderAsync(int id, CancellationToken ct = default) {</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>DI registration in Program.cs</h3>
+    <div class="code"><pre>builder.Services.AddScoped&lt;IOrderService, OrderService&gt;();
+builder.Services.AddScoped&lt;IOrderRepository, OrderRepository&gt;();
+builder.Services.AddScoped&lt;ICustomerService, CustomerService&gt;();
+// Register all BC services here</pre></div>
+  </div>
+
+  <div class="card">
+    <h3>Migration command</h3>
+    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
+      <span style="color:var(--blue-text);font-weight:600">@claude</span>
+      <span style="color:var(--blue-text)">run migration-bundle for project: BC</span>
+    </div>
+  </div>
 </div>
 
-<!-- STEP 6 -->
-<div class="panel" id="s6">
-<h3>How to know you're saving tokens</h3>
-<p>The map file IS your token dashboard. Every cache hit = tokens saved. Here's how to read it.</p>
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0">
-  <div class="metric"><div class="metric-val" id="m1">0</div><div class="metric-lbl">✅ done (cache hits)</div></div>
-  <div class="metric"><div class="metric-val" id="m2">0</div><div class="metric-lbl">⏳ remaining</div></div>
-  <div class="metric"><div class="metric-val" id="m3">0</div><div class="metric-lbl">🚧 blocked</div></div>
-</div>
-<p>Drag to simulate your project size:</p>
-<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
-  <span style="font-size:12px;color:var(--color-text-secondary)">Total files</span>
-  <input type="range" min="20" max="500" value="150" step="10" id="total-files" style="flex:1">
-  <span id="total-files-out" style="font-size:13px;font-weight:500;min-width:36px">150</span>
-</div>
-<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
-  <span style="font-size:12px;color:var(--color-text-secondary)">Cache hit rate</span>
-  <input type="range" min="10" max="95" value="60" step="5" id="hit-rate" style="flex:1">
-  <span id="hit-rate-out" style="font-size:13px;font-weight:500;min-width:36px">60%</span>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
-  <div class="metric"><div class="metric-val" id="without-t" style="color:var(--color-text-danger)">225K</div><div class="metric-lbl">tokens without map</div></div>
-  <div class="metric"><div class="metric-val" id="with-t" style="color:var(--color-text-success)">93K</div><div class="metric-lbl">tokens with map</div></div>
-</div>
-<div style="text-align:center;font-size:13px;margin-top:4px">Saving <span id="saving-pct" style="font-weight:500;color:var(--color-text-success)">59%</span> — <span id="saving-abs" style="font-weight:500;color:var(--color-text-success)">132K tokens</span></div>
-<div style="margin-top:10px;font-size:12px;color:var(--color-text-tertiary)">Assumes 1,500 tokens per full analysis · 20 tokens per cache hit read</div>
+<!-- SAC -->
+<div class="panel" id="panel-sac">
+  <h2>4. SAC — service access components</h2>
+  <p class="subtitle">External API calls including Apigee, REST services. Depends on BC.</p>
+
+  <div class="card">
+    <h3>RestSharp / WebClient → IHttpClientFactory</h3>
+    <div class="diff">
+      <div class="diff-header">ApigeeClient.cs</div>
+      <div class="diff-line diff-old">- var client = new RestClient("https://api.apigee.yourorg.com");</div>
+      <div class="diff-line diff-old">- var request = new RestRequest("/products", Method.GET);</div>
+      <div class="diff-line diff-old">- request.AddHeader("Authorization", "Bearer " + token);</div>
+      <div class="diff-line diff-old">- var response = client.Execute&lt;List&lt;Product&gt;&gt;(request);</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-new">+ public class ApigeeClient(HttpClient http) : IApigeeClient {</div>
+      <div class="diff-line diff-new">+   public async Task&lt;List&lt;Product&gt;&gt; GetProductsAsync(CancellationToken ct = default)</div>
+      <div class="diff-line diff-new">+     =&gt; await http.GetFromJsonAsync&lt;List&lt;Product&gt;&gt;("/products", ct) ?? [];</div>
+      <div class="diff-line diff-new">+ }</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-new">+ // Program.cs</div>
+      <div class="diff-line diff-new">+ builder.Services.AddHttpClient&lt;IApigeeClient, ApigeeClient&gt;(c =&gt; {</div>
+      <div class="diff-line diff-new">+   c.BaseAddress = new Uri(builder.Configuration["Apigee:BaseUrl"]!);</div>
+      <div class="diff-line diff-new">+   c.DefaultRequestHeaders.Add("x-api-key", builder.Configuration["Apigee:ApiKey"]);</div>
+      <div class="diff-line diff-new">+ });</div>
+    </div>
+    <div class="alert alert-warn">Apigee API key goes in Azure Key Vault or environment variable — never in appsettings.json.</div>
+  </div>
 </div>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
-  <button class="nav-btn" id="prev-btn" onclick="navigate(-1)" style="visibility:hidden">← Back</button>
-  <div style="display:flex;gap:4px" id="dots"></div>
-  <button class="nav-btn primary" id="next-btn" onclick="navigate(1)">Next →</button>
+<!-- BPC -->
+<div class="panel" id="panel-bpc">
+  <h2>5. BPC — business process components</h2>
+  <p class="subtitle">Orchestrates BC and SAC. Depends on both. Last class library before the UI layer.</p>
+
+  <div class="card">
+    <h3>Key patterns</h3>
+    <ul class="checklist">
+      <li><div class="check done"></div><div class="item-text">Remove all Service Locator patterns — inject via constructor</div></li>
+      <li><div class="check done"></div><div class="item-text">Replace Unity / Ninject registrations with built-in DI in Program.cs</div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Make all I/O methods async with CancellationToken</div><div class="item-tag"><span class="tag tag-auto">auto</span></div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Replace log4net with ILogger&lt;T&gt;</div><div class="item-tag"><span class="tag tag-auto">auto</span></div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Replace ConfigurationManager with IConfiguration</div><div class="item-tag"><span class="tag tag-auto">auto</span></div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Files &gt; 500 LOC: run agent-complexity-decomposer first</div><div class="item-tag"><span class="tag tag-manual">manual</span></div></li>
+    </ul>
+  </div>
+</div>
+
+<!-- WEBAPP -->
+<div class="panel" id="panel-webapp">
+  <h2>6. WebApp / SOAP — surface layer</h2>
+  <p class="subtitle">Migrated last. .aspx → Razor Pages, .ascx → Partial Views, .asmx → Minimal API or CoreWCF.</p>
+
+  <div class="card">
+    <h3>WebForms control map (critical 10)</h3>
+    <table class="tbl">
+      <tr><th>Framework control</th><th>.NET 8 equivalent</th></tr>
+      <tr><td><code>&lt;asp:GridView&gt;</code></td><td>HTML table + <code>@foreach</code> in Razor</td></tr>
+      <tr><td><code>&lt;asp:Repeater&gt;</code></td><td><code>@foreach</code> with partial view</td></tr>
+      <tr><td><code>&lt;asp:UpdatePanel&gt;</code></td><td>AJAX fetch + partial view OR Blazor component</td></tr>
+      <tr><td><code>&lt;asp:TextBox&gt;</code></td><td><code>&lt;input asp-for="..."&gt;</code></td></tr>
+      <tr><td><code>&lt;asp:DropDownList&gt;</code></td><td><code>&lt;select asp-for="..." asp-items="..."&gt;</code></td></tr>
+      <tr><td><code>&lt;asp:Button&gt;</code></td><td><code>&lt;button type="submit"&gt;</code></td></tr>
+      <tr><td><code>&lt;asp:RequiredFieldValidator&gt;</code></td><td><code>[Required]</code> + <code>&lt;span asp-validation-for&gt;</code></td></tr>
+      <tr><td>Master Page</td><td><code>_Layout.cshtml</code></td></tr>
+      <tr><td><code>Page_Load (!IsPostBack)</code></td><td><code>OnGetAsync()</code> in PageModel</td></tr>
+      <tr><td><code>Button_Click</code> handler</td><td><code>OnPostAsync()</code> in PageModel</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Page migration command</h3>
+    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
+      <span style="color:var(--blue-text);font-weight:600">@claude</span>
+      <span style="color:var(--blue-text)">using agent-ui-adapter, migrate src-framework/WebApp/Pages/ProductList.aspx to a Razor Page</span>
+    </div>
+  </div>
+</div>
+
+<!-- LDAP -->
+<div class="panel" id="panel-ldap">
+  <h2>LDAP — migration path</h2>
+  <p class="subtitle">System.DirectoryServices → Novell.Directory.Ldap.NETStandard (sourced from Artifactory).</p>
+
+  <div class="card">
+    <h3>Before / after</h3>
+    <div class="diff">
+      <div class="diff-header">LdapAuthService.cs</div>
+      <div class="diff-line diff-old">- using System.DirectoryServices;</div>
+      <div class="diff-line diff-old">- using System.DirectoryServices.AccountManagement;</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- var entry = new DirectoryEntry("LDAP://yourorg.com", user, pass);</div>
+      <div class="diff-line diff-old">- var searcher = new DirectorySearcher(entry);</div>
+      <div class="diff-line diff-old">- searcher.Filter = $"(sAMAccountName={username})";</div>
+      <div class="diff-line diff-old">- var result = searcher.FindOne();</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-new">+ using Novell.Directory.Ldap;</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-new">+ using var conn = new LdapConnection();</div>
+      <div class="diff-line diff-new">+ await conn.ConnectAsync(_options.Host, _options.Port);</div>
+      <div class="diff-line diff-new">+ await conn.BindAsync(_options.BindDn, _options.BindPassword);</div>
+      <div class="diff-line diff-new">+ var results = conn.Search(_options.BaseDn, LdapConnection.ScopeSub,</div>
+      <div class="diff-line diff-new">+     $"(sAMAccountName={username})", null, false);</div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>NuGet package (from Artifactory)</h3>
+    <div class="code"><pre>&lt;PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" /&gt;</pre></div>
+    <div class="alert alert-warn">LDAP credentials (bind DN, bind password) go in Azure Key Vault / environment variables. Add strongly-typed options class: <code>LdapOptions</code> registered via <code>builder.Services.Configure&lt;LdapOptions&gt;(config.GetSection("Ldap"))</code></div>
+  </div>
+</div>
+
+<!-- ADO.NET -->
+<div class="panel" id="panel-ado">
+  <h2>ADO.NET — migration path</h2>
+  <p class="subtitle">Two options: Dapper (minimal change) or EF Core (full ORM). Dapper preferred when you want to keep stored procs.</p>
+
+  <div class="path-grid">
+    <div class="path-card">
+      <div class="from">ADO.NET SqlCommand</div>
+      <div class="to">→ Dapper (keep SQL)</div>
+      <div class="desc">Add <code>Dapper</code> package. Replace SqlDataReader loops with <code>QueryAsync&lt;T&gt;</code>. Stored procs work unchanged. Fastest migration.</div>
+    </div>
+    <div class="path-card">
+      <div class="from">ADO.NET raw SQL</div>
+      <div class="to">→ EF Core (full ORM)</div>
+      <div class="desc">Scaffold DbContext from existing DB. Replace all raw SQL with LINQ. Best for long-term maintainability.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Dapper migration example</h3>
+    <div class="diff">
+      <div class="diff-header">CustomerRepository.cs</div>
+      <div class="diff-line diff-old">- using (var conn = new SqlConnection(_connStr)) {</div>
+      <div class="diff-line diff-old">-   conn.Open();</div>
+      <div class="diff-line diff-old">-   var cmd = new SqlCommand("SELECT * FROM Customers WHERE Id=@id", conn);</div>
+      <div class="diff-line diff-old">-   cmd.Parameters.AddWithValue("@id", id);</div>
+      <div class="diff-line diff-old">-   var reader = cmd.ExecuteReader();</div>
+      <div class="diff-line diff-old">-   while(reader.Read()) { ... }</div>
+      <div class="diff-line diff-old">- }</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-new">+ await using var conn = new SqlConnection(_connStr);</div>
+      <div class="diff-line diff-new">+ var customer = await conn.QueryFirstOrDefaultAsync&lt;Customer&gt;(</div>
+      <div class="diff-line diff-new">+     "SELECT * FROM Customers WHERE Id=@Id", new { Id = id });</div>
+    </div>
+  </div>
+</div>
+
+<!-- APIGEE -->
+<div class="panel" id="panel-apigee">
+  <h2>Apigee / external API calls</h2>
+  <p class="subtitle">Replace RestSharp / WebClient with IHttpClientFactory typed clients. API keys in Key Vault.</p>
+
+  <div class="card">
+    <h3>Typed client pattern</h3>
+    <div class="code"><pre>// Program.cs
+builder.Services.AddHttpClient&lt;IApigeeProductClient, ApigeeProductClient&gt;(c => {
+    c.BaseAddress = new Uri(builder.Configuration["Apigee:BaseUrl"]!);
+    c.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// ApigeeProductClient.cs
+public class ApigeeProductClient(HttpClient http, IConfiguration config)
+    : IApigeeProductClient
+{
+    public async Task&lt;List&lt;Product&gt;&gt; GetProductsAsync(CancellationToken ct = default)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/v1/products");
+        req.Headers.Add("x-api-key", config["Apigee:ApiKey"]);
+        var resp = await http.SendAsync(req, ct);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync&lt;List&lt;Product&gt;&gt;(ct) ?? [];
+    }
+}</pre></div>
+    <div class="alert alert-warn">Store <code>Apigee:ApiKey</code> and <code>Apigee:BaseUrl</code> in Azure Key Vault, not appsettings.json. Add <code>builder.Configuration.AddAzureKeyVault(...)</code> in Program.cs.</div>
+  </div>
+</div>
+
+<!-- PING -->
+<div class="panel" id="panel-ping">
+  <h2>Ping / OIDC login migration</h2>
+  <p class="subtitle">Replace FormsAuthentication with OpenID Connect middleware. Ping acts as the Identity Provider (IdP).</p>
+
+  <div class="card">
+    <h3>Program.cs OIDC setup</h3>
+    <div class="code"><pre>builder.Services
+    .AddAuthentication(options => {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options => {
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    })
+    .AddOpenIdConnect(options => {
+        options.Authority = config["Ping:DiscoveryUrl"];   // from Key Vault
+        options.ClientId = config["Ping:ClientId"];        // from Key Vault
+        options.ClientSecret = config["Ping:ClientSecret"];// from Key Vault
+        options.ResponseType = OpenIdConnectResponseType.Code;
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+        options.SaveTokens = true;
+        options.GetClaimsFromUserInfoEndpoint = true;
+    });
+
+app.UseAuthentication();
+app.UseAuthorization();</pre></div>
+    <div class="alert alert-info">Manual step: get <code>Ping:DiscoveryUrl</code>, <code>Ping:ClientId</code>, <code>Ping:ClientSecret</code> from your identity team. Add to Azure Key Vault before this code can work.</div>
+  </div>
+
+  <div class="card">
+    <h3>Replace FormsAuthentication calls</h3>
+    <div class="diff">
+      <div class="diff-header">AccountController.cs</div>
+      <div class="diff-line diff-old">- FormsAuthentication.SetAuthCookie(username, false);</div>
+      <div class="diff-line diff-new">+ // OIDC handles login — redirect to Ping</div>
+      <div class="diff-line diff-new">+ return Challenge(OpenIdConnectDefaults.AuthenticationScheme);</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-old">- FormsAuthentication.SignOut();</div>
+      <div class="diff-line diff-new">+ await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);</div>
+      <div class="diff-line diff-new">+ await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);</div>
+    </div>
+  </div>
+</div>
+
+<!-- CRYSTAL REPORTS -->
+<div class="panel" id="panel-crystal">
+  <h2>Crystal Reports — decision required</h2>
+  <p class="subtitle">No .NET Core support. Files flagged as 🚧 BLOCK in CODEBASE-MAP.md. A human decision is needed before migration can continue.</p>
+
+  <div class="alert alert-danger">Crystal Reports has no official .NET Core equivalent. Choose one of the four options below.</div>
+
+  <div class="card">
+    <h3>Option 1 — Microsoft.Reporting.NETCore (free, simple reports)</h3>
+    <div class="code"><pre>&lt;PackageReference Include="Microsoft.Reporting.NETCore" Version="3.0.0" /&gt;</pre></div>
+    <p style="font-size:13px;color:var(--text2)">Renders existing .rdlc report files. Works for local reports — no server deployment. Best for simple tabular reports. Zero cost.</p>
+  </div>
+
+  <div class="card">
+    <h3>Option 2 — FastReport Community Edition (free, complex reports)</h3>
+    <div class="code"><pre>&lt;PackageReference Include="FastReport.OpenSource" Version="2024.1.0" /&gt;</pre></div>
+    <p style="font-size:13px;color:var(--text2)">Full report designer, charts, sub-reports. Open source. Reports need redrawing from scratch in FastReport format.</p>
+  </div>
+
+  <div class="card">
+    <h3>Option 3 — SSRS (SQL Server Reporting Services)</h3>
+    <p style="font-size:13px;color:var(--text2)">If your org already has SQL Server licensed. Reports stay in SSRS, app calls SSRS REST API. No package needed.</p>
+  </div>
+
+  <div class="card">
+    <h3>Option 4 — Telerik Reporting or DevExpress (paid)</h3>
+    <p style="font-size:13px;color:var(--text2)">Full-featured, closest to Crystal Reports feature set. Requires license purchase. Reports need redrawing.</p>
+    <div class="alert alert-warn">After selecting an option, update CODEBASE-MAP.md: change 🚧 BLOCK to ⏳ QUEUE for all report files, add the chosen package to the approved registry.</div>
+  </div>
+</div>
+
+<!-- SOAP -->
+<div class="panel" id="panel-soap">
+  <h2>SOAP / ASMX services</h2>
+  <p class="subtitle">agent-soap-wcf-migrator handles these. Decision: Minimal API vs CoreWCF vs gRPC.</p>
+
+  <div class="card">
+    <h3>Decision tree</h3>
+    <table class="tbl">
+      <tr><th>Scenario</th><th>Target</th></tr>
+      <tr><td>External clients depend on WSDL contract</td><td>CoreWCF — preserves WSDL exactly, drop-in</td></tr>
+      <tr><td>Internal .NET clients only, no contract lock</td><td>Minimal API + JSON — simplest</td></tr>
+      <tr><td>Internal .NET clients, high throughput needed</td><td>gRPC — best perf, type-safe</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>ASMX → Minimal API (most common)</h3>
+    <div class="diff">
+      <div class="diff-header">CustomerService: .asmx → Program.cs endpoints</div>
+      <div class="diff-line diff-old">- [WebService(Namespace = "http://yourorg.com/")]</div>
+      <div class="diff-line diff-old">- public class CustomerService : System.Web.Services.WebService {</div>
+      <div class="diff-line diff-old">-   [WebMethod]</div>
+      <div class="diff-line diff-old">-   public Customer GetCustomer(int id) { ... }</div>
+      <div class="diff-line diff-old">- }</div>
+      <div class="diff-line diff-ctx"> </div>
+      <div class="diff-line diff-new">+ app.MapGet("/customers/{id:int}", async (int id, ICustomerRepo repo) =></div>
+      <div class="diff-line diff-new">+     await repo.GetAsync(id) is Customer c ? Results.Ok(c) : Results.NotFound())</div>
+      <div class="diff-line diff-new">+     .WithOpenApi();</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="panel" id="panel-map">
+  <h2>Codebase map — live example</h2>
+  <p class="subtitle">CODEBASE-MAP.md is your single source of truth. Committed to git. Shared across your whole team.</p>
+
+  <div class="card">
+    <h3>Adding entries after completing a file</h3>
+    <div class="code"><pre>✅ DONE  | BC  | src/BC/OrderService.cs     | hash:d3e1f9 | code-refactor | cov:78% | async, ILogger added
+✅ DONE  | BC  | src/BC/CustomerService.cs  | hash:a1b2c3 | code-refactor | cov:82% | LDAP removed → injected
+🔄 WIP   | DAC | src/DAC/UserRepository.cs  | hash:—      | data-migrator | —       | EF Core conversion
+⏳ QUEUE | BC  | src/BC/InvoiceService.cs   | hash:—      | code-refactor | —       | wait: DAC
+🚧 BLOCK | DAC | src/DAC/ReportService.cs   | hash:f1c4b9 | dep-resolver  | —       | Crystal Reports — awaiting decision
+⏭ SKIP  | DAC | src/DAC/Migrations/        | hash:—      | —             | —       | generated, excluded</pre></div>
+  </div>
+
+  <div class="card">
+    <h3>Resuming after any break</h3>
+    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
+      <span style="color:var(--blue-text);font-weight:600">@claude</span>
+      <span style="color:var(--blue-text)">resume migration</span>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-top:8px">Claude reads CODEBASE-MAP.md (~200 tokens), identifies the next ⏳ QUEUE file, loads only the skill needed for that file, migrates it, updates the map. Zero re-analysis of completed files.</p>
+  </div>
+</div>
+
+<!-- TOKENS -->
+<div class="panel" id="panel-tokens">
+  <h2>Token dashboard</h2>
+  <p class="subtitle">Understand exactly where tokens are going and how the map reduces them.</p>
+
+  <div class="card">
+    <h3>Calculate your savings</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Total files in solution</label>
+        <input type="range" min="20" max="600" value="200" step="10" id="t-total" oninput="calcTokens()">
+        <span id="t-total-out" style="font-size:13px;font-weight:600">200</span>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Cache hit rate (% done)</label>
+        <input type="range" min="5" max="95" value="60" step="5" id="t-hit" oninput="calcTokens()">
+        <span id="t-hit-out" style="font-size:13px;font-weight:600">60%</span>
+      </div>
+    </div>
+
+    <div class="stat-grid" id="token-stats">
+      <div class="stat"><div class="num" id="ts-without" style="color:var(--red-text)">300K</div><div class="lbl">without map</div></div>
+      <div class="stat"><div class="num" id="ts-with" style="color:var(--green-text)">126K</div><div class="lbl">with map</div></div>
+      <div class="stat"><div class="num" id="ts-save" style="color:var(--green-text)">58%</div><div class="lbl">saving</div></div>
+      <div class="stat"><div class="num" id="ts-abs" style="color:var(--teal-text)">174K</div><div class="lbl">tokens freed</div></div>
+    </div>
+
+    <div style="margin-top:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Cost per operation type</div>
+      <div class="meter-row"><span class="meter-label">Cache hit (map read)</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:1%;background:var(--green)"></div></div><span class="meter-val">~20 tokens</span></div>
+      <div class="meter-row"><span class="meter-label">Full file analysis</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:50%;background:var(--amber)"></div></div><span class="meter-val">~1,500 tokens</span></div>
+      <div class="meter-row"><span class="meter-label">Load skill file</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:40%;background:var(--blue)"></div></div><span class="meter-val">~800 tokens</span></div>
+      <div class="meter-row"><span class="meter-label">Load agent file</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:65%;background:var(--purple)"></div></div><span class="meter-val">~1,800 tokens</span></div>
+      <div class="meter-row"><span class="meter-label">CLAUDE.md (always)</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:7%;background:var(--teal)"></div></div><span class="meter-val">~200 tokens</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>How to check savings from the terminal</h3>
+    <div class="cmd"><span class="prompt">$</span><span>echo "Done: $(grep -c '✅' .github/memory/CODEBASE-MAP.md) | Queue: $(grep -c '⏳' .github/memory/CODEBASE-MAP.md) | Blocked: $(grep -c '🚧' .github/memory/CODEBASE-MAP.md)"</span><button class="copy-btn" onclick="copyCmd(this,`echo \"Done: \$(grep -c '✅' .github/memory/CODEBASE-MAP.md) | Queue: \$(grep -c '⏳' .github/memory/CODEBASE-MAP.md)\"`)">copy</button></div>
+  </div>
+</div>
+
+<!-- SECURITY -->
+<div class="panel" id="panel-security">
+  <h2>Security checks — Artifactory-only</h2>
+  <p class="subtitle">No external tools. All security checking uses .NET SDK built-ins and your Artifactory NuGet analyzer package.</p>
+
+  <div class="card">
+    <h3>CVE scan (built into .NET SDK)</h3>
+    <div class="cmd"><span class="prompt">$</span><span>dotnet list package --vulnerable --include-transitive</span><button class="copy-btn" onclick="copyCmd(this,'dotnet list package --vulnerable --include-transitive')">copy</button></div>
+    <div class="alert alert-info">Run after every <code>.csproj</code> change. CVSS ≥ 7.0 (HIGH) = block PR. Built into the SDK — no Artifactory lookup needed.</div>
+  </div>
+
+  <div class="card">
+    <h3>SAST via Roslyn — add to .csproj (from Artifactory)</h3>
+    <div class="code"><pre>&lt;ItemGroup&gt;
+  &lt;!-- Microsoft built-in — ships with .NET SDK, zero external fetch --&gt;
+  &lt;PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0"&gt;
+    &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+    &lt;IncludeAssets&gt;analyzers&lt;/IncludeAssets&gt;
+  &lt;/PackageReference&gt;
+
+  &lt;!-- SecurityCodeScan — source from Artifactory NuGet mirror --&gt;
+  &lt;PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7"&gt;
+    &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+    &lt;IncludeAssets&gt;analyzers&lt;/IncludeAssets&gt;
+  &lt;/PackageReference&gt;
+
+  &lt;!-- Your org's custom Roslyn analyzer from Artifactory --&gt;
+  &lt;PackageReference Include="YourOrg.Analyzers" Version="x.x.x"&gt;
+    &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+    &lt;IncludeAssets&gt;analyzers&lt;/IncludeAssets&gt;
+  &lt;/PackageReference&gt;
+&lt;/ItemGroup&gt;</pre></div>
+    <p style="font-size:12px;color:var(--text2);margin-top:8px">Violations appear as build errors — caught in <code>dotnet build</code>. Results cached per file by git hash in CODEBASE-MAP.md. Never re-run on unchanged files.</p>
+  </div>
+
+  <div class="card">
+    <h3>Secret detection — zero external tools</h3>
+    <div class="cmd"><span class="prompt">$</span><span>git diff HEAD -- '*.cs' '*.json' '*.config' | grep "^+" | grep -iv "^+++" | grep -iE '(password\s*=\s*[^$&lt;{][^;]{3,}|api[_-]?key\s*[:=]\s*[a-zA-Z0-9]{16,})' | grep -iv '(//|todo|example|placeholder)'</span><button class="copy-btn" onclick="copyCmd(this,`git diff HEAD -- '*.cs' '*.json' | grep '^+' | grep -iE '(password|api.key)\\s*[:=]'`)">copy</button></div>
+  </div>
+
+  <div class="card">
+    <h3>Migration-specific security gaps to check</h3>
+    <table class="tbl">
+      <tr><th>Gap</th><th>Check</th><th>Fix</th></tr>
+      <tr><td>MachineKey in web.config</td><td><code>grep machineKey web.config</code></td><td>Replace with Data Protection API</td></tr>
+      <tr><td><code>ValidateRequest="false"</code></td><td>grep .aspx directives</td><td>Remove + add explicit input validation</td></tr>
+      <tr><td><code>@Html.Raw(userInput)</code></td><td>grep .cshtml files</td><td>Only for sanitized CMS content</td></tr>
+      <tr><td>Antiforgery missing</td><td>grep for POST actions without token</td><td>Add <code>[ValidateAntiForgeryToken]</code> globally</td></tr>
+      <tr><td>Static <code>HttpContext.Current</code></td><td><code>grep -r "HttpContext.Current"</code></td><td>Inject <code>IHttpContextAccessor</code></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- CI -->
+<div class="panel" id="panel-ci">
+  <h2>CI pipeline — Artifactory-only</h2>
+  <p class="subtitle">Self-hosted runners with Artifactory access. No external actions, no npm/pip installs.</p>
+
+  <div class="card">
+    <h3>.github/workflows/migration-ci.yml — key jobs</h3>
+    <div class="code"><pre>jobs:
+  build:
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+
+      - name: Configure Artifactory (no nuget.org)
+        run: |
+          dotnet nuget remove source nuget.org 2>/dev/null || true
+          dotnet nuget add source "$ARTIFACTORY_URL/api/nuget/nuget-virtual" \
+            --name Artifactory \
+            --username "$ARTIFACTORY_USER" \
+            --password "$ARTIFACTORY_TOKEN" \
+            --store-password-in-clear-text
+
+      - name: Restore (locked mode)
+        run: dotnet restore --locked-mode
+
+      - name: Build + Roslyn/Org analyzers
+        run: dotnet build --no-restore --configuration Release
+
+      - name: CVE scan (SDK built-in)
+        run: |
+          dotnet list package --vulnerable --include-transitive | tee vuln.txt
+          grep -qi "High\|Critical" vuln.txt && exit 1 || true
+
+      - name: Secret scan (grep-based, no pip)
+        run: |
+          git diff origin/main...HEAD -- '*.cs' '*.json' '*.config' \
+            | grep "^+" | grep -iv "^+++" \
+            | grep -iE '(password\s*=\s*[^$&lt;{&quot;'"'"'][^;]{3,})' \
+            | grep -iv '(//|todo|example|placeholder)' \
+            && echo "SECRETS FOUND" && exit 1 || true
+
+      - name: Unit tests + coverage
+        run: |
+          dotnet test --no-build --configuration Release \
+            --filter "Category!=Integration" \
+            --collect:"XPlat Code Coverage"
+
+      - name: Framework dependency gate
+        run: |
+          HITS=$(find src-core/ -name "*.cs" -not -path "*/obj/*" \
+            | xargs grep -l "using System\.Web" 2>/dev/null || true)
+          [ -n "$HITS" ] && echo "$HITS" && exit 1 || echo "Clean"</pre></div>
+  </div>
+</div>
+
+</main>
 </div>
 
 <script>
-let cur=1,total=6;
-const titles=['Step 1 of 6 — prerequisites','Step 2 of 6 — scan & build map','Step 3 of 6 — create Core project','Step 4 of 6 — migration order','Step 5 of 6 — your specific patterns','Step 6 of 6 — token dashboard'];
-const tokens=[0,800,1200,2400,3600,0];
-let saved=0;
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  var panel=document.getElementById('panel-'+id);
+  if(panel)panel.classList.add('active');
+  var navItems=document.querySelectorAll('.nav-item');
+  navItems.forEach(function(n){
+    if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")){
+      n.classList.add('active');
+    }
+  });
+  addTokens(id);
+  window.scrollTo(0,0);
+}
 
-function buildDots(){
-  const d=document.getElementById('dots');
-  d.innerHTML='';
-  for(let i=1;i<=total;i++){
-    const s=document.createElement('div');
-    s.style.cssText=`width:6px;height:6px;border-radius:50%;background:${i===cur?'var(--color-text-info)':'var(--color-border-secondary)'};transition:background .2s`;
-    d.appendChild(s);
+var tokenMap={overview:0,setup:200,scan:800,structure:400,utilities:1200,dac:2800,bc:2200,sac:1600,bpc:1400,webapp:3200,ldap:600,ado:600,apigee:600,ping:700,crystal:300,soap:600,map:200,tokens:100,security:400,ci:400};
+var totalSaved=0;
+var visited={};
+function addTokens(id){
+  if(!visited[id]){
+    visited[id]=true;
+    var saved=tokenMap[id]||0;
+    totalSaved+=saved;
+    document.getElementById('sidebar-token-val').textContent=totalSaved.toLocaleString();
   }
 }
 
-function navigate(dir){
-  if(cur+dir<1||cur+dir>total)return;
-  document.getElementById('s'+cur).classList.remove('active');
-  document.getElementById('p'+cur).classList.remove('active');
-  if(dir>0){saved+=tokens[cur-1];document.getElementById('p'+cur).classList.add('done');}
-  cur+=dir;
-  document.getElementById('s'+cur).classList.add('active');
-  document.getElementById('p'+cur).classList.add('active');
-  document.getElementById('step-title').textContent=titles[cur-1];
-  document.getElementById('prog').style.width=Math.round(cur/total*100)+'%';
-  document.getElementById('token-counter').textContent=saved.toLocaleString();
-  document.getElementById('prev-btn').style.visibility=cur>1?'visible':'hidden';
-  document.getElementById('next-btn').textContent=cur===total?'Done ✓':'Next →';
-  document.getElementById('next-btn').onclick=cur===total?()=>sendPrompt('How do I start the migration for my specific project?'):()=>navigate(1);
-  buildDots();
-  if(cur===6)calcTokens();
+function toggleCheck(el){
+  el.classList.toggle('done');
+}
+
+function copyCmd(btn,text){
+  navigator.clipboard.writeText(text).then(function(){
+    var orig=btn.textContent;
+    btn.textContent='copied';
+    setTimeout(function(){btn.textContent=orig;},1500);
+  });
 }
 
 function calcTokens(){
-  const f=+document.getElementById('total-files').value;
-  const h=+document.getElementById('hit-rate').value/100;
-  const hits=Math.round(f*h),misses=f-hits;
-  document.getElementById('m1').textContent=hits;
-  document.getElementById('m2').textContent=misses;
-  document.getElementById('m3').textContent=Math.round(f*0.08);
-  const without=f*1500,withMap=hits*20+misses*1500;
-  document.getElementById('without-t').textContent=Math.round(without/1000)+'K';
-  document.getElementById('with-t').textContent=Math.round(withMap/1000)+'K';
-  const pct=Math.round((1-withMap/without)*100);
-  const abs=Math.round((without-withMap)/1000);
-  document.getElementById('saving-pct').textContent=pct+'%';
-  document.getElementById('saving-abs').textContent=abs+'K tokens';
+  var total=parseInt(document.getElementById('t-total').value);
+  var hitPct=parseInt(document.getElementById('t-hit').value);
+  document.getElementById('t-total-out').textContent=total;
+  document.getElementById('t-hit-out').textContent=hitPct+'%';
+  var hits=Math.round(total*hitPct/100);
+  var misses=total-hits;
+  var without=total*1500;
+  var withMap=hits*20+misses*1500;
+  var savePct=Math.round((1-withMap/without)*100);
+  var saveAbs=Math.round((without-withMap)/1000);
+  document.getElementById('ts-without').textContent=Math.round(without/1000)+'K';
+  document.getElementById('ts-with').textContent=Math.round(withMap/1000)+'K';
+  document.getElementById('ts-save').textContent=savePct+'%';
+  document.getElementById('ts-abs').textContent=saveAbs+'K';
 }
-
-document.getElementById('total-files').oninput=function(){
-  document.getElementById('total-files-out').textContent=this.value;
-  calcTokens();
-};
-document.getElementById('hit-rate').oninput=function(){
-  document.getElementById('hit-rate-out').textContent=this.value+'%';
-  calcTokens();
-};
-
-buildDots();
-calcTokens();
 </script>
+</body>
+</html>
