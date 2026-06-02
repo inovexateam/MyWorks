@@ -1,0 +1,40 @@
+# Copilot Ignore File
+
+# Dependencies — never index
+node_modules/
+packages/
+.npm/
+
+# Build outputs
+bin/
+obj/
+dist/
+build/
+out/
+
+# Cache and temp
+.cache/
+.temp/
+tmp/
+*.log
+*.tmp
+
+# Generated code
+generated/
+auto-generated/
+
+# IDE temp
+.vs/
+.vscode/
+*.user
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive
+*.env
+*.key
+.secrets/
