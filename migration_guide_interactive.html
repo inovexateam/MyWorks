@@ -284,7 +284,7 @@ code,pre{font-family:var(--mono);font-size:12px}
     <h3>Prerequisites</h3>
     <ul class="checklist" id="setup-checks">
       <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">VS Code installed</div></li>
-      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Claude Code extension installed</div></li>
+      <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">GitHub Copilot extension installed</div></li>
       <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">.NET 8 SDK — run <code>dotnet --version</code> must show 8.x</div></li>
       <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Git access to your repo</div></li>
       <li><div class="check" onclick="toggleCheck(this)"></div><div class="item-text">Artifactory NuGet feed URL from your org</div></li>
@@ -311,13 +311,12 @@ code,pre{font-family:var(--mono);font-size:12px}
 
   <div class="card">
     <h3>Step 3 — Start the migration</h3>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">In VS Code, open Claude Code and type exactly this:</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">In VS Code, open GitHub Copilot Chat and type exactly this:</p>
     <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
-      <span style="color:var(--blue-text);font-weight:600">@claude</span>
-      <span style="color:var(--blue-text)">start migration</span>
-      <button class="copy-btn" onclick="copyCmd(this,'@claude start migration')">copy</button>
+      <span style="color:var(--blue-text);font-weight:600">/migration-mode</span>
+      <button class="copy-btn" onclick="copyCmd(this,'/migration-mode')">copy</button>
     </div>
-    <p style="font-size:12px;color:var(--text3);margin-top:8px">Claude reads CLAUDE.md (~200 tokens), scans your solution, builds the map, creates the Core project structure, and begins migrating in dependency order.</p>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px">Copilot reads GITHUB-COPILOT.md (~200 tokens), scans your solution, builds the map, creates the Core project structure, and begins migrating in dependency order.</p>
   </div>
 
   <button class="btn btn-primary" onclick="show('scan')">Next: scan &amp; map →</button>
@@ -355,7 +354,7 @@ code,pre{font-family:var(--mono);font-size:12px}
       <div class="map-line"><span class="map-status s-queue">⏳ QUEUE</span><span class="map-file">src/BC/OrderService.cs</span><span class="map-note">wait: DAC complete</span></div>
       <div class="map-line"><span class="map-status s-queue">⏳ QUEUE</span><span class="map-file">src/WebApp/Pages/ProductList.aspx</span><span class="map-note">agent-ui-adapter</span></div>
     </div>
-    <div class="alert alert-info">Every session: Claude reads this file first (~200 tokens). ✅ files = cache hit (20 tokens each). Only ⏳ QUEUE files get full analysis (~1,500 tokens each).</div>
+    <div class="alert alert-info">Every session: Copilot reads this file first (~200 tokens). ✅ files = cache hit (20 tokens each). Only ⏳ QUEUE files get full analysis (~1,500 tokens each).</div>
   </div>
 
   <div class="card">
@@ -393,7 +392,7 @@ code,pre{font-family:var(--mono);font-size:12px}
 │   └── nuget.config        ← Artifactory only, no nuget.org
 │
 ├── .github/                ← this migration kit
-│   ├── CLAUDE.md           ← entry point, 200 tokens
+│   ├── GITHUB-COPILOT.md   ← entry point, 200 tokens
 │   ├── memory/
 │   │   └── CODEBASE-MAP.md ← live progress, committed to git
 │   ├── agents/             ← loaded on demand
@@ -407,9 +406,10 @@ code,pre{font-family:var(--mono);font-size:12px}
   <div class="card">
     <h3>Command to create the Core structure</h3>
     <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
-      <span style="color:var(--blue-text);font-weight:600">@claude</span>
-      <span style="color:var(--blue-text)">create the new .NET 8 solution structure alongside this existing app. Use the project layout from CODEBASE-MAP.md. Configure nuget.config to use Artifactory only.</span>
+      <span style="color:var(--blue-text);font-weight:600">/migration-mode</span>
+      <button class="copy-btn" onclick="copyCmd(this,'/migration-mode')">copy</button>
     </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px">Then ask: Create the new .NET 8 solution structure alongside this existing app. Use the project layout from CODEBASE-MAP.md. Configure nuget.config to use Artifactory only.</p>
   </div>
 </div>
 
@@ -435,8 +435,9 @@ code,pre{font-family:var(--mono);font-size:12px}
   <div class="card">
     <h3>Command</h3>
     <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
-      <span style="color:var(--blue-text);font-weight:600">@claude</span>
-      <span style="color:var(--blue-text)">run migration-bundle for project: Utilities</span>
+      <span style="color:var(--blue-text);font-weight:600">/migration-bundle</span>
+      <span>Utilities</span>
+      <button class="copy-btn" onclick="copyCmd(this,'/migration-bundle Utilities')">copy</button>
     </div>
     <div class="cmd"><span class="prompt">$</span><span>dotnet build src-core/Utilities.Core/</span><button class="copy-btn" onclick="copyCmd(this,'dotnet build src-core/Utilities.Core/')">copy</button></div>
     <div class="alert alert-info">Must be 0 errors before moving to DAC.</div>
@@ -493,8 +494,9 @@ code,pre{font-family:var(--mono);font-size:12px}
   <div class="card">
     <h3>Migration command</h3>
     <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
-      <span style="color:var(--blue-text);font-weight:600">@claude</span>
-      <span style="color:var(--blue-text)">run migration-bundle for project: DAC</span>
+      <span style="color:var(--blue-text);font-weight:600">/migration-bundle</span>
+      <span>DAC</span>
+      <button class="copy-btn" onclick="copyCmd(this,'/migration-bundle DAC')">copy</button>
     </div>
   </div>
 </div>
@@ -532,8 +534,9 @@ builder.Services.AddScoped&lt;ICustomerService, CustomerService&gt;();
   <div class="card">
     <h3>Migration command</h3>
     <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
-      <span style="color:var(--blue-text);font-weight:600">@claude</span>
-      <span style="color:var(--blue-text)">run migration-bundle for project: BC</span>
+      <span style="color:var(--blue-text);font-weight:600">/migration-bundle</span>
+      <span>BC</span>
+      <button class="copy-btn" onclick="copyCmd(this,'/migration-bundle BC')">copy</button>
     </div>
   </div>
 </div>
@@ -609,9 +612,10 @@ builder.Services.AddScoped&lt;ICustomerService, CustomerService&gt;();
 
   <div class="card">
     <h3>Page migration command</h3>
-    <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
-      <span style="color:var(--blue-text);font-weight:600">@claude</span>
-      <span style="color:var(--blue-text)">using agent-ui-adapter, migrate src-framework/WebApp/Pages/ProductList.aspx to a Razor Page</span>
+    <div class="cmd" style="background:var(--blue-bg);borde/migration-mode</span>
+      <button class="copy-btn" onclick="copyCmd(this,'/migration-mode')">copy</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px\">Then ask: Using agent-ui-adapter, migrate src-framework/WebApp/Pages/ProductList.aspx to a Razor Page</pan style="color:var(--blue-text)">using agent-ui-adapter, migrate src-framework/WebApp/Pages/ProductList.aspx to a Razor Page</span>
     </div>
   </div>
 </div>
@@ -847,10 +851,10 @@ app.UseAuthorization();</pre></div>
   <div class="card">
     <h3>Resuming after any break</h3>
     <div class="cmd" style="background:var(--blue-bg);border-color:var(--blue)">
-      <span style="color:var(--blue-text);font-weight:600">@claude</span>
-      <span style="color:var(--blue-text)">resume migration</span>
+      <span style="color:var(--blue-text);font-weight:600\">/migration-mode</span>
+      <button class="copy-btn" onclick="copyCmd(this,'/migration-mode')">copy</button>
     </div>
-    <p style="font-size:13px;color:var(--text2);margin-top:8px">Claude reads CODEBASE-MAP.md (~200 tokens), identifies the next ⏳ QUEUE file, loads only the skill needed for that file, migrates it, updates the map. Zero re-analysis of completed files.</p>
+    <p style="font-size:13px;color:var(--text2);margin-top:8px">Copilot reads CODEBASE-MAP.md (~200 tokens), identifies the next ⏳ QUEUE file, loads only the skill needed for that file, migrates it, updates the map. Zero re-analysis of completed files.</p>
   </div>
 </div>
 
@@ -887,7 +891,7 @@ app.UseAuthorization();</pre></div>
       <div class="meter-row"><span class="meter-label">Full file analysis</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:50%;background:var(--amber)"></div></div><span class="meter-val">~1,500 tokens</span></div>
       <div class="meter-row"><span class="meter-label">Load skill file</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:40%;background:var(--blue)"></div></div><span class="meter-val">~800 tokens</span></div>
       <div class="meter-row"><span class="meter-label">Load agent file</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:65%;background:var(--purple)"></div></div><span class="meter-val">~1,800 tokens</span></div>
-      <div class="meter-row"><span class="meter-label">CLAUDE.md (always)</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:7%;background:var(--teal)"></div></div><span class="meter-val">~200 tokens</span></div>
+      <div class="meter-row"><span class="meter-label">GITHUB-COPILOT.md (always)</span><div class="meter-bar-wrap"><div class="meter-bar" style="width:7%;background:var(--teal)"></div></div><span class="meter-val">~200 tokens</span></div>
     </div>
   </div>
 
