@@ -1,6 +1,6 @@
-# CLAUDE.md — .NET Migration Orchestrator
+# GITHUB-COPILOT.md — .NET Migration Orchestrator
 
-## ⚡ TOKEN-FIRST PROTOCOL — READ BEFORE ANYTHING ELSE
+## ⚡ CONTEXT-FIRST PROTOCOL — READ BEFORE ANYTHING ELSE
 
 ```
 STEP 1 (always):  Read memory/CODEBASE-MAP.md   (~200 tokens)
@@ -11,8 +11,7 @@ STEP 3 (never):   Do NOT load all skill files. Do NOT load all agent files.
                   Load exactly one. Do your work. Update the map. Stop.
 ```
 
-**Every unnecessary file load costs 600–1,500 tokens. With hundreds of projects,
-loading all context at once burns your entire Copilot budget before writing a line.**
+**Every unnecessary file load costs tokens. With large repos, loading all context at once wastes the budget before writing a line.**
 
 ---
 
@@ -60,13 +59,57 @@ EF6 / EDMX Models         → EF Core Code-First (agent-data-migrator)
 5. WebApp / SOAP / WCF — surface layers last
 ```
 
-## Secrets & Packages
+---
 
-All packages via Artifactory only:
-`https://artifactory.yourorg.com/artifactory/api/nuget/nuget-virtual`
+## GitHub Copilot Usage Instructions
 
-Approved packages listed in `memory/CODEBASE-MAP.md` (PKG section).
-Security tools: use org-hosted scanner or `dotnet list package --vulnerable` (built-in, zero external fetch).
+1. Open the repo in VS Code.
+2. Use GitHub Copilot Chat.
+3. Select `/migration-mode` for active migration work.
+4. Start with the highest-level analysis prompt, not by editing code immediately.
+5. Always begin with `memory/CODEBASE-MAP.md` and the migration checklist.
+6. Use prompt files from `.github/prompts/` based on the task.
+7. When the guide refers to migration rules, use `rules/migration-and-security-rules.md`.
+
+---
+
+## Recommended Starting Flow
+
+1. Start in Chat and say:
+
+```
+I want to migrate this .NET Framework project to .NET Core/.NET 8.
+First, read `.github/memory/CODEBASE-MAP.md`, then tell me the best next file to migrate.
+```
+
+2. If the tool supports modes, activate:
+
+```
+/migration-mode
+```
+
+3. If you want assessment before migration, use:
+
+```
+/analysis-mode
+```
+
+4. If you want package / dependency work, use:
+
+```
+/testing-mode
+```
+```
+
+5. Once you have the recommended next file, use the migration prompt form:
+
+```
+Use `.github/prompts/migrate-framework-to-core.md` if the file is framework code.
+Use `.github/prompts/refactor-ui.md` if the file is UI or WebForms.
+Use `.github/prompts/update-dependencies-run-tests-analyze.md` if the task is package updates, tests, or analysis.
+```
+
+---
 
 ## Output Mode Default
 
@@ -88,3 +131,34 @@ Switch to `/verbose` only for onboarding or complex architectural decisions.
 ```
 
 Full docs only if needed: `.github/skills/` · `.github/agents/` · `.github/plugins/`
+
+---
+
+## Starting Point for Copilot
+
+1. Read `.github/memory/CODEBASE-MAP.md`.
+2. Read `.github/chatmodes/migration-mode.md`.
+3. Ask Copilot for the highest priority file or project area.
+4. Confirm the migration plan for that file before changing it.
+5. Use the appropriate `.github/agents/` or `.github/skills/` file if the prompt says it is needed.
+
+---
+
+## Final Recommended Flow
+
+1. `Open project in VS Code`
+2. `Read memory/CODEBASE-MAP.md`
+3. `Activate /migration-mode`
+4. `Ask: "What is the next migration task?"`
+5. `Use the right prompt from .github/prompts/`
+6. `Review the plan`
+7. `Migrate the file`
+8. `Run tests`
+9. `Run security review`
+10. `Move to the next file`
+
+---
+
+## Note
+
+This repo is configured for GitHub Copilot usage. Do not use Claude-specific naming or instructions.
