@@ -1,0 +1,390 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+
+.section { padding: 1.5rem 0 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.section:last-child { border-bottom: none; }
+
+h2.sec-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.tab { padding: 6px 14px; font-size: 13px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; background: transparent; color: var(--color-text-secondary); transition: all 0.15s; }
+.tab:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+.tab.active { background: var(--color-background-primary); border-color: var(--color-border-primary); color: var(--color-text-primary); font-weight: 500; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.code-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.code-box { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+.code-box .label { font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+.code-box pre { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+.bad .label { color: #A32D2D; }
+.good .label { color: #3B6D11; }
+.bad { border: 0.5px solid #F7C1C1; }
+.good { border: 0.5px solid #C0DD97; }
+
+.saving-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; margin-left: 8px; background: #EAF3DE; color: #3B6D11; }
+
+.metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.75rem 1rem; }
+.metric .m-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.metric .m-val { font-size: 20px; font-weight: 500; }
+.metric .m-val.red { color: #A32D2D; }
+.metric .m-val.green { color: #3B6D11; }
+.metric .m-val.amber { color: #854F0B; }
+
+.calc-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.calc-row label { font-size: 13px; color: var(--color-text-secondary); min-width: 130px; }
+.calc-row input[type=range] { flex: 1; }
+.calc-row .val { font-size: 13px; font-weight: 500; min-width: 80px; text-align: right; }
+
+.result-bar { height: 8px; border-radius: 4px; margin: 4px 0 2px; transition: width 0.3s; }
+
+.tip-list { display: flex; flex-direction: column; gap: 8px; }
+.tip { display: flex; gap: 10px; align-items: flex-start; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+.tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 13px; line-height: 1.5; color: var(--color-text-primary); }
+.tip-text strong { font-weight: 500; }
+.tip-saving { font-size: 11px; color: #3B6D11; font-weight: 500; margin-top: 3px; }
+
+.model-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.model-table th { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-align: left; padding: 6px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.model-table td { padding: 7px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+.model-table tr:last-child td { border-bottom: none; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; display: inline-block; }
+.pill.cheap { background: #EAF3DE; color: #3B6D11; }
+.pill.mid { background: #FAEEDA; color: #854F0B; }
+.pill.exp { background: #FCEBEB; color: #A32D2D; }
+
+.cost-viz { display: flex; align-items: center; gap: 6px; }
+.cost-bar-wrap { flex: 1; background: var(--color-border-tertiary); border-radius: 4px; height: 8px; overflow: hidden; }
+.cost-bar { height: 100%; border-radius: 4px; }
+
+.scenario-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+.sbtn { padding: 7px 14px; font-size: 13px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; background: transparent; color: var(--color-text-secondary); }
+.sbtn:hover { background: var(--color-background-secondary); }
+.sbtn.active { border-color: var(--color-border-primary); color: var(--color-text-primary); font-weight: 500; background: var(--color-background-primary); }
+
+.before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ba-card { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; background: var(--color-background-primary); }
+.ba-card .ba-head { font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+.ba-card.before .ba-head { color: #A32D2D; }
+.ba-card.after .ba-head { color: #3B6D11; }
+.ba-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
+.ba-row span:last-child { font-weight: 500; color: var(--color-text-primary); }
+
+.ask-btn { margin-top: 1rem; padding: 8px 16px; font-size: 13px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; background: transparent; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 6px; }
+.ask-btn:hover { background: var(--color-background-secondary); }
+</style>
+
+<h2 class="sr-only">GitHub Copilot Token Optimization Demo — interactive examples showing how to reduce AI Credits usage</h2>
+
+<div class="section">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('calc')">Cost calculator</button>
+    <button class="tab" onclick="switchTab('models')">Model picker</button>
+    <button class="tab" onclick="switchTab('prompts')">Prompt examples</button>
+    <button class="tab" onclick="switchTab('context')">Context hygiene</button>
+    <button class="tab" onclick="switchTab('scenarios')">Real scenarios</button>
+  </div>
+
+  <div id="tab-calc" class="panel active">
+    <h2 class="sec-title">Live credit calculator</h2>
+    <div class="calc-row">
+      <label>Input tokens</label>
+      <input type="range" id="inp" min="1000" max="200000" step="1000" value="30000" oninput="recalc()">
+      <span class="val" id="inp-v">30,000</span>
+    </div>
+    <div class="calc-row">
+      <label>Output tokens</label>
+      <input type="range" id="out" min="500" max="20000" step="500" value="3000" oninput="recalc()">
+      <span class="val" id="out-v">3,000</span>
+    </div>
+    <div class="calc-row">
+      <label>Model</label>
+      <select id="model-sel" onchange="recalc()" style="flex:1; padding: 6px 8px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 13px;">
+        <option value="0.5,1.5">GPT-5 mini (free/cheap)</option>
+        <option value="2.5,12">GPT-5.4</option>
+        <option value="3,15" selected>Claude Sonnet 4.6</option>
+        <option value="5,30">GPT-5.5</option>
+        <option value="5,25">Claude Opus 4.8</option>
+        <option value="15,75">Claude Opus 4.6 fast mode</option>
+      </select>
+    </div>
+    <div style="margin-top: 1rem;">
+      <div class="metric-row" id="calc-metrics"></div>
+      <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 8px;" id="calc-context"></div>
+    </div>
+  </div>
+
+  <div id="tab-models" class="panel">
+    <h2 class="sec-title">Model cost comparison</h2>
+    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem;">Same 30K input + 3K output tokens across models</p>
+    <table class="model-table">
+      <tr><th>Model</th><th>Per 1M input</th><th>Per 1M output</th><th>Cost (30K+3K tokens)</th><th>Best for</th></tr>
+      <tr>
+        <td style="font-weight:500">GPT-5 mini</td><td>$0.50</td><td>$1.50</td>
+        <td><div class="cost-viz"><span style="font-size:13px;font-weight:500;min-width:40px">0.2¢</span><div class="cost-bar-wrap"><div class="cost-bar" style="width:2%;background:#639922"></div></div></div></td>
+        <td><span class="pill cheap">Routine tasks</span></td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">GPT-5.4</td><td>$2.50</td><td>$12</td>
+        <td><div class="cost-viz"><span style="font-size:13px;font-weight:500;min-width:40px">11¢</span><div class="cost-bar-wrap"><div class="cost-bar" style="width:12%;background:#BA7517"></div></div></div></td>
+        <td><span class="pill mid">Balanced</span></td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">Claude Sonnet 4.6</td><td>$3.00</td><td>$15</td>
+        <td><div class="cost-viz"><span style="font-size:13px;font-weight:500;min-width:40px">14¢</span><div class="cost-bar-wrap"><div class="cost-bar" style="width:16%;background:#BA7517"></div></div></div></td>
+        <td><span class="pill mid">Complex coding</span></td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">GPT-5.5</td><td>$5.00</td><td>$30</td>
+        <td><div class="cost-viz"><span style="font-size:13px;font-weight:500;min-width:40px">24¢</span><div class="cost-bar-wrap"><div class="cost-bar" style="width:26%;background:#993C1D"></div></div></div></td>
+        <td><span class="pill exp">Deep reasoning</span></td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">Claude Opus 4.8</td><td>$5.00</td><td>$25</td>
+        <td><div class="cost-viz"><span style="font-size:13px;font-weight:500;min-width:40px">23¢</span><div class="cost-bar-wrap"><div class="cost-bar" style="width:24%;background:#993C1D"></div></div></div></td>
+        <td><span class="pill exp">Architecture</span></td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">Opus 4.6 fast mode</td><td>$15.00</td><td>$75</td>
+        <td><div class="cost-viz"><span style="font-size:13px;font-weight:500;min-width:40px">68¢</span><div class="cost-bar-wrap"><div class="cost-bar" style="width:75%;background:#A32D2D"></div></div></div></td>
+        <td><span class="pill exp">Avoid daily use</span></td>
+      </tr>
+    </table>
+    <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 10px;">Switching from Opus fast mode → GPT-5 mini for routine tasks saves ~99% per request.</p>
+  </div>
+
+  <div id="tab-prompts" class="panel">
+    <h2 class="sec-title">Prompt optimization examples</h2>
+
+    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem;">Poorly worded prompts balloon input tokens. Here's how to fix them.</p>
+
+    <div style="margin-bottom: 1.25rem;">
+      <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center;">Example 1 — Refactor request <span class="saving-badge">~60% fewer tokens</span></div>
+      <div class="code-compare">
+        <div class="code-box bad">
+          <div class="label">❌ Bloated (~180 tokens)</div>
+          <pre>Hi Copilot! I have been working on this project for a while and I have this function here in my codebase. I was hoping you could take a look at it and maybe help me refactor it to make it better, cleaner, more readable, and potentially more efficient if possible. Here is the entire file context for you to understand what's going on...</pre>
+        </div>
+        <div class="code-box good">
+          <div class="label">✅ Tight (~70 tokens)</div>
+          <pre>Refactor this function for readability and performance. Keep the same signature.
+
+[selected code only]</pre>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1.25rem;">
+      <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center;">Example 2 — Bug fix <span class="saving-badge">~70% fewer tokens</span></div>
+      <div class="code-compare">
+        <div class="code-box bad">
+          <div class="label">❌ Vague + full file (~500 tokens)</div>
+          <pre>Something is wrong with my code, it doesn't work properly when I run it. I'm not sure what the issue is. Can you look through all of this and figure out the bug? [entire 300-line file pasted]</pre>
+        </div>
+        <div class="code-box good">
+          <div class="label">✅ Scoped to error (~150 tokens)</div>
+          <pre>TypeError: cannot read 'id' of undefined at line 42.
+
+Fix the null check. [10-line snippet around line 42]</pre>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center;">Example 3 — Code generation <span class="saving-badge">~50% fewer output tokens</span></div>
+      <div class="code-compare">
+        <div class="code-box bad">
+          <div class="label">❌ Open-ended (verbose output)</div>
+          <pre>Write me a function to validate email addresses in JavaScript. Include comments, examples, tests, and explain how it works.</pre>
+        </div>
+        <div class="code-box good">
+          <div class="label">✅ Constrained output</div>
+          <pre>Write a JS email validator. Return boolean. No comments, no tests, no explanation.</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-context" class="panel">
+    <h2 class="sec-title">Context hygiene — what secretly inflates your tokens</h2>
+    <div class="tip-list">
+      <div class="tip">
+        <i class="ti ti-files tip-icon" aria-hidden="true" style="color: #A32D2D;"></i>
+        <div class="tip-text">
+          <strong>Open tabs = hidden input tokens.</strong> Every file open in your editor can be silently included as context. A project with 20 tabs open can add 50K–100K tokens before you type a word.
+          <div class="tip-saving">Fix: close all unrelated tabs. Only keep the file you're editing.</div>
+        </div>
+      </div>
+      <div class="tip">
+        <i class="ti ti-message-dots tip-icon" aria-hidden="true" style="color: #A32D2D;"></i>
+        <div class="tip-text">
+          <strong>Long chat threads compound costs.</strong> Each new message re-sends your entire conversation history as input. A 20-turn chat can send 5x more tokens than a fresh session for the same question.
+          <div class="tip-saving">Fix: start a new chat when switching tasks. Treat sessions like sticky notes, not novels.</div>
+        </div>
+      </div>
+      <div class="tip">
+        <i class="ti ti-file-code tip-icon" aria-hidden="true" style="color: #854F0B;"></i>
+        <div class="tip-text">
+          <strong>copilot-instructions.md is always-on context.</strong> Every agent step loads this file. LLM-generated boilerplate in it can add 2K–5K tokens per step across a 15-step agent task.
+          <div class="tip-saving">Fix: prune to only critical constraints ("landmines"). Delete anything a good developer already knows.</div>
+        </div>
+      </div>
+      <div class="tip">
+        <i class="ti ti-server tip-icon" aria-hidden="true" style="color: #854F0B;"></i>
+        <div class="tip-text">
+          <strong>MCP servers cost 100–500 tokens each, per agent step.</strong> 15 MCP servers × 15 agent steps = up to 112,500 tokens of pure overhead — before your actual task even runs.
+          <div class="tip-saving">Fix: audit and remove MCP servers you don't actively use. Keep only the ones you touch weekly.</div>
+        </div>
+      </div>
+      <div class="tip">
+        <i class="ti ti-folder-open tip-icon" aria-hidden="true" style="color: #3B6D11;"></i>
+        <div class="tip-text">
+          <strong>node_modules and generated files get indexed.</strong> These folders have thousands of files that expand repository context needlessly.
+          <div class="tip-saving">Fix: add content exclusion rules in your .copilotignore or org settings for node_modules, dist, .cache, logs.</div>
+        </div>
+      </div>
+      <div class="tip">
+        <i class="ti ti-select tip-icon" aria-hidden="true" style="color: #3B6D11;"></i>
+        <div class="tip-text">
+          <strong>Select code before asking.</strong> Without a selection, Copilot Chat may index the whole repo. A 20-line selection scopes the context to just that code.
+          <div class="tip-saving">Fix: always highlight the relevant lines first, then open Copilot Chat.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-scenarios" class="panel">
+    <h2 class="sec-title">Real developer scenarios</h2>
+    <div class="scenario-btns">
+      <button class="sbtn active" onclick="showScenario('agent')">Agent refactor session</button>
+      <button class="sbtn" onclick="showScenario('chat')">Daily Q&A usage</button>
+      <button class="sbtn" onclick="showScenario('review')">PR code review</button>
+    </div>
+
+    <div id="sc-agent" class="scenario">
+      <div class="before-after">
+        <div class="ba-card before">
+          <div class="ba-head">❌ Before optimization</div>
+          <div class="ba-row"><span>Model</span><span>Opus 4.6 fast mode</span></div>
+          <div class="ba-row"><span>Open tabs</span><span>18 files</span></div>
+          <div class="ba-row"><span>Instructions file</span><span>2,400 tokens (bloated)</span></div>
+          <div class="ba-row"><span>MCP servers</span><span>12 active</span></div>
+          <div class="ba-row"><span>Agent steps</span><span>15</span></div>
+          <div class="ba-row"><span>Est. input tokens</span><span>~310,000</span></div>
+          <div class="ba-row"><span style="font-weight:500;color:var(--color-text-primary)">Credits used</span><span style="font-weight:500;color:#A32D2D">~465 credits ($4.65)</span></div>
+        </div>
+        <div class="ba-card after">
+          <div class="ba-head">✅ After optimization</div>
+          <div class="ba-row"><span>Model</span><span>Claude Sonnet 4.6</span></div>
+          <div class="ba-row"><span>Open tabs</span><span>3 files</span></div>
+          <div class="ba-row"><span>Instructions file</span><span>300 tokens (lean)</span></div>
+          <div class="ba-row"><span>MCP servers</span><span>3 active</span></div>
+          <div class="ba-row"><span>Agent steps</span><span>15</span></div>
+          <div class="ba-row"><span>Est. input tokens</span><span>~55,000</span></div>
+          <div class="ba-row"><span style="font-weight:500;color:var(--color-text-primary)">Credits used</span><span style="font-weight:500;color:#3B6D11">~20 credits ($0.20)</span></div>
+        </div>
+      </div>
+      <div style="background: #EAF3DE; border-radius: var(--border-radius-md); padding: 10px 14px; margin-top: 12px; font-size: 13px; color: #3B6D11; font-weight: 500;">
+        <i class="ti ti-trending-down" aria-hidden="true"></i> 96% reduction — from $4.65 to $0.20 per agent session
+      </div>
+    </div>
+
+    <div id="sc-chat" class="scenario" style="display:none">
+      <div class="before-after">
+        <div class="ba-card before">
+          <div class="ba-head">❌ Before optimization</div>
+          <div class="ba-row"><span>Model</span><span>GPT-5.5 (default)</span></div>
+          <div class="ba-row"><span>Chat style</span><span>Long single session</span></div>
+          <div class="ba-row"><span>Questions per day</span><span>20</span></div>
+          <div class="ba-row"><span>Avg tokens/question</span><span>~8,000</span></div>
+          <div class="ba-row"><span>Daily token total</span><span>~160,000</span></div>
+          <div class="ba-row"><span style="font-weight:500;color:var(--color-text-primary)">Daily credits</span><span style="font-weight:500;color:#A32D2D">~130 credits ($1.30)</span></div>
+        </div>
+        <div class="ba-card after">
+          <div class="ba-head">✅ After optimization</div>
+          <div class="ba-row"><span>Model</span><span>GPT-5 mini (default)</span></div>
+          <div class="ba-row"><span>Chat style</span><span>Fresh session per task</span></div>
+          <div class="ba-row"><span>Questions per day</span><span>20</span></div>
+          <div class="ba-row"><span>Avg tokens/question</span><span>~2,000</span></div>
+          <div class="ba-row"><span>Daily token total</span><span>~40,000</span></div>
+          <div class="ba-row"><span style="font-weight:500;color:var(--color-text-primary)">Daily credits</span><span style="font-weight:500;color:#3B6D11">~4 credits ($0.04)</span></div>
+        </div>
+      </div>
+      <div style="background: #EAF3DE; border-radius: var(--border-radius-md); padding: 10px 14px; margin-top: 12px; font-size: 13px; color: #3B6D11; font-weight: 500;">
+        <i class="ti ti-trending-down" aria-hidden="true"></i> 97% reduction — from $1.30 to $0.04 per day of Q&A
+      </div>
+    </div>
+
+    <div id="sc-review" class="scenario" style="display:none">
+      <div class="before-after">
+        <div class="ba-card before">
+          <div class="ba-head">❌ Before optimization</div>
+          <div class="ba-row"><span>Reviews per week</span><span>Every PR (30)</span></div>
+          <div class="ba-row"><span>Model</span><span>Opus 4.8</span></div>
+          <div class="ba-row"><span>Also uses</span><span>GitHub Actions mins</span></div>
+          <div class="ba-row"><span>Avg tokens/review</span><span>~40,000</span></div>
+          <div class="ba-row"><span style="font-weight:500;color:var(--color-text-primary)">Weekly credits</span><span style="font-weight:500;color:#A32D2D">~660 credits ($6.60)</span></div>
+        </div>
+        <div class="ba-card after">
+          <div class="ba-head">✅ After optimization</div>
+          <div class="ba-row"><span>Reviews per week</span><span>Important PRs only (8)</span></div>
+          <div class="ba-row"><span>Model</span><span>Claude Sonnet 4.6</span></div>
+          <div class="ba-row"><span>Also uses</span><span>GitHub Actions mins</span></div>
+          <div class="ba-row"><span>Avg tokens/review</span><span>~20,000</span></div>
+          <div class="ba-row"><span style="font-weight:500;color:var(--color-text-primary)">Weekly credits</span><span style="font-weight:500;color:#3B6D11">~31 credits ($0.31)</span></div>
+        </div>
+      </div>
+      <div style="background: #EAF3DE; border-radius: var(--border-radius-md); padding: 10px 14px; margin-top: 12px; font-size: 13px; color: #3B6D11; font-weight: 500;">
+        <i class="ti ti-trending-down" aria-hidden="true"></i> 95% reduction — from $6.60 to $0.31 per week on code reviews
+      </div>
+    </div>
+
+    <button class="ask-btn" onclick="sendPrompt('Can you give me a checklist of all GitHub Copilot token optimization tips in one place?')">
+      <i class="ti ti-list-check" aria-hidden="true"></i> Get full optimization checklist ↗
+    </button>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['calc','models','prompts','context','scenarios'][i] === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+function recalc() {
+  const inp = parseInt(document.getElementById('inp').value);
+  const out = parseInt(document.getElementById('out').value);
+  const [inRate, outRate] = document.getElementById('model-sel').value.split(',').map(Number);
+  document.getElementById('inp-v').textContent = inp.toLocaleString();
+  document.getElementById('out-v').textContent = out.toLocaleString();
+  const cost = (inp * inRate / 1e6) + (out * outRate / 1e6);
+  const credits = cost / 0.01;
+  const proMonthly = 1000;
+  const pct = Math.min((credits / proMonthly * 100), 100);
+
+  const colorVal = credits < 10 ? '#3B6D11' : credits < 50 ? '#854F0B' : '#A32D2D';
+  const pctColor = pct < 1 ? 'green' : pct < 10 ? 'amber' : 'red';
+
+  document.getElementById('calc-metrics').innerHTML = `
+    <div class="metric"><div class="m-label">Cost (USD)</div><div class="m-val" style="color:${colorVal}">$${cost.toFixed(4)}</div></div>
+    <div class="metric"><div class="m-label">AI Credits used</div><div class="m-val ${pctColor}">${credits.toFixed(1)}</div></div>
+    <div class="metric"><div class="m-label">% of Pro plan ($10)</div><div class="m-val ${pctColor}">${pct.toFixed(1)}%</div></div>
+    <div class="metric"><div class="m-label">Requests in Pro plan</div><div class="m-val">${Math.floor(proMonthly / Math.max(credits, 0.1)).toLocaleString()}</div></div>
+  `;
+  document.getElementById('calc-context').textContent = credits < 5 ? '✅ Very efficient — this model/usage combo is sustainable for daily use.' : credits < 30 ? '⚠️ Moderate usage — watch your session count per day.' : '🔴 High cost per request — reserve this for complex tasks only.';
+}
+
+function showScenario(id) {
+  document.querySelectorAll('.scenario').forEach(s => s.style.display = 'none');
+  document.getElementById('sc-' + id).style.display = 'block';
+  document.querySelectorAll('.sbtn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(id === 'agent' ? 'agent' : id === 'chat' ? 'q&a' : 'review')));
+}
+
+recalc();
+</script>

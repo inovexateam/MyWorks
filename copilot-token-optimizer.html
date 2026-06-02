@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Copilot — Token & AI Credit Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e28;
+    --bg4: #20253200;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --text2: #8b92a8;
+    --text3: #555d72;
+    --green: #3ecf8e;
+    --green-dim: rgba(62,207,142,0.12);
+    --green-dim2: rgba(62,207,142,0.06);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.12);
+    --red: #f04747;
+    --red-dim: rgba(240,71,71,0.12);
+    --blue: #5b9cf6;
+    --blue-dim: rgba(91,156,246,0.12);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.1);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --font: 'Sora', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .logo-mark {
+    display: flex; align-items: center; gap: 9px;
+  }
+  .sidebar-logo .icon-wrap {
+    width: 32px; height: 32px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sidebar-logo .icon-wrap svg { width: 18px; height: 18px; }
+  .sidebar-logo .brand {
+    font-size: 13px; font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .sidebar-logo .brand span { color: var(--green); }
+  .sidebar-logo .sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .nav-section { padding: 12px 12px 4px; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    transition: all 0.15s;
+    border: none; background: transparent; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+  .nav-item.active { background: var(--green-dim); color: var(--green); font-weight: 500; }
+  .nav-item .nav-icon { font-size: 16px; flex-shrink: 0; opacity: 0.8; }
+  .nav-item .nav-badge {
+    margin-left: auto; font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 20px;
+    background: rgba(255,255,255,0.07); color: var(--text3);
+  }
+  .nav-item.active .nav-badge { background: rgba(62,207,142,0.2); color: var(--green); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text3);
+    line-height: 1.5;
+  }
+
+  .main {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(13,15,20,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; }
+  .topbar-sub { font-size: 12px; color: var(--text3); }
+  .topbar-credits {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .credit-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px;
+    font-size: 12px; font-weight: 500;
+  }
+  .credit-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .content { padding: 28px 32px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Stat cards ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px;
+  }
+  .stat-label { font-size: 11px; color: var(--text3); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-val { font-size: 26px; font-weight: 600; line-height: 1; }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 5px; }
+  .stat-card.green .stat-val { color: var(--green); }
+  .stat-card.amber .stat-val { color: var(--amber); }
+  .stat-card.red .stat-val { color: var(--red); }
+  .stat-card.blue .stat-val { color: var(--blue); }
+
+  /* ── Section headers ── */
+  .section-head { font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; margin-top: 28px; }
+  .section-head:first-child { margin-top: 0; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  /* ── Calculator ── */
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .calc-controls { display: flex; flex-direction: column; gap: 16px; }
+  .ctrl-group label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; }
+  .ctrl-row input[type=range] {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 4px; background: var(--bg3); border-radius: 2px; outline: none;
+  }
+  .ctrl-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--green); cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(62,207,142,0.2);
+  }
+  .ctrl-val { font-family: var(--mono); font-size: 12px; color: var(--green); min-width: 70px; text-align: right; }
+  .ctrl-group select {
+    width: 100%; padding: 8px 12px; border-radius: var(--radius);
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); font-size: 13px; font-family: var(--font);
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+  }
+  .ctrl-group select:focus { border-color: var(--green); }
+
+  .calc-result { display: flex; flex-direction: column; gap: 12px; }
+  .result-tile {
+    background: var(--bg3); border-radius: var(--radius);
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+  }
+  .result-tile .r-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .result-tile .r-val { font-size: 22px; font-weight: 600; font-family: var(--mono); }
+  .result-tile .r-bar-wrap { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .result-tile .r-bar { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .result-msg { font-size: 12px; padding: 10px 14px; border-radius: var(--radius); margin-top: 4px; }
+
+  /* ── Model table ── */
+  .model-table { width: 100%; border-collapse: collapse; }
+  .model-table th { font-size: 11px; color: var(--text3); text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 500; }
+  .model-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .model-table tr:last-child td { border-bottom: none; }
+  .model-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .model-name { font-weight: 500; }
+  .model-price { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .pill-green { background: var(--green-dim); color: var(--green); }
+  .pill-amber { background: var(--amber-dim); color: var(--amber); }
+  .pill-red { background: var(--red-dim); color: var(--red); }
+  .cost-row { display: flex; align-items: center; gap: 8px; }
+  .cost-num { font-family: var(--mono); font-size: 12px; font-weight: 500; min-width: 36px; }
+  .bar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Prompt examples ── */
+  .compare-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .code-block { border-radius: var(--radius); padding: 14px 16px; }
+  .code-block .cb-head { font-size: 11px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .code-block pre { font-family: var(--mono); font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; color: var(--text2); }
+  .code-block.bad { background: var(--red-dim); border: 1px solid rgba(240,71,71,0.2); }
+  .code-block.bad .cb-head { color: var(--red); }
+  .code-block.good { background: var(--green-dim2); border: 1px solid rgba(62,207,142,0.15); }
+  .code-block.good .cb-head { color: var(--green); }
+  .saving-tag { font-size: 11px; font-weight: 600; color: var(--green); background: var(--green-dim); padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+  .example-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+  /* ── Tips ── */
+  .tip-list { display: flex; flex-direction: column; gap: 8px; }
+  .tip {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    transition: border-color 0.15s;
+  }
+  .tip:hover { border-color: var(--border2); }
+  .tip-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+  .tip-body .tip-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .tip-body .tip-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .tip-body .tip-saving { font-size: 11px; color: var(--green); font-weight: 500; margin-top: 5px; }
+  .tip-body code { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 4px; }
+
+  /* ── Scenarios ── */
+  .scenario-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sc-tab {
+    padding: 6px 14px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; background: transparent; color: var(--text2);
+    transition: all 0.15s; font-family: var(--font);
+  }
+  .sc-tab:hover { border-color: var(--border2); color: var(--text); }
+  .sc-tab.active { background: var(--green-dim); border-color: rgba(62,207,142,0.3); color: var(--green); }
+  .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ba-card { border-radius: var(--radius-lg); padding: 16px; border: 1px solid; }
+  .ba-card.before { background: rgba(240,71,71,0.05); border-color: rgba(240,71,71,0.2); }
+  .ba-card.after { background: rgba(62,207,142,0.05); border-color: rgba(62,207,142,0.2); }
+  .ba-head { font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+  .ba-card.before .ba-head { color: var(--red); }
+  .ba-card.after .ba-head { color: var(--green); }
+  .ba-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 7px; }
+  .ba-row .k { color: var(--text2); }
+  .ba-row .v { font-weight: 500; }
+  .ba-row .v.red { color: var(--red); }
+  .ba-row .v.green { color: var(--green); }
+  .result-banner { border-radius: var(--radius); padding: 11px 14px; font-size: 13px; font-weight: 500; margin-top: 12px; }
+  .result-banner.good { background: var(--green-dim); color: var(--green); }
+
+  /* ── Checklist ── */
+  .progress-header { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 20px; }
+  .progress-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .progress-label { font-size: 18px; font-weight: 600; }
+  .progress-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .reset-btn {
+    font-size: 12px; padding: 6px 12px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; background: transparent; color: var(--text2);
+    font-family: var(--font); transition: all 0.15s;
+  }
+  .reset-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--border2); }
+  .progress-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s; }
+  .stat-pills { display: flex; gap: 16px; flex-wrap: wrap; }
+  .sp { font-size: 12px; color: var(--text3); }
+  .sp span { font-weight: 600; }
+  .sp.h span { color: var(--red); }
+  .sp.m span { color: var(--amber); }
+  .sp.q span { color: var(--green); }
+
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+  .fbtn {
+    font-size: 12px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border); cursor: pointer;
+    background: transparent; color: var(--text2); font-family: var(--font);
+    transition: all 0.15s;
+  }
+  .fbtn:hover { border-color: var(--border2); color: var(--text); }
+  .fbtn.active { background: var(--green-dim); border-color: rgba(62,207,142,0.3); color: var(--green); font-weight: 500; }
+
+  .cl-section { margin-bottom: 24px; }
+  .cl-cat-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .cl-item {
+    display: flex; align-items: flex-start; gap: 11px;
+    padding: 10px 12px; border-radius: var(--radius);
+    cursor: pointer; border: 1px solid transparent;
+    transition: all 0.12s; margin-bottom: 4px;
+    background: var(--bg2); border-color: var(--border);
+  }
+  .cl-item:hover { border-color: var(--border2); }
+  .cl-item.done { opacity: 0.4; }
+  .cl-checkbox {
+    width: 18px; height: 18px; border-radius: 5px;
+    border: 1px solid rgba(255,255,255,0.15);
+    flex-shrink: 0; margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; transition: all 0.15s;
+  }
+  .cl-checkbox.checked { background: var(--green); border-color: var(--green); color: #000; font-weight: 700; }
+  .cl-body .cl-title { font-size: 13px; font-weight: 500; line-height: 1.3; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .cl-body .cl-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .cl-body .cl-saving { font-size: 11px; color: var(--green); font-weight: 500; margin-top: 4px; }
+  .cl-body code { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 4px; }
+  .impact-pill { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 20px; }
+  .ip-high { background: var(--red-dim); color: var(--red); }
+  .ip-medium { background: var(--amber-dim); color: var(--amber); }
+  .ip-quick { background: var(--green-dim); color: var(--green); }
+  .ip-free { background: rgba(91,156,246,0.12); color: var(--blue); }
+  .ip-new { background: var(--purple-dim); color: var(--purple); }
+
+  /* ── VS Code Tips ── */
+  .vscode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .vscode-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px;
+  }
+  .vscode-card .vc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .vc-icon { font-size: 18px; }
+  .vc-title { font-size: 13px; font-weight: 600; }
+  .vc-body { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .vc-code {
+    margin-top: 10px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    line-height: 1.7;
+  }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand">Copilot <span>Optimizer</span></div>
+        <div class="sub">Token & Credit Guide</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Tools</div>
+    <button class="nav-item active" onclick="showPage('calc',this)">
+      <span class="nav-icon">⚡</span> Cost calculator
+    </button>
+    <button class="nav-item" onclick="showPage('models',this)">
+      <span class="nav-icon">🤖</span> Model picker
+    </button>
+    <button class="nav-item" onclick="showPage('prompts',this)">
+      <span class="nav-icon">✍️</span> Prompt examples
+    </button>
+    <button class="nav-item" onclick="showPage('context',this)">
+      <span class="nav-icon">📂</span> Context hygiene
+    </button>
+    <button class="nav-item" onclick="showPage('vscode',this)">
+      <span class="nav-icon">⚙️</span> VS Code settings <span class="nav-badge">New</span>
+    </button>
+    <button class="nav-item" onclick="showPage('scenarios',this)">
+      <span class="nav-icon">📊</span> Real scenarios
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Reference</div>
+    <button class="nav-item" onclick="showPage('checklist',this)">
+      <span class="nav-icon">✅</span> Full checklist <span class="nav-badge" id="nav-progress">0/26</span>
+    </button>
+  </div>
+
+  <div class="sidebar-footer">
+    Billing live June 1, 2026<br>
+    1 AI Credit = $0.01 USD<br>
+    <span style="color:var(--green)">Code completions are free</span>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Cost calculator</div>
+      <div class="topbar-sub" id="page-sub">See exactly how many credits each request burns</div>
+    </div>
+    <div class="topbar-credits">
+      <div class="credit-pill">
+        <div class="credit-dot" style="background:var(--green)"></div>
+        Pro plan: 1,000 credits/mo
+      </div>
+      <div class="credit-pill">
+        <div class="credit-dot" style="background:var(--amber)"></div>
+        Pro+: 3,900 credits/mo
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── CALC ── -->
+    <div id="page-calc" class="page active">
+      <div class="stat-grid" id="calc-stats">
+        <div class="stat-card blue"><div class="stat-label">Cost (USD)</div><div class="stat-val" id="s-cost">$0.00</div><div class="stat-sub">per request</div></div>
+        <div class="stat-card green"><div class="stat-label">AI credits used</div><div class="stat-val" id="s-credits">0</div><div class="stat-sub">1 credit = $0.01</div></div>
+        <div class="stat-card amber"><div class="stat-label">% of Pro plan</div><div class="stat-val" id="s-pct">0%</div><div class="stat-sub">1,000 credits/mo</div></div>
+        <div class="stat-card"><div class="stat-label">Requests in Pro</div><div class="stat-val" id="s-reqs" style="color:var(--text)">—</div><div class="stat-sub">at this rate</div></div>
+      </div>
+
+      <div class="calc-grid card">
+        <div class="calc-controls">
+          <div class="ctrl-group">
+            <label>Input tokens (what you send)</label>
+            <div class="ctrl-row">
+              <input type="range" id="inp" min="1000" max="200000" step="1000" value="30000" oninput="recalc()">
+              <span class="ctrl-val" id="inp-v">30,000</span>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <label>Output tokens (what Copilot generates)</label>
+            <div class="ctrl-row">
+              <input type="range" id="out" min="500" max="20000" step="500" value="3000" oninput="recalc()">
+              <span class="ctrl-val" id="out-v">3,000</span>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <label>Model</label>
+            <select id="model-sel" onchange="recalc()">
+              <option value="0.5,1.5">GPT-5 mini (cheapest)</option>
+              <option value="2.5,12">GPT-5.4</option>
+              <option value="3,15" selected>Claude Sonnet 4.6</option>
+              <option value="5,30">GPT-5.5</option>
+              <option value="5,25">Claude Opus 4.8</option>
+              <option value="15,75">Claude Opus 4.6 fast mode</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="calc-result">
+          <div class="result-tile">
+            <div class="r-label">Input cost</div>
+            <div class="r-val" id="r-inp" style="color:var(--blue)">—</div>
+            <div class="r-bar-wrap"><div class="r-bar" id="rb-inp" style="background:var(--blue)"></div></div>
+          </div>
+          <div class="result-tile">
+            <div class="r-label">Output cost</div>
+            <div class="r-val" id="r-out" style="color:var(--amber)">—</div>
+            <div class="r-bar-wrap"><div class="r-bar" id="rb-out" style="background:var(--amber)"></div></div>
+          </div>
+          <div id="calc-msg" class="result-msg"></div>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:var(--text3);margin-top:8px">Formula: (input_tokens × input_rate + output_tokens × output_rate) ÷ 1,000,000 → convert to credits at $0.01 each.</p>
+    </div>
+
+    <!-- ── MODELS ── -->
+    <div id="page-models" class="page">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Same 30K input + 3K output tokens compared across all available models. Output tokens cost 4–10× more per token than input.</p>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="model-table">
+          <tr><th>Model</th><th>Input / 1M</th><th>Output / 1M</th><th>Cost (30K+3K)</th><th>Tier</th><th>Best for</th></tr>
+          <tr><td class="model-name">GPT-5 mini</td><td class="model-price">$0.50</td><td class="model-price">$1.50</td><td><div class="cost-row"><span class="cost-num" style="color:var(--green)">0.2¢</span><div class="bar-track"><div class="bar-fill" style="width:2%;background:var(--green)"></div></div></div></td><td><span class="pill pill-green">Free</span></td><td style="font-size:12px;color:var(--text2)">Boilerplate, getters, simple Q&A</td></tr>
+          <tr><td class="model-name">GPT-5.4</td><td class="model-price">$2.50</td><td class="model-price">$12.00</td><td><div class="cost-row"><span class="cost-num" style="color:var(--green)">11¢</span><div class="bar-track"><div class="bar-fill" style="width:12%;background:var(--green)"></div></div></div></td><td><span class="pill pill-green">Low</span></td><td style="font-size:12px;color:var(--text2)">Balanced daily use</td></tr>
+          <tr><td class="model-name">Claude Sonnet 4.6</td><td class="model-price">$3.00</td><td class="model-price">$15.00</td><td><div class="cost-row"><span class="cost-num" style="color:var(--amber)">14¢</span><div class="bar-track"><div class="bar-fill" style="width:16%;background:var(--amber)"></div></div></div></td><td><span class="pill pill-amber">Mid</span></td><td style="font-size:12px;color:var(--text2)">Complex coding, refactors</td></tr>
+          <tr><td class="model-name">Claude Opus 4.8</td><td class="model-price">$5.00</td><td class="model-price">$25.00</td><td><div class="cost-row"><span class="cost-num" style="color:var(--amber)">23¢</span><div class="bar-track"><div class="bar-fill" style="width:25%;background:var(--amber)"></div></div></div></td><td><span class="pill pill-amber">High</span></td><td style="font-size:12px;color:var(--text2)">Architecture, hard debugging</td></tr>
+          <tr><td class="model-name">GPT-5.5</td><td class="model-price">$5.00</td><td class="model-price">$30.00</td><td><div class="cost-row"><span class="cost-num" style="color:var(--red)">24¢</span><div class="bar-track"><div class="bar-fill" style="width:26%;background:var(--red)"></div></div></div></td><td><span class="pill pill-red">High</span></td><td style="font-size:12px;color:var(--text2)">Deep reasoning only</td></tr>
+          <tr><td class="model-name">Opus 4.6 fast mode</td><td class="model-price">$15.00</td><td class="model-price">$75.00</td><td><div class="cost-row"><span class="cost-num" style="color:var(--red)">68¢</span><div class="bar-track"><div class="bar-fill" style="width:75%;background:var(--red)"></div></div></div></td><td><span class="pill pill-red">Extreme</span></td><td style="font-size:12px;color:var(--text2)">Avoid for daily use</td></tr>
+        </table>
+      </div>
+      <div style="margin-top:12px;padding:12px 16px;background:var(--green-dim);border-radius:var(--radius);font-size:13px;color:var(--green);font-weight:500">
+        ↓ Switching from Opus 4.6 fast mode → GPT-5 mini for routine tasks saves ~99% per request
+      </div>
+    </div>
+
+    <!-- ── PROMPTS ── -->
+    <div id="page-prompts" class="page">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Every word in your prompt is a billed input token. Vague prompts also produce verbose output — the most expensive token type.</p>
+
+      <div class="example-title">Example 1 — Refactor request <span class="saving-tag">~60% fewer tokens</span></div>
+      <div class="compare-pair">
+        <div class="code-block bad"><div class="cb-head">❌ Bloated (~180 tokens)</div><pre>Hi Copilot! I have been working on this project for a while and I have this function here in my codebase. I was hoping you could take a look at it and maybe help me refactor it to make it better, cleaner, more readable, and potentially more efficient if possible. Here is the entire file for context...</pre></div>
+        <div class="code-block good"><div class="cb-head">✅ Tight (~70 tokens)</div><pre>Refactor for readability and performance. Keep same signature. No explanation.
+
+[selected 15-line function only]</pre></div>
+      </div>
+
+      <div class="example-title" style="margin-top:20px">Example 2 — Bug fix <span class="saving-tag">~70% fewer tokens</span></div>
+      <div class="compare-pair">
+        <div class="code-block bad"><div class="cb-head">❌ Vague + full file (~500 tokens)</div><pre>Something is wrong with my code, it doesn't work properly when I run it. I'm not sure what the issue is. Can you look through all of this and figure out the bug? [entire 300-line file pasted]</pre></div>
+        <div class="code-block good"><div class="cb-head">✅ Scoped to error (~150 tokens)</div><pre>TypeError: cannot read 'id' of undefined — line 42.
+
+Fix the null check. [10-line snippet around error]</pre></div>
+      </div>
+
+      <div class="example-title" style="margin-top:20px">Example 3 — Code generation <span class="saving-tag">~50% fewer output tokens</span></div>
+      <div class="compare-pair">
+        <div class="code-block bad"><div class="cb-head">❌ Open-ended (verbose output)</div><pre>Write me a function to validate email addresses in JavaScript. Include comments, examples, edge cases, tests, and explain how it works.</pre></div>
+        <div class="code-block good"><div class="cb-head">✅ Constrained output</div><pre>JS email validator. Returns boolean. No comments, no tests, no explanation.</pre></div>
+      </div>
+
+      <div class="example-title" style="margin-top:20px">Example 4 — Agent task scoping <span class="saving-tag">~40% fewer agent steps</span></div>
+      <div class="compare-pair">
+        <div class="code-block bad"><div class="cb-head">❌ Broad agent prompt</div><pre>Look at my whole codebase and refactor the authentication system to use JWT, update all the tests, fix any related bugs you find, and update the README.</pre></div>
+        <div class="code-block good"><div class="cb-head">✅ Scoped sub-tasks</div><pre>Task 1: Refactor /src/auth/login.js to use JWT. Keep existing interface.
+[run]
+Task 2: Update /tests/auth.test.js for JWT.
+[run separately]</pre></div>
+      </div>
+    </div>
+
+    <!-- ── CONTEXT ── -->
+    <div id="page-context" class="page">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:18px">These are the invisible token leaks that inflate your bill before you type a single word.</p>
+      <div class="tip-list">
+        <div class="tip">
+          <div class="tip-icon">📑</div>
+          <div class="tip-body">
+            <div class="tip-title">Open editor tabs = hidden context tokens</div>
+            <div class="tip-desc">Every open file can be silently sent as context. 20 open tabs on a large project can add 50K–100K tokens before you ask anything.</div>
+            <div class="tip-saving">Fix: close all unrelated tabs. Keep only the file you're actively editing.</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">💬</div>
+          <div class="tip-body">
+            <div class="tip-title">Long chat threads re-send history every turn</div>
+            <div class="tip-desc">Each new message resends your entire conversation as input. A 20-turn chat can cost 5× more than a fresh session for the same final question.</div>
+            <div class="tip-saving">Fix: start a new chat when switching tasks. Treat each session like a focused sticky note.</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">🔧</div>
+          <div class="tip-body">
+            <div class="tip-title">copilot-instructions.md loads on every agent step</div>
+            <div class="tip-desc">LLM-generated boilerplate in this file adds 2K–5K tokens per step. Over 15 agent steps that's 30K–75K tokens of pure overhead.</div>
+            <div class="tip-saving">Fix: trim to "landmines only" — constraints a good dev wouldn't guess. Delete anything obvious. Target under 300 tokens.</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">🔌</div>
+          <div class="tip-body">
+            <div class="tip-title">MCP servers cost 100–500 tokens each, every agent step</div>
+            <div class="tip-desc">15 MCP servers × 15 agent steps = up to 112,500 tokens of pure overhead, before your actual task runs.</div>
+            <div class="tip-saving">Fix: audit and remove MCP servers you don't use weekly. Aim for 3–5 active servers max.</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">📦</div>
+          <div class="tip-body">
+            <div class="tip-title">node_modules and generated files get indexed</div>
+            <div class="tip-desc">Thousands of files in build folders expand repository context needlessly. They contain no useful signal for Copilot.</div>
+            <div class="tip-saving">Fix: add <code>node_modules/</code>, <code>dist/</code>, <code>.cache/</code>, <code>logs/</code> to <code>.copilotignore</code> or org content exclusion settings.</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">🖱️</div>
+          <div class="tip-body">
+            <div class="tip-title">Not selecting code forces full repository indexing</div>
+            <div class="tip-desc">Without a selection, Copilot Chat may search the entire codebase index. Highlighting 10–20 relevant lines scopes context precisely.</div>
+            <div class="tip-saving">Fix: always select the relevant lines before opening Copilot Chat. This alone can reduce input tokens by 80%+.</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">🏗️</div>
+          <div class="tip-body">
+            <div class="tip-title">Multi-service repos open simultaneously multiply context</div>
+            <div class="tip-desc">Having files from multiple microservices open at once expands context scope across services without improving suggestion quality.</div>
+            <div class="tip-saving">Fix: use VS Code workspaces or separate IDE windows per microservice. Open only the service you're working on.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VS CODE SETTINGS ── -->
+    <div id="page-vscode" class="page">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:18px">These VS Code and workspace settings give you fine-grained control over what Copilot loads — and when. Add these to your <code style="font-family:var(--mono);font-size:12px;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px">.vscode/settings.json</code>.</p>
+
+      <div class="vscode-grid">
+        <div class="vscode-card">
+          <div class="vc-head"><span class="vc-icon">🚫</span><div class="vc-title">Disable Copilot for noisy file types</div></div>
+          <div class="vc-body">Prevents suggestions — and context loading — for XML, YAML, env files, SQL, and other low-value file types that inflate the context window.</div>
+          <div class="vc-code">"github.copilot.enable": {<br>&nbsp;&nbsp;"*": true,<br>&nbsp;&nbsp;"xml": false,<br>&nbsp;&nbsp;"yaml": false,<br>&nbsp;&nbsp;"env": false,<br>&nbsp;&nbsp;"dotenv": false,<br>&nbsp;&nbsp;"sql": false,<br>&nbsp;&nbsp;"plaintext": false<br>}</div>
+        </div>
+        <div class="vscode-card">
+          <div class="vc-head"><span class="vc-icon">📊</span><div class="vc-title">Disable workspace codebase indexing</div></div>
+          <div class="vc-body">Turns off the full semantic code search index for a specific workspace. Useful for large monorepos where indexing inflates every Chat request's context.</div>
+          <div class="vc-code">"github.copilot.codebase": "off"</div>
+        </div>
+        <div class="vscode-card">
+          <div class="vc-head"><span class="vc-icon">🤖</span><div class="vc-title">Disable agent mode per workspace</div></div>
+          <div class="vc-body">For workspaces where you only need inline completions, disabling agents prevents accidental multi-step sessions that drain credits fast.</div>
+          <div class="vc-code">"chat.agent.enabled": false</div>
+        </div>
+        <div class="vscode-card">
+          <div class="vc-head"><span class="vc-icon">🔇</span><div class="vc-title">Scope instructions with applyTo</div></div>
+          <div class="vc-body">Use <code>applyTo</code> in path-specific instruction files to load context only for relevant file types — not every file Copilot touches.</div>
+          <div class="vc-code">---<br>applyTo: "**/*.ts"<br>---<br>Use strict TypeScript.<br>No any types.</div>
+        </div>
+        <div class="vscode-card">
+          <div class="vc-head"><span class="vc-icon">⏸️</span><div class="vc-title">Disable next edit suggestions when reading</div></div>
+          <div class="vc-body">Next Edit Suggestions are free but can trigger unnecessary background completion calls during code reading sessions. Snooze via the status bar, or disable globally.</div>
+          <div class="vc-code">"github.copilot.nextEditSuggestions<br>&nbsp;&nbsp;.enabled": false</div>
+        </div>
+        <div class="vscode-card">
+          <div class="vc-head"><span class="vc-icon">🎯</span><div class="vc-title">Commit .vscode/settings.json to the repo</div></div>
+          <div class="vc-body">Share your Copilot settings with the whole team. Teammates automatically inherit the same context exclusions, disabled file types, and workspace scope rules.</div>
+          <div class="vc-code">git add .vscode/settings.json<br>git commit -m "chore: copilot<br>&nbsp;&nbsp;token optimization settings"</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-head">Terse output via instructions</div>
+      <div class="tip-list">
+        <div class="tip">
+          <div class="tip-icon">📝</div>
+          <div class="tip-body">
+            <div class="tip-title">Set terse output as default in copilot-instructions.md</div>
+            <div class="tip-desc">Adding a single line to your instructions file makes every Copilot response concise by default — no more unwanted prose, comments, or re-explanations.</div>
+            <div class="tip-saving"><code>Be concise. Code only unless explanation is explicitly requested. No prose preamble.</code> — saves 40–75% on output tokens across all sessions.</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">📌</div>
+          <div class="tip-body">
+            <div class="tip-title">Use path-scoped instruction files for different contexts</div>
+            <div class="tip-desc">Place <code>*.instructions.md</code> files in <code>.github/instructions/</code> with an <code>applyTo</code> frontmatter. Only loads for matching file patterns — cuts context on unrelated files.</div>
+            <div class="tip-saving">Replaces a 2,000-token global instructions file with 3–4 small focused ones that never load together.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SCENARIOS ── -->
+    <div id="page-scenarios" class="page">
+      <div class="scenario-tabs">
+        <button class="sc-tab active" onclick="showScenario('agent',this)">Agent refactor session</button>
+        <button class="sc-tab" onclick="showScenario('chat',this)">Daily Q&A</button>
+        <button class="sc-tab" onclick="showScenario('review',this)">PR code review</button>
+      </div>
+
+      <div id="sc-agent">
+        <div class="ba-grid">
+          <div class="ba-card before">
+            <div class="ba-head">❌ Before optimization</div>
+            <div class="ba-row"><span class="k">Model</span><span class="v">Opus 4.6 fast mode</span></div>
+            <div class="ba-row"><span class="k">Open tabs</span><span class="v">18 files</span></div>
+            <div class="ba-row"><span class="k">Instructions file</span><span class="v">2,400 tokens</span></div>
+            <div class="ba-row"><span class="k">Active MCP servers</span><span class="v">12</span></div>
+            <div class="ba-row"><span class="k">Agent steps</span><span class="v">15</span></div>
+            <div class="ba-row"><span class="k">Est. input tokens</span><span class="v">~310,000</span></div>
+            <div class="ba-row"><span class="k">Credits used</span><span class="v red">~465 credits ($4.65)</span></div>
+          </div>
+          <div class="ba-card after">
+            <div class="ba-head">✅ After optimization</div>
+            <div class="ba-row"><span class="k">Model</span><span class="v">Claude Sonnet 4.6</span></div>
+            <div class="ba-row"><span class="k">Open tabs</span><span class="v">3 files</span></div>
+            <div class="ba-row"><span class="k">Instructions file</span><span class="v">300 tokens</span></div>
+            <div class="ba-row"><span class="k">Active MCP servers</span><span class="v">3</span></div>
+            <div class="ba-row"><span class="k">Agent steps</span><span class="v">15</span></div>
+            <div class="ba-row"><span class="k">Est. input tokens</span><span class="v">~55,000</span></div>
+            <div class="ba-row"><span class="k">Credits used</span><span class="v green">~20 credits ($0.20)</span></div>
+          </div>
+        </div>
+        <div class="result-banner good">↓ 96% reduction — from $4.65 to $0.20 per agent session</div>
+      </div>
+
+      <div id="sc-chat" style="display:none">
+        <div class="ba-grid">
+          <div class="ba-card before">
+            <div class="ba-head">❌ Before optimization</div>
+            <div class="ba-row"><span class="k">Model</span><span class="v">GPT-5.5 (default)</span></div>
+            <div class="ba-row"><span class="k">Chat style</span><span class="v">One long session</span></div>
+            <div class="ba-row"><span class="k">Questions/day</span><span class="v">20</span></div>
+            <div class="ba-row"><span class="k">Avg tokens/question</span><span class="v">~8,000</span></div>
+            <div class="ba-row"><span class="k">Daily token total</span><span class="v">~160,000</span></div>
+            <div class="ba-row"><span class="k">Daily credits</span><span class="v red">~130 credits ($1.30)</span></div>
+          </div>
+          <div class="ba-card after">
+            <div class="ba-head">✅ After optimization</div>
+            <div class="ba-row"><span class="k">Model</span><span class="v">GPT-5 mini</span></div>
+            <div class="ba-row"><span class="k">Chat style</span><span class="v">Fresh session per task</span></div>
+            <div class="ba-row"><span class="k">Questions/day</span><span class="v">20</span></div>
+            <div class="ba-row"><span class="k">Avg tokens/question</span><span class="v">~2,000</span></div>
+            <div class="ba-row"><span class="k">Daily token total</span><span class="v">~40,000</span></div>
+            <div class="ba-row"><span class="k">Daily credits</span><span class="v green">~4 credits ($0.04)</span></div>
+          </div>
+        </div>
+        <div class="result-banner good">↓ 97% reduction — from $1.30 to $0.04 per day of Q&A</div>
+      </div>
+
+      <div id="sc-review" style="display:none">
+        <div class="ba-grid">
+          <div class="ba-card before">
+            <div class="ba-head">❌ Before optimization</div>
+            <div class="ba-row"><span class="k">Reviews/week</span><span class="v">Every PR (30)</span></div>
+            <div class="ba-row"><span class="k">Model</span><span class="v">Opus 4.8</span></div>
+            <div class="ba-row"><span class="k">Avg tokens/review</span><span class="v">~40,000</span></div>
+            <div class="ba-row"><span class="k">Also consumes</span><span class="v">GitHub Actions mins</span></div>
+            <div class="ba-row"><span class="k">Weekly credits</span><span class="v red">~660 credits ($6.60)</span></div>
+          </div>
+          <div class="ba-card after">
+            <div class="ba-head">✅ After optimization</div>
+            <div class="ba-row"><span class="k">Reviews/week</span><span class="v">Important PRs only (8)</span></div>
+            <div class="ba-row"><span class="k">Model</span><span class="v">Claude Sonnet 4.6</span></div>
+            <div class="ba-row"><span class="k">Avg tokens/review</span><span class="v">~20,000</span></div>
+            <div class="ba-row"><span class="k">Also consumes</span><span class="v">GitHub Actions mins</span></div>
+            <div class="ba-row"><span class="k">Weekly credits</span><span class="v green">~31 credits ($0.31)</span></div>
+          </div>
+        </div>
+        <div class="result-banner good">↓ 95% reduction — from $6.60 to $0.31 per week on code reviews</div>
+      </div>
+    </div>
+
+    <!-- ── CHECKLIST ── -->
+    <div id="page-checklist" class="page">
+      <div class="progress-header">
+        <div class="progress-top">
+          <div>
+            <div class="progress-label" id="cl-label">0 of 26 completed</div>
+            <div class="progress-sub">Check off each tip as you implement it</div>
+          </div>
+          <button class="reset-btn" onclick="resetChecklist()">↺ Reset</button>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="cl-fill" style="width:0%"></div></div>
+        <div class="stat-pills">
+          <div class="sp h">High impact: <span id="cnt-h">0/10</span></div>
+          <div class="sp m">Medium: <span id="cnt-m">0/8</span></div>
+          <div class="sp q">Quick wins / Free: <span id="cnt-q">0/8</span></div>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <button class="fbtn active" onclick="setFilter('all',this)">All (26)</button>
+        <button class="fbtn" onclick="setFilter('high',this)">High impact</button>
+        <button class="fbtn" onclick="setFilter('medium',this)">Medium</button>
+        <button class="fbtn" onclick="setFilter('quick',this)">Quick wins</button>
+        <button class="fbtn" onclick="setFilter('free',this)">Always free</button>
+        <button class="fbtn" onclick="setFilter('new',this)">New tips</button>
+        <button class="fbtn" onclick="setFilter('todo',this)">To do</button>
+      </div>
+
+      <div id="cl-list"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+/* ── Navigation ── */
+const pageLabels = {
+  calc: ['Cost calculator', 'See exactly how many credits each request burns'],
+  models: ['Model picker', 'Compare all models on the same token volume'],
+  prompts: ['Prompt examples', 'Before/after pairs showing token reduction in practice'],
+  context: ['Context hygiene', 'The invisible token leaks that inflate your bill silently'],
+  vscode: ['VS Code settings', 'Fine-grained settings to control what Copilot loads'],
+  scenarios: ['Real scenarios', 'Full before/after breakdowns with actual credit numbers'],
+  checklist: ['Full checklist', '26 tips — track your optimization progress'],
+};
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  const [title, sub] = pageLabels[id] || ['', ''];
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('page-sub').textContent = sub;
+}
+
+/* ── Calculator ── */
+function recalc() {
+  const inp = parseInt(document.getElementById('inp').value);
+  const out = parseInt(document.getElementById('out').value);
+  const [ir, or_] = document.getElementById('model-sel').value.split(',').map(Number);
+  document.getElementById('inp-v').textContent = inp.toLocaleString();
+  document.getElementById('out-v').textContent = out.toLocaleString();
+  const inCost = inp * ir / 1e6;
+  const outCost = out * or_ / 1e6;
+  const total = inCost + outCost;
+  const credits = total / 0.01;
+  const pct = credits / 1000 * 100;
+  const reqs = Math.floor(1000 / Math.max(credits, 0.01));
+  document.getElementById('s-cost').textContent = '$' + total.toFixed(4);
+  document.getElementById('s-credits').textContent = credits.toFixed(1);
+  document.getElementById('s-pct').textContent = pct.toFixed(1) + '%';
+  document.getElementById('s-reqs').textContent = reqs.toLocaleString();
+  const cc = credits < 10 ? 'var(--green)' : credits < 50 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('s-credits').style.color = cc;
+  document.getElementById('s-pct').style.color = cc;
+  document.getElementById('r-inp').textContent = '$' + inCost.toFixed(4);
+  document.getElementById('r-out').textContent = '$' + outCost.toFixed(4);
+  const maxBar = Math.max(inCost, outCost, 0.001);
+  document.getElementById('rb-inp').style.width = Math.min(inCost / maxBar * 90, 90) + '%';
+  document.getElementById('rb-out').style.width = Math.min(outCost / maxBar * 90, 90) + '%';
+  const msg = document.getElementById('calc-msg');
+  if (credits < 5) {
+    msg.style.background = 'var(--green-dim)'; msg.style.color = 'var(--green)';
+    msg.textContent = '✓ Very efficient — sustainable for daily use at this rate.';
+  } else if (credits < 30) {
+    msg.style.background = 'var(--amber-dim)'; msg.style.color = 'var(--amber)';
+    msg.textContent = '⚠ Moderate — watch your session count per day.';
+  } else {
+    msg.style.background = 'var(--red-dim)'; msg.style.color = 'var(--red)';
+    msg.textContent = '✗ High cost per request — reserve for complex tasks only.';
+  }
+}
+recalc();
+
+/* ── Scenarios ── */
+function showScenario(id, btn) {
+  ['agent','chat','review'].forEach(s => {
+    document.getElementById('sc-' + s).style.display = s === id ? 'block' : 'none';
+  });
+  document.querySelectorAll('.sc-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+/* ── Checklist data (26 items) ── */
+const checklistData = [
+  { cat: 'Model selection', items: [
+    { id:'m1', impact:'high', title:'Use GPT-5 mini for routine tasks', desc:'Getters, setters, simple CRUD, boilerplate — these never need a frontier model.', saving:'Up to 99% cheaper vs Opus fast mode per request' },
+    { id:'m2', impact:'high', title:'Downgrade model for Q&A and explanations', desc:'Explaining a function doesn\'t need Opus. Use the default or cheapest model for explanatory questions.', saving:'60–80% credit reduction on chat sessions' },
+    { id:'m3', impact:'high', title:'Reserve Opus / GPT-5.5 for architecture only', desc:'Multi-file reasoning, system design, hard debugging only. Never daily use.', saving:'Prevents 10–20% monthly budget drain in one session' },
+    { id:'m4', impact:'high', title:'Never use Opus 4.6 fast mode by default', desc:'At $15/M input + $75/M output it\'s ~340× more expensive than GPT-5 mini. Critical tasks only.', saving:'Eliminates the single biggest cost spike' },
+  ]},
+  { cat: 'Context hygiene', items: [
+    { id:'c1', impact:'high', title:'Close all unrelated editor tabs before chatting', desc:'Every open file can be silently included. 20 tabs = up to 100K hidden tokens before you type.', saving:'50–70% reduction in input tokens per session' },
+    { id:'c2', impact:'high', title:'Select code before opening Copilot Chat', desc:'Without a selection, Copilot may index the whole repo. 10–20 highlighted lines scopes context precisely.', saving:'Cuts input tokens by 80%+ vs full-repo indexing' },
+    { id:'c3', impact:'medium', title:'Add a .copilotignore file', desc:'Exclude node_modules, dist, .cache, logs, generated files from the context index.', saving:'10–30K tokens removed from every indexed request' },
+    { id:'c4', impact:'high', title:'Trim copilot-instructions.md ruthlessly', desc:'Keep only "landmines" — constraints a dev wouldn\'t guess. Target under 300 tokens total.', saving:'20–23% reduction on every agent task' },
+    { id:'c5', impact:'medium', title:'Use one IDE window per microservice', desc:'Having files from multiple services open simultaneously multiplies context scope across unrelated code.', saving:'30–50% reduction in cross-service context pollution' },
+  ]},
+  { cat: 'Chat & session habits', items: [
+    { id:'s1', impact:'high', title:'Start a new chat when switching tasks', desc:'Each message re-sends full conversation history as input. A 20-turn chat multiplies cost 5× for the same question.', saving:'Up to 80% reduction in long-session input tokens' },
+    { id:'s2', impact:'free', title:'Use inline autocomplete for daily coding', desc:'Code completions are unlimited and free — never consume AI Credits. Use Chat only for reasoning.', saving:'100% free — zero credits consumed' },
+    { id:'s3', impact:'free', title:'Next Edit Suggestions are also free', desc:'Tab to accept follow-on edits. No credits used. Great for repetitive patterns.', saving:'100% free — zero credits consumed' },
+    { id:'s4', impact:'quick', title:'Snooze inline suggestions when reading code', desc:'During code review or reading, snooze suggestions via the VS Code status bar to avoid idle background calls.', saving:'Eliminates unnecessary background token usage' },
+  ]},
+  { cat: 'Prompt discipline', items: [
+    { id:'p1', impact:'medium', title:'Be specific and brief in prompts', desc:'"Refactor for readability. Keep same signature." beats a 3-sentence preamble every time.', saving:'40–60% fewer input tokens per request' },
+    { id:'p2', impact:'medium', title:'Constrain output length explicitly', desc:'Add "No comments, no tests, no explanation" when you only want code. Unconstrained prompts produce 3–5× more output.', saving:'50–70% fewer output tokens (the most expensive type)' },
+    { id:'p3', impact:'medium', title:'Use English for prompts', desc:'CJK languages (Chinese, Japanese, Korean) cost 1.7–2.4× more tokens for the same content.', saving:'Up to 60% input reduction for CJK users' },
+    { id:'p4', impact:'high', title:'Never paste entire files as context', desc:'Paste only the relevant 10–30 lines. Add "// rest of file omitted" as a comment to signal context without sending it.', saving:'Prevents 200K+ token blowouts in large files' },
+    { id:'p5', impact:'medium', title:'Break large agent tasks into scoped sub-tasks', desc:'One big prompt with 20 files costs vastly more than five focused prompts on 4 files each.', saving:'30–50% reduction on complex refactors' },
+  ]},
+  { cat: 'Agent mode & MCP', items: [
+    { id:'a1', impact:'high', title:'Audit and remove unused MCP servers', desc:'Each MCP server costs 100–500 tokens per agent step. 15 servers × 15 steps = 112,500 tokens of overhead.', saving:'Up to 30% total agent cost reduction' },
+    { id:'a2', impact:'high', title:'Reserve Agent Mode for genuine multi-file tasks', desc:'Agent mode retries, reads files, and calls tools — costs stack fast. Use Chat for single-file changes.', saving:'Prevents 50-credit sessions becoming a daily habit' },
+    { id:'a3', impact:'medium', title:'Use Code Review only on important PRs', desc:'Code Review costs AI Credits AND GitHub Actions minutes. Reviewing every small PR drains both.', saving:'80%+ credit reduction on review spend' },
+  ]},
+  { cat: 'VS Code settings (new)', items: [
+    { id:'v1', impact:'new', title:'Disable Copilot for noisy file types', desc:'Set github.copilot.enable to false for xml, yaml, env, dotenv, sql, plaintext — prevents context loading for these.', saving:'Reduces hidden context from config files' },
+    { id:'v2', impact:'new', title:'Disable workspace indexing on large monorepos', desc:'Set "github.copilot.codebase": "off" for specific workspaces where full indexing inflates every request.', saving:'Prevents repository-wide context on every Chat message' },
+    { id:'v3', impact:'new', title:'Use applyTo in path-scoped instruction files', desc:'Place *.instructions.md files in .github/instructions/ with applyTo frontmatter — loads only for matching file types.', saving:'Replaces one 2K-token global file with small focused ones' },
+    { id:'v4', impact:'new', title:'Set terse output in copilot-instructions.md', desc:'A single line — "Be concise. Code only unless explanation requested." — makes all responses shorter by default.', saving:'40–75% fewer output tokens across all sessions' },
+    { id:'v5', impact:'new', title:'Commit .vscode/settings.json to the repo', desc:'Share Copilot settings team-wide. Teammates automatically inherit exclusions and scope rules without manual setup.', saving:'Multiplies your optimization work across the whole team' },
+  ]},
+  { cat: 'Billing guardrails', items: [
+    { id:'b1', impact:'free', title:'Set your overage cap to $0', desc:'In GitHub Billing settings → additional spend = $0. Copilot stops when credits run out. No surprise bills possible.', saving:'Guarantees you never exceed your plan budget' },
+    { id:'b2', impact:'quick', title:'Check the preview bill weekly', desc:'GitHub added a preview bill feature in Billing Overview. Spot runaway agent sessions before they accumulate.', saving:'Catch and fix usage spikes early in the cycle' },
+  ]},
+];
+
+let checked = {};
+let currentFilter = 'all';
+
+function impactPill(impact) {
+  const map = { high:'ip-high', medium:'ip-medium', quick:'ip-quick', free:'ip-free', new:'ip-new' };
+  const label = { high:'High impact', medium:'Medium', quick:'Quick win', free:'Always free', new:'New' };
+  return `<span class="impact-pill ${map[impact]||''}">${label[impact]||impact}</span>`;
+}
+
+function renderChecklist() {
+  const list = document.getElementById('cl-list');
+  let html = '';
+  checklistData.forEach(sec => {
+    const visible = sec.items.filter(t => {
+      if (currentFilter === 'all') return true;
+      if (currentFilter === 'todo') return !checked[t.id];
+      return t.impact === currentFilter;
+    });
+    if (!visible.length) return;
+    html += `<div class="cl-section"><div class="cl-cat-label">${sec.cat}</div>`;
+    visible.forEach(t => {
+      const done = !!checked[t.id];
+      html += `<div class="cl-item${done?' done':''}" onclick="toggleItem('${t.id}')">
+        <div class="cl-checkbox${done?' checked':''}">${done?'✓':''}</div>
+        <div class="cl-body">
+          <div class="cl-title">${t.title} ${impactPill(t.impact)}</div>
+          <div class="cl-desc">${t.desc}</div>
+          <div class="cl-saving">↓ ${t.saving}</div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  list.innerHTML = html;
+  updateProgress();
+}
+
+function toggleItem(id) {
+  checked[id] = !checked[id];
+  renderChecklist();
+}
+
+function updateProgress() {
+  const all = checklistData.flatMap(s => s.items);
+  const total = all.length;
+  const done = all.filter(t => checked[t.id]).length;
+  const high = all.filter(t => t.impact === 'high');
+  const med = all.filter(t => t.impact === 'medium');
+  const other = all.filter(t => t.impact === 'quick' || t.impact === 'free');
+  document.getElementById('cl-label').textContent = `${done} of ${total} completed`;
+  document.getElementById('cl-fill').style.width = Math.round(done/total*100) + '%';
+  document.getElementById('cnt-h').textContent = `${high.filter(t=>checked[t.id]).length}/${high.length}`;
+  document.getElementById('cnt-m').textContent = `${med.filter(t=>checked[t.id]).length}/${med.length}`;
+  document.getElementById('cnt-q').textContent = `${other.filter(t=>checked[t.id]).length}/${other.length}`;
+  document.getElementById('nav-progress').textContent = `${done}/${total}`;
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChecklist();
+}
+
+function resetChecklist() {
+  checked = {};
+  renderChecklist();
+}
+
+renderChecklist();
+</script>
+</body>
+</html>
