@@ -70,6 +70,7 @@ EF6 / EDMX Models         → EF Core Code-First (agent-data-migrator)
 5. Always begin with `memory/CODEBASE-MAP.md` and the migration checklist.
 6. Use prompt files from `.github/prompts/` based on the task.
 7. When the guide refers to migration rules, use `rules/migration-and-security-rules.md`.
+8. For token-conscious sessions, use `agents/token-saver.agent.md` or invoke the agent `token-saver`.
 
 ---
 
@@ -107,6 +108,15 @@ First, read `.github/memory/CODEBASE-MAP.md`, then tell me the best next file to
 Use `.github/prompts/migrate-framework-to-core.md` if the file is framework code.
 Use `.github/prompts/refactor-ui.md` if the file is UI or WebForms.
 Use `.github/prompts/update-dependencies-run-tests-analyze.md` if the task is package updates, tests, or analysis.
+
+Agent invocation example:
+
+```
+INVOKE agent: token-saver
+TARGET: <file-or-folder-path>
+MODE: terse
+OUTPUT: inline
+```
 ```
 
 ---

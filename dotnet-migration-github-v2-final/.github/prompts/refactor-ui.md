@@ -5,6 +5,16 @@ Provides agents and Copilot users with precise instructions for converting WebFo
 
 ---
 
+Agent invocation example:
+
+```
+INVOKE agent: token-saver
+TARGET: <file-or-folder-path>
+MODE: terse
+OUTPUT: inline
+```
+
+
 ## The UI Refactor Prompt
 
 ```

@@ -19,6 +19,16 @@ a Framework type forces it. Document every change with an inline comment.
 
 ---
 
+Agent invocation example:
+
+```
+INVOKE agent: token-saver
+TARGET: <file-or-folder-path>
+MODE: terse
+OUTPUT: inline
+```
+
+
 ## The Migration Prompt
 
 ```

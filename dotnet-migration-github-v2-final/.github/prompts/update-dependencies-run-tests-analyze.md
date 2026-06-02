@@ -5,6 +5,16 @@ Used by `agent-dependency-resolver` and Copilot users to update a project's pack
 
 ---
 
+Agent invocation example:
+
+```
+INVOKE agent: token-saver
+TARGET: <file-or-folder-path>
+MODE: terse
+OUTPUT: inline
+```
+
+
 ## The Prompt
 
 ```
