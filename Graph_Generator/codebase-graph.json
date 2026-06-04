@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "generated": "2026-06-04T21:44:22.997987+00:00",
+  "generator": "gen_graph.py",
+  "language": "csharp",
+  "hash": "4f53cda18c2baa0c",
+  "stats": {
+    "total_files": 0,
+    "total_nodes": 0,
+    "total_edges": 0,
+    "controllers": 0,
+    "services": 0,
+    "repositories": 0,
+    "models": 0,
+    "interfaces": 0,
+    "middlewares": 0,
+    "dbcontexts": 0
+  },
+  "nodes": [],
+  "edges": []
+}
