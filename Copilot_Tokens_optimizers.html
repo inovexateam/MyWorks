@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Copilot — Token & Credit Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0d12;--bg2:#111318;--bg3:#171b24;--bg4:#1e2230;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#e4e7f0;--text2:#7e8799;--text3:#454e63;
+  --green:#3ecf8e;--green-dim:rgba(62,207,142,0.11);--green-dim2:rgba(62,207,142,0.05);
+  --amber:#f5a623;--amber-dim:rgba(245,166,35,0.11);
+  --red:#f04747;--red-dim:rgba(240,71,71,0.11);
+  --blue:#5b9cf6;--blue-dim:rgba(91,156,246,0.11);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.1);
+  --cyan:#22d3ee;--cyan-dim:rgba(34,211,238,0.1);
+  --r:10px;--rl:14px;
+  --font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+.shell{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:244px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.sb-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.sb-logo .mark{display:flex;align-items:center;gap:9px}
+.sb-logo .ico{width:32px;height:32px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.sb-logo .ico svg{width:17px;height:17px}
+.sb-logo .brand{font-size:13px;font-weight:600;line-height:1.2}
+.sb-logo .brand span{color:var(--green)}
+.sb-logo .bsub{font-size:11px;color:var(--text3);margin-top:2px}
+.nav-sec{padding:12px 10px 4px}
+.nav-lbl{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:0 8px;margin-bottom:4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;border:none;background:transparent;width:100%;text-align:left;font-family:var(--font)}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.nav-item.active{background:var(--green-dim);color:var(--green);font-weight:500}
+.nav-item .ni{font-size:15px;flex-shrink:0}
+.nav-item .nb{margin-left:auto;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;background:rgba(255,255,255,0.06);color:var(--text3)}
+.nav-item.active .nb{background:rgba(62,207,142,0.18);color:var(--green)}
+.sb-foot{margin-top:auto;padding:12px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.6}
+
+/* MAIN */
+.main{flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:10;background:rgba(11,13,18,.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between}
+.tb-title{font-size:15px;font-weight:600}
+.tb-sub{font-size:12px;color:var(--text3)}
+.tb-right{display:flex;gap:8px;flex-wrap:wrap}
+.cp{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:500}
+.cd{width:6px;height:6px;border-radius:50%}
+.content{padding:26px 28px}
+.page{display:none}.page.active{display:block}
+
+/* STATUS BAR */
+.statusbar{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:18px;font-size:12px;font-family:var(--mono)}
+.sb-seg{display:flex;align-items:center;gap:5px;color:var(--text2)}
+.sb-seg .dot{width:7px;height:7px;border-radius:50%}
+.sb-seg .val{font-weight:600}
+.sb-div{width:1px;height:14px;background:var(--border2);margin:0 4px}
+.sb-pulse{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+/* CARDS / GRIDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px}
+.stat-card .sl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.stat-card .sv{font-size:24px;font-weight:600;font-family:var(--mono);line-height:1}
+.stat-card .ss{font-size:11px;color:var(--text3);margin-top:4px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:14px}
+.sec-head{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin:22px 0 12px}
+.sec-head:first-child{margin-top:0}
+
+/* CALC */
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.ctrl-g{margin-bottom:14px}
+.ctrl-g label{font-size:12px;color:var(--text2);margin-bottom:5px;display:block}
+.ctrl-row{display:flex;align-items:center;gap:10px}
+.ctrl-row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:3px;background:var(--bg3);border-radius:2px;outline:none}
+.ctrl-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--green);cursor:pointer;box-shadow:0 0 0 3px rgba(62,207,142,.18)}
+.ctrl-val{font-family:var(--mono);font-size:12px;color:var(--green);min-width:68px;text-align:right}
+.ctrl-g select{width:100%;padding:7px 11px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:var(--font);outline:none;cursor:pointer;-webkit-appearance:none}
+.ctrl-g select:focus{border-color:var(--green)}
+.res-tile{background:var(--bg3);border-radius:var(--r);padding:12px 15px;border:1px solid var(--border);margin-bottom:10px}
+.res-tile .rl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.res-tile .rv{font-size:20px;font-weight:600;font-family:var(--mono)}
+.res-tile .rbar{height:3px;background:rgba(255,255,255,.05);border-radius:2px;margin-top:8px;overflow:hidden}
+.res-tile .rbfill{height:100%;border-radius:2px;transition:width .4s}
+.res-msg{font-size:12px;padding:9px 13px;border-radius:var(--r);margin-top:4px}
+
+/* FAQ */
+.faq-grid{display:flex;flex-direction:column;gap:10px}
+.faq-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
+.faq-q:hover{background:rgba(255,255,255,.03)}
+.faq-q .arr{font-size:12px;color:var(--text3);transition:transform .2s}
+.faq-a{display:none;padding:0 16px 14px;font-size:13px;color:var(--text2);line-height:1.7;border-top:1px solid var(--border)}
+.faq-a.open{display:block}
+.faq-q.open .arr{transform:rotate(180deg)}
+.faq-a code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)}
+.faq-a .formula{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;font-family:var(--mono);font-size:12px;color:var(--cyan);margin:10px 0;line-height:1.8}
+.faq-a table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.faq-a th{font-size:11px;color:var(--text3);padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
+.faq-a td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.faq-a tr:last-child td{border-bottom:none}
+
+/* MODELS */
+.model-table{width:100%;border-collapse:collapse}
+.model-table th{font-size:11px;color:var(--text3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);font-weight:500}
+.model-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px}
+.model-table tr:last-child td{border-bottom:none}
+.model-table tr:hover td{background:rgba(255,255,255,.015)}
+.mp{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.pg{background:var(--green-dim);color:var(--green)}
+.pa{background:var(--amber-dim);color:var(--amber)}
+.pr{background:var(--red-dim);color:var(--red)}
+.cost-row{display:flex;align-items:center;gap:7px}
+.cn{font-family:var(--mono);font-size:12px;font-weight:500;min-width:34px}
+.bt{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px}
+
+/* PROMPTS */
+.ex-title{font-size:13px;font-weight:600;margin-bottom:9px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.stag{font-size:11px;font-weight:600;color:var(--green);background:var(--green-dim);padding:2px 8px;border-radius:20px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.cb{border-radius:var(--r);padding:13px 15px}
+.cb .cbh{font-size:11px;font-weight:600;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.cb pre{font-family:var(--mono);font-size:11px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--text2)}
+.cb.bad{background:var(--red-dim);border:1px solid rgba(240,71,71,.18)}.cb.bad .cbh{color:var(--red)}
+.cb.good{background:var(--green-dim2);border:1px solid rgba(62,207,142,.13)}.cb.good .cbh{color:var(--green)}
+
+/* PROMPTS LIBRARY */
+.prompt-grid{display:flex;flex-direction:column;gap:8px}
+.prompt-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.pi-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer}
+.pi-head:hover{background:rgba(255,255,255,.02)}
+.pi-meta{display:flex;align-items:center;gap:8px}
+.pi-title{font-size:13px;font-weight:500}
+.pi-body{display:none;border-top:1px solid var(--border);padding:14px}
+.pi-body.open{display:block}
+.pi-desc{font-size:12px;color:var(--text2);margin-bottom:10px}
+.pi-code{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-family:var(--mono);font-size:11px;color:var(--text);line-height:1.7;position:relative}
+.copy-btn{position:absolute;top:8px;right:8px;padding:3px 9px;font-size:11px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--bg2);color:var(--text2);font-family:var(--font);transition:all .15s}
+.copy-btn:hover{border-color:var(--green);color:var(--green)}
+.pi-saving{font-size:11px;color:var(--green);font-weight:500;margin-top:8px}
+
+/* CONTEXT / TIPS */
+.tip-list{display:flex;flex-direction:column;gap:7px}
+.tip{display:flex;gap:11px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;transition:border-color .15s}
+.tip:hover{border-color:var(--border2)}
+.ti{font-size:18px;flex-shrink:0;width:26px;text-align:center}
+.tb .tt{font-size:13px;font-weight:500;margin-bottom:2px}
+.tb .td{font-size:12px;color:var(--text2);line-height:1.5}
+.tb .ts{font-size:11px;color:var(--green);font-weight:500;margin-top:4px}
+.tb code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px}
+
+/* VS CODE */
+.vc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px}
+.vc-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:15px}
+.vc-h{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.vc-ic{font-size:17px}
+.vc-t{font-size:13px;font-weight:600}
+.vc-b{font-size:12px;color:var(--text2);line-height:1.6}
+.vc-code{margin-top:9px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:var(--mono);font-size:11px;color:var(--green);line-height:1.7}
+
+/* SCENARIOS */
+.sc-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.sc-tab{padding:5px 13px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--text2);font-family:var(--font);transition:all .15s}
+.sc-tab:hover{border-color:var(--border2);color:var(--text)}
+.sc-tab.active{background:var(--green-dim);border-color:rgba(62,207,142,.3);color:var(--green)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ba-card{border-radius:var(--rl);padding:15px;border:1px solid}
+.ba-card.before{background:rgba(240,71,71,.04);border-color:rgba(240,71,71,.18)}
+.ba-card.after{background:rgba(62,207,142,.04);border-color:rgba(62,207,142,.18)}
+.ba-h{font-size:12px;font-weight:600;margin-bottom:10px}
+.ba-card.before .ba-h{color:var(--red)}.ba-card.after .ba-h{color:var(--green)}
+.ba-r{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+.ba-r .k{color:var(--text2)}.ba-r .v{font-weight:500}
+.ba-r .v.r{color:var(--red)}.ba-r .v.g{color:var(--green)}
+.res-banner{border-radius:var(--r);padding:10px 13px;font-size:13px;font-weight:500;margin-top:10px;background:var(--green-dim);color:var(--green)}
+
+/* CHECKLIST */
+.cl-prog{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:18px}
+.cl-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.cl-lbl{font-size:17px;font-weight:600}
+.cl-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.reset-btn{font-size:12px;padding:5px 11px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:transparent;color:var(--text2);font-family:var(--font);transition:all .15s}
+.reset-btn:hover{background:rgba(255,255,255,.04)}
+.cl-track{height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.cl-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+.cl-pills{display:flex;gap:14px;flex-wrap:wrap}
+.clp{font-size:12px;color:var(--text3)}.clp span{font-weight:600}
+.clp.h span{color:var(--red)}.clp.m span{color:var(--amber)}.clp.q span{color:var(--green)}
+.fbtn-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+.fbtn{font-size:12px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--text2);font-family:var(--font);transition:all .15s}
+.fbtn:hover{border-color:var(--border2);color:var(--text)}
+.fbtn.active{background:var(--green-dim);border-color:rgba(62,207,142,.3);color:var(--green);font-weight:500}
+.cl-sec{margin-bottom:20px}
+.cl-cat{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.cl-item{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border-radius:var(--r);cursor:pointer;border:1px solid var(--border);background:var(--bg2);margin-bottom:3px;transition:border-color .12s}
+.cl-item:hover{border-color:var(--border2)}
+.cl-item.done{opacity:.38}
+.cl-chk{width:17px;height:17px;border-radius:4px;border:1px solid rgba(255,255,255,.13);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s}
+.cl-chk.ck{background:var(--green);border-color:var(--green);color:#000;font-weight:700}
+.cl-b .cl-t{font-size:13px;font-weight:500;line-height:1.3;margin-bottom:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.cl-b .cl-d{font-size:12px;color:var(--text2);line-height:1.5}
+.cl-b .cl-s{font-size:11px;color:var(--green);font-weight:500;margin-top:3px}
+.cl-b code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px}
+.ip{font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px}
+.ip-h{background:var(--red-dim);color:var(--red)}
+.ip-m{background:var(--amber-dim);color:var(--amber)}
+.ip-q{background:var(--green-dim);color:var(--green)}
+.ip-f{background:var(--blue-dim);color:var(--blue)}
+.ip-n{background:var(--purple-dim);color:var(--purple)}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px}
+.dash-card .dl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.dash-card .dv{font-size:22px;font-weight:600;font-family:var(--mono)}
+.dash-card .ds{font-size:11px;color:var(--text3);margin-top:3px}
+.session-table{width:100%;border-collapse:collapse}
+.session-table th{font-size:11px;color:var(--text3);text-align:left;padding:7px 12px;border-bottom:1px solid var(--border);font-weight:500}
+.session-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;font-family:var(--mono)}
+.session-table tr:last-child td{border-bottom:none}
+.session-table tr:hover td{background:rgba(255,255,255,.015)}
+.spark{display:flex;align-items:flex-end;gap:2px;height:24px}
+.spark-bar{width:5px;border-radius:2px 2px 0 0;transition:height .3s}
+.badge-ok{color:var(--green)}.badge-warn{color:var(--amber)}.badge-hot{color:var(--red)}
+.dash-btn{padding:5px 12px;font-size:12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:transparent;color:var(--text2);font-family:var(--font);transition:all .15s;margin-right:6px;margin-bottom:8px}
+.dash-btn:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.dash-btn.active{background:var(--green-dim);border-color:rgba(62,207,142,.3);color:var(--green)}
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:48px;padding:4px 0}
+.mc-bar{border-radius:2px 2px 0 0;flex:1;min-width:6px;transition:height .3s,background .3s}
+.usage-row{display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:8px}
+.usage-label{color:var(--text2);min-width:110px}
+.usage-track{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.usage-bar{height:100%;border-radius:3px;transition:width .5s}
+.usage-val{font-family:var(--mono);font-size:11px;min-width:60px;text-align:right}
+
+/* AUDITOR */
+.audit-area{width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.7;resize:vertical;outline:none}
+.audit-area:focus{border-color:var(--green)}
+.audit-btn{padding:8px 18px;font-size:13px;font-weight:500;border:none;border-radius:var(--r);cursor:pointer;background:var(--green);color:#000;font-family:var(--font);transition:all .15s;margin-top:10px}
+.audit-btn:hover{background:#56e0a5}
+.audit-results{margin-top:14px}
+.audit-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.ast{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;text-align:center}
+.ast .av{font-size:20px;font-weight:600;font-family:var(--mono)}
+.ast .al{font-size:11px;color:var(--text3);margin-top:3px}
+.audit-issue{display:flex;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px}
+.ai-sev{font-size:13px;flex-shrink:0}
+.ai-b .ai-t{font-size:13px;font-weight:500;margin-bottom:2px}
+.ai-b .ai-d{font-size:12px;color:var(--text2);line-height:1.5}
+.ai-b .ai-fix{font-size:11px;font-family:var(--mono);color:var(--green);margin-top:4px;background:var(--bg3);padding:3px 8px;border-radius:4px;display:inline-block}
+
+/* TERSE */
+.terse-box{background:var(--bg3);border:1px solid rgba(62,207,142,.2);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+.terse-box .terse-head{font-size:13px;font-weight:600;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.terse-box pre{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.copy-block{position:relative}
+.copy-block .copy-btn2{position:absolute;top:8px;right:8px;padding:3px 9px;font-size:11px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--bg2);color:var(--text2);font-family:var(--font);transition:all .15s}
+.copy-block .copy-btn2:hover{border-color:var(--green);color:var(--green)}
+
+/* UPDATE GUIDE */
+.update-step{display:flex;gap:13px;align-items:flex-start;margin-bottom:14px}
+.us-num{width:26px;height:26px;border-radius:50%;background:var(--green-dim);color:var(--green);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.us-b .us-t{font-size:13px;font-weight:500;margin-bottom:3px}
+.us-b .us-d{font-size:12px;color:var(--text2);line-height:1.5}
+.us-b code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)}
+.change-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.change-table th{font-size:11px;color:var(--text3);text-align:left;padding:7px 12px;border-bottom:1px solid var(--border);font-weight:500}
+.change-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--mono)}
+.change-table tr:last-child td{border-bottom:none}
+td.trigger{color:var(--amber)}.trigger-icon{font-size:14px}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.09);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="mark">
+      <div class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div><div class="brand">Copilot <span>Optimizer</span></div><div class="bsub">Token & Credit Guide</div></div>
+    </div>
+  </div>
+
+  <div class="nav-sec">
+    <div class="nav-lbl">Tools</div>
+    <button class="nav-item active" onclick="nav('calc',this)"><span class="ni">⚡</span> Cost calculator</button>
+    <button class="nav-item" onclick="nav('faq',this)"><span class="ni">❓</span> Token FAQ </button>
+    <button class="nav-item" onclick="nav('models',this)"><span class="ni">🤖</span> Model picker</button>
+    <button class="nav-item" onclick="nav('prompts',this)"><span class="ni">✍️</span> Prompt examples</button>
+    <button class="nav-item" onclick="nav('library',this)"><span class="ni">📚</span> Prompt library </button>
+    <button class="nav-item" onclick="nav('terse',this)"><span class="ni">⚔️</span> Terse output </button>
+    <button class="nav-item" onclick="nav('context',this)"><span class="ni">📂</span> Context hygiene</button>
+    <button class="nav-item" onclick="nav('vscode',this)"><span class="ni">⚙️</span> VS Code settings</button>
+    <button class="nav-item" onclick="nav('scenarios',this)"><span class="ni">📊</span> Real scenarios</button>
+    <button class="nav-item" onclick="nav('dashboard',this)"><span class="ni">📈</span> Usage dashboard </button>
+    <button class="nav-item" onclick="nav('auditor',this)"><span class="ni">🔍</span> Instruction auditor </button>
+    <button class="nav-item" onclick="nav('update',this)"><span class="ni">🔄</span> How to update </button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Reference</div>
+    <button class="nav-item" onclick="nav('checklist',this)"><span class="ni">✅</span> Full checklist <span class="nb" id="nav-prog">0/26</span></button>
+  </div>
+
+  <div class="sb-foot">
+    Billing live Jun 1, 2026<br>
+    1 Credit = $0.01 USD<br>
+    <span style="color:var(--green)">Completions = always free</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div><div class="tb-title" id="pg-title">Cost calculator</div><div class="tb-sub" id="pg-sub">Drag sliders. See exact credit cost.</div></div>
+    <div class="tb-right">
+      <div class="cp"><div class="cd" style="background:var(--green)"></div>Pro: 1,000 cr/mo</div>
+      <div class="cp"><div class="cd" style="background:var(--amber)"></div>Pro+: 3,900 cr/mo</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ████ CALC ████ -->
+  <div id="page-calc" class="page active">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="sl">Cost USD</div><div class="sv" id="s-cost" style="color:var(--blue)">$0.00</div><div class="ss">per request</div></div>
+      <div class="stat-card"><div class="sl">Credits used</div><div class="sv" id="s-cred">0</div><div class="ss">1 credit = $0.01</div></div>
+      <div class="stat-card"><div class="sl">% of Pro plan</div><div class="sv" id="s-pct">0%</div><div class="ss">1,000 cr/mo</div></div>
+      <div class="stat-card"><div class="sl">Requests in Pro</div><div class="sv" id="s-reqs" style="color:var(--text)">—</div><div class="ss">at this rate</div></div>
+    </div>
+    <div class="calc-grid card">
+      <div>
+        <div class="ctrl-g"><label>Input tokens (what you send)</label><div class="ctrl-row"><input type="range" id="inp" min="1000" max="200000" step="1000" value="30000" oninput="recalc()"><span class="ctrl-val" id="inp-v">30,000</span></div></div>
+        <div class="ctrl-g"><label>Output tokens (what Copilot generates)</label><div class="ctrl-row"><input type="range" id="out" min="500" max="20000" step="500" value="3000" oninput="recalc()"><span class="ctrl-val" id="out-v">3,000</span></div></div>
+        <div class="ctrl-g"><label>Model</label>
+          <select id="model-sel" onchange="recalc()">
+            <option value="0.5,1.5">GPT-5 mini (cheapest)</option>
+            <option value="2.5,12">GPT-5.4</option>
+            <option value="3,15" selected>Claude Sonnet 4.6</option>
+            <option value="5,30">GPT-5.5</option>
+            <option value="5,25">Claude Opus 4.8</option>
+            <option value="15,75">Claude Opus 4.6 fast mode</option>
+          </select>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:6px">Formula: (inp×inp_rate + out×out_rate) ÷ 1,000,000 → ÷ 0.01 = credits</p>
+      </div>
+      <div>
+        <div class="res-tile"><div class="rl">Input cost</div><div class="rv" id="r-inp" style="color:var(--blue)">—</div><div class="rbar"><div class="rbfill" id="rb-inp" style="background:var(--blue)"></div></div></div>
+        <div class="res-tile"><div class="rl">Output cost</div><div class="rv" id="r-out" style="color:var(--amber)">—</div><div class="rbar"><div class="rbfill" id="rb-out" style="background:var(--amber)"></div></div></div>
+        <div id="calc-msg" class="res-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ████ FAQ ████ -->
+  <div id="page-faq" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Top questions from the team. Click to expand.</p>
+    <div class="faq-grid" id="faq-list"></div>
+  </div>
+
+  <!-- ████ MODELS ████ -->
+  <div id="page-models" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Same 30K input + 3K output across all models. Output costs 4–10× more per token than input.</p>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="model-table">
+        <tr><th>Model</th><th>Input /1M</th><th>Output /1M</th><th>Cost (30K+3K)</th><th>Tier</th><th>Best for</th></tr>
+        <tr><td style="font-weight:500">GPT-5 mini</td><td class="mp">$0.50</td><td class="mp">$1.50</td><td><div class="cost-row"><span class="cn" style="color:var(--green)">0.2¢</span><div class="bt"><div class="bf" style="width:2%;background:var(--green)"></div></div></div></td><td><span class="pill pg">Free</span></td><td style="font-size:12px;color:var(--text2)">Boilerplate, getters, Q&A</td></tr>
+        <tr><td style="font-weight:500">GPT-5.4</td><td class="mp">$2.50</td><td class="mp">$12.00</td><td><div class="cost-row"><span class="cn" style="color:var(--green)">11¢</span><div class="bt"><div class="bf" style="width:12%;background:var(--green)"></div></div></div></td><td><span class="pill pg">Low</span></td><td style="font-size:12px;color:var(--text2)">Balanced daily use</td></tr>
+        <tr><td style="font-weight:500">Claude Sonnet 4.6</td><td class="mp">$3.00</td><td class="mp">$15.00</td><td><div class="cost-row"><span class="cn" style="color:var(--amber)">14¢</span><div class="bt"><div class="bf" style="width:16%;background:var(--amber)"></div></div></div></td><td><span class="pill pa">Mid</span></td><td style="font-size:12px;color:var(--text2)">Complex coding, refactors</td></tr>
+        <tr><td style="font-weight:500">Claude Opus 4.8</td><td class="mp">$5.00</td><td class="mp">$25.00</td><td><div class="cost-row"><span class="cn" style="color:var(--amber)">23¢</span><div class="bt"><div class="bf" style="width:25%;background:var(--amber)"></div></div></div></td><td><span class="pill pa">High</span></td><td style="font-size:12px;color:var(--text2)">Architecture, hard debug</td></tr>
+        <tr><td style="font-weight:500">GPT-5.5</td><td class="mp">$5.00</td><td class="mp">$30.00</td><td><div class="cost-row"><span class="cn" style="color:var(--red)">24¢</span><div class="bt"><div class="bf" style="width:26%;background:var(--red)"></div></div></div></td><td><span class="pill pr">High</span></td><td style="font-size:12px;color:var(--text2)">Deep reasoning only</td></tr>
+        <tr><td style="font-weight:500">Opus 4.6 fast mode</td><td class="mp">$15.00</td><td class="mp">$75.00</td><td><div class="cost-row"><span class="cn" style="color:var(--red)">68¢</span><div class="bt"><div class="bf" style="width:75%;background:var(--red)"></div></div></div></td><td><span class="pill pr">Extreme</span></td><td style="font-size:12px;color:var(--text2)">Avoid daily use</td></tr>
+      </table>
+    </div>
+    <div style="margin-top:10px;padding:11px 14px;background:var(--green-dim);border-radius:var(--r);font-size:13px;color:var(--green);font-weight:500">↓ Opus fast mode → GPT-5 mini for routine tasks = 99% cheaper per request</div>
+  </div>
+
+  <!-- ████ PROMPTS ████ -->
+  <div id="page-prompts" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Every word = billed input token. Vague prompts produce verbose output — most expensive token type.</p>
+    <div class="ex-title">1 — Refactor <span class="stag">~60% fewer tokens</span></div>
+    <div class="cmp">
+      <div class="cb bad"><div class="cbh">❌ Bloated (~180 tok)</div><pre>Hi Copilot! I have been working on this project for a while and I have this function here. I was hoping you could look at it and help me refactor it to make it cleaner, more readable, and potentially more efficient. Here's the whole file for context...</pre></div>
+      <div class="cb good"><div class="cbh">✅ Tight (~70 tok)</div><pre>Refactor for readability + perf. Keep same signature. No explanation.
+
+[15-line function selected]</pre></div>
+    </div>
+    <div class="ex-title" style="margin-top:18px">2 — Bug fix <span class="stag">~70% fewer tokens</span></div>
+    <div class="cmp">
+      <div class="cb bad"><div class="cbh">❌ Vague + full file (~500 tok)</div><pre>Something is wrong with my code. Can you look through all of this and figure out the bug?
+[entire 300-line file pasted]</pre></div>
+      <div class="cb good"><div class="cbh">✅ Scoped (~150 tok)</div><pre>TypeError: cannot read 'id' of undefined — line 42.
+Fix null check.
+[10-line snippet]</pre></div>
+    </div>
+    <div class="ex-title" style="margin-top:18px">3 — Code gen <span class="stag">~50% fewer output tokens</span></div>
+    <div class="cmp">
+      <div class="cb bad"><div class="cbh">❌ Open-ended</div><pre>Write a JS email validator. Include comments, examples, edge cases, tests, and explain how it works.</pre></div>
+      <div class="cb good"><div class="cbh">✅ Constrained</div><pre>JS email validator. Returns bool. No comments, no tests, no explanation.</pre></div>
+    </div>
+    <div class="ex-title" style="margin-top:18px">4 — Agent scoping <span class="stag">~40% fewer agent steps</span></div>
+    <div class="cmp">
+      <div class="cb bad"><div class="cbh">❌ Broad agent prompt</div><pre>Refactor the whole auth system to JWT, update all tests, fix related bugs, update README.</pre></div>
+      <div class="cb good"><div class="cbh">✅ Scoped sub-tasks</div><pre>Task 1: Refactor /src/auth/login.js → JWT. Keep interface.
+[run, then separately:]
+Task 2: Update /tests/auth.test.js for JWT.</pre></div>
+    </div>
+  </div>
+
+  <!-- ████ PROMPT LIBRARY ████ -->
+  <div id="page-library" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:4px">Save to <code style="font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)">.github/prompts/</code> — reference with <code style="font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)">#file:.github/prompts/refactor.prompt.md</code></p>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Stops you retyping fat prompts. Copilot loads them on demand — not always-on like copilot-instructions.md.</p>
+    <div class="prompt-grid" id="prompt-library"></div>
+  </div>
+
+  <!-- ████ TERSE ████ -->
+  <div id="page-terse" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Add to <code style="font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)">.github/copilot-instructions.md</code> or share directly. Cuts output tokens 40–75%.</p>
+
+    <div class="terse-box">
+      <div class="terse-head">🗡️ Standard terse block — add to copilot-instructions.md</div>
+      <div class="copy-block">
+        <pre id="terse-std">## Output style
+Be concise. Code only unless explanation explicitly requested.
+No prose preamble. No "Here is the code:" headers.
+No trailing summaries. No "I hope this helps."
+Inline comments only where logic is non-obvious.
+Tests: write only if asked. Docs: write only if asked.</pre>
+        <button class="copy-btn2" onclick="copyText('terse-std',this)">Copy</button>
+      </div>
+    </div>
+
+    <div class="terse-box">
+      <div class="terse-head">💬 Caveman mode — share in chat to activate for a session</div>
+      <div class="copy-block">
+        <pre id="terse-cave">Caveman terse mode ON.
+Rules:
+- No fluff. No pleasantries. No filler.
+- Fragments OK. Short words. Tech exact.
+- Pattern: [thing] [action] [reason]. [next step].
+- Code and PRs stay normal format.
+- Active every response. No drift.
+- Exit: reply "stop caveman" or "normal mode".</pre>
+        <button class="copy-btn2" onclick="copyText('terse-cave',this)">Copy</button>
+      </div>
+    </div>
+
+    <div class="terse-box">
+      <div class="terse-head">🧪 Per-task output constraint — append to any prompt</div>
+      <div class="copy-block">
+        <pre id="terse-task">Output constraints: code only. No explanation. No comments unless logic non-obvious. No tests. Max 40 lines.</pre>
+        <button class="copy-btn2" onclick="copyText('terse-task',this)">Copy</button>
+      </div>
+    </div>
+
+    <div class="terse-box">
+      <div class="terse-head">📋 Path-scoped terse — .github/instructions/terse.instructions.md</div>
+      <div class="copy-block">
+        <pre id="terse-scope">---
+applyTo: "**"
+---
+## Response format
+Terse. Code-first. No preamble. No trailing prose.
+Explanation only if explicitly asked.
+Commit messages: imperative, under 60 chars, no body unless asked.</pre>
+        <button class="copy-btn2" onclick="copyText('terse-scope',this)">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ████ CONTEXT ████ -->
+  <div id="page-context" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Invisible token leaks. Inflate bill before you type one word.</p>
+    <div class="tip-list">
+      <div class="tip"><div class="ti">📑</div><div class="tb"><div class="tt">Open editor tabs = hidden context</div><div class="td">Every open file silently added as context. 20 tabs = up to 100K tokens before you ask anything.</div><div class="ts">Fix: close unrelated tabs. Keep only the file you're editing.</div></div></div>
+      <div class="tip"><div class="ti">💬</div><div class="tb"><div class="tt">Long chats re-send history every turn</div><div class="td">Each message resends full conversation as input. 20-turn chat = 5× more tokens for same final question.</div><div class="ts">Fix: new chat per task. Sessions = sticky notes, not novels.</div></div></div>
+      <div class="tip"><div class="ti">🔧</div><div class="tb"><div class="tt">copilot-instructions.md loads every agent step</div><div class="td">LLM boilerplate adds 2K–5K tokens/step. 15 steps × 5K = 75K overhead tokens.</div><div class="ts">Fix: trim to &lt;300 tokens. Constraints only. Delete anything obvious.</div></div></div>
+      <div class="tip"><div class="ti">🔌</div><div class="tb"><div class="tt">MCP servers: 100–500 tokens each, every step</div><div class="td">15 servers × 15 steps = 112,500 tokens of pure overhead before task runs.</div><div class="ts">Fix: 3–5 active MCP max. Remove rest.</div></div></div>
+      <div class="tip"><div class="ti">📦</div><div class="tb"><div class="tt">node_modules / generated files get indexed</div><div class="td">Thousands of files, zero useful signal. Expand repo context for nothing.</div><div class="ts">Fix: add <code>node_modules/</code> <code>dist/</code> <code>.cache/</code> <code>logs/</code> to <code>.copilotignore</code></div></div></div>
+      <div class="tip"><div class="ti">🖱️</div><div class="tb"><div class="tt">No selection = full repo index search</div><div class="td">Copilot Chat without selection may search entire codebase. Highlighting 10–20 lines scopes precisely.</div><div class="ts">Fix: select relevant lines before opening Chat. 80%+ input token reduction.</div></div></div>
+      <div class="tip"><div class="ti">🏗️</div><div class="tb"><div class="tt">Multi-service repos open simultaneously</div><div class="td">Files from multiple microservices open at once multiply context across unrelated code.</div><div class="ts">Fix: VS Code workspaces or separate windows per service.</div></div></div>
+    </div>
+  </div>
+
+  <!-- ████ VSCODE ████ -->
+  <div id="page-vscode" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Add to <code style="font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)">.vscode/settings.json</code> and commit — whole team inherits instantly.</p>
+    <div class="vc-grid">
+      <div class="vc-card"><div class="vc-h"><span class="vc-ic">🚫</span><div class="vc-t">Disable Copilot for noisy types</div></div><div class="vc-b">Prevents context loading for XML, YAML, env, SQL, plaintext — zero signal, all overhead.</div><div class="vc-code">"github.copilot.enable": {<br>&nbsp;&nbsp;"*": true,<br>&nbsp;&nbsp;"xml": false,<br>&nbsp;&nbsp;"yaml": false,<br>&nbsp;&nbsp;"env": false,<br>&nbsp;&nbsp;"dotenv": false,<br>&nbsp;&nbsp;"sql": false,<br>&nbsp;&nbsp;"plaintext": false<br>}</div></div>
+      <div class="vc-card"><div class="vc-h"><span class="vc-ic">📊</span><div class="vc-t">Disable workspace indexing</div></div><div class="vc-b">Turns off full semantic code search for a workspace. Large monorepos: inflates every Chat request.</div><div class="vc-code">"github.copilot.codebase": "off"</div></div>
+      <div class="vc-card"><div class="vc-h"><span class="vc-ic">🤖</span><div class="vc-t">Disable agent mode per workspace</div></div><div class="vc-b">For repos where you only need completions. Prevents accidental multi-step sessions.</div><div class="vc-code">"chat.agent.enabled": false</div></div>
+      <div class="vc-card"><div class="vc-h"><span class="vc-ic">🎯</span><div class="vc-t">Scope instructions with applyTo</div></div><div class="vc-b">Only loads instruction files for matching file patterns — not every file Copilot touches.</div><div class="vc-code">---<br>applyTo: "**/*.ts"<br>---<br>Use strict TypeScript.<br>No any types.</div></div>
+      <div class="vc-card"><div class="vc-h"><span class="vc-ic">⏸️</span><div class="vc-t">Disable Next Edit Suggestions</div></div><div class="vc-b">NES are free but can trigger background calls during reading sessions.</div><div class="vc-code">"github.copilot<br>&nbsp;.nextEditSuggestions<br>&nbsp;.enabled": false</div></div>
+      <div class="vc-card"><div class="vc-h"><span class="vc-ic">💾</span><div class="vc-t">Commit .vscode/settings.json</div></div><div class="vc-b">Team inherits same exclusions, file-type rules, scope settings automatically on clone.</div><div class="vc-code">git add .vscode/settings.json<br>git commit -m \<br>"chore: copilot token opts"</div></div>
+    </div>
+  </div>
+
+  <!-- ████ SCENARIOS ████ -->
+  <div id="page-scenarios" class="page">
+    <div class="sc-tabs">
+      <button class="sc-tab active" onclick="showSc('agent',this)">Agent refactor</button>
+      <button class="sc-tab" onclick="showSc('chat',this)">Daily Q&A</button>
+      <button class="sc-tab" onclick="showSc('review',this)">PR review</button>
+    </div>
+    <div id="sc-agent">
+      <div class="ba">
+        <div class="ba-card before"><div class="ba-h">❌ Before</div>
+          <div class="ba-r"><span class="k">Model</span><span class="v">Opus 4.6 fast mode</span></div>
+          <div class="ba-r"><span class="k">Open tabs</span><span class="v">18 files</span></div>
+          <div class="ba-r"><span class="k">Instructions</span><span class="v">2,400 tokens</span></div>
+          <div class="ba-r"><span class="k">MCP servers</span><span class="v">12 active</span></div>
+          <div class="ba-r"><span class="k">Input tokens</span><span class="v">~310,000</span></div>
+          <div class="ba-r"><span class="k">Credits</span><span class="v r">~465 ($4.65)</span></div>
+        </div>
+        <div class="ba-card after"><div class="ba-h">✅ After</div>
+          <div class="ba-r"><span class="k">Model</span><span class="v">Claude Sonnet 4.6</span></div>
+          <div class="ba-r"><span class="k">Open tabs</span><span class="v">3 files</span></div>
+          <div class="ba-r"><span class="k">Instructions</span><span class="v">300 tokens</span></div>
+          <div class="ba-r"><span class="k">MCP servers</span><span class="v">3 active</span></div>
+          <div class="ba-r"><span class="k">Input tokens</span><span class="v">~55,000</span></div>
+          <div class="ba-r"><span class="k">Credits</span><span class="v g">~20 ($0.20)</span></div>
+        </div>
+      </div>
+      <div class="res-banner">↓ 96% reduction — $4.65 → $0.20 per session</div>
+    </div>
+    <div id="sc-chat" style="display:none">
+      <div class="ba">
+        <div class="ba-card before"><div class="ba-h">❌ Before</div>
+          <div class="ba-r"><span class="k">Model</span><span class="v">GPT-5.5</span></div>
+          <div class="ba-r"><span class="k">Style</span><span class="v">One long session</span></div>
+          <div class="ba-r"><span class="k">Q/day</span><span class="v">20</span></div>
+          <div class="ba-r"><span class="k">Avg tok/Q</span><span class="v">~8,000</span></div>
+          <div class="ba-r"><span class="k">Daily credits</span><span class="v r">~130 ($1.30)</span></div>
+        </div>
+        <div class="ba-card after"><div class="ba-h">✅ After</div>
+          <div class="ba-r"><span class="k">Model</span><span class="v">GPT-5 mini</span></div>
+          <div class="ba-r"><span class="k">Style</span><span class="v">Fresh per task</span></div>
+          <div class="ba-r"><span class="k">Q/day</span><span class="v">20</span></div>
+          <div class="ba-r"><span class="k">Avg tok/Q</span><span class="v">~2,000</span></div>
+          <div class="ba-r"><span class="k">Daily credits</span><span class="v g">~4 ($0.04)</span></div>
+        </div>
+      </div>
+      <div class="res-banner">↓ 97% reduction — $1.30 → $0.04/day</div>
+    </div>
+    <div id="sc-review" style="display:none">
+      <div class="ba">
+        <div class="ba-card before"><div class="ba-h">❌ Before</div>
+          <div class="ba-r"><span class="k">Reviews/week</span><span class="v">Every PR (30)</span></div>
+          <div class="ba-r"><span class="k">Model</span><span class="v">Opus 4.8</span></div>
+          <div class="ba-r"><span class="k">Avg tok</span><span class="v">~40,000</span></div>
+          <div class="ba-r"><span class="k">Weekly credits</span><span class="v r">~660 ($6.60)</span></div>
+        </div>
+        <div class="ba-card after"><div class="ba-h">✅ After</div>
+          <div class="ba-r"><span class="k">Reviews/week</span><span class="v">Important only (8)</span></div>
+          <div class="ba-r"><span class="k">Model</span><span class="v">Sonnet 4.6</span></div>
+          <div class="ba-r"><span class="k">Avg tok</span><span class="v">~20,000</span></div>
+          <div class="ba-r"><span class="k">Weekly credits</span><span class="v g">~31 ($0.31)</span></div>
+        </div>
+      </div>
+      <div class="res-banner">↓ 95% reduction — $6.60 → $0.31/week</div>
+    </div>
+  </div>
+
+  <!-- ████ DASHBOARD ████ -->
+  <div id="page-dashboard" class="page">
+    <div class="statusbar">
+      <div class="sb-pulse"></div>
+      <div class="sb-seg"><span style="color:var(--text3)">session</span> <span class="val" id="db-live-tok" style="color:var(--green)">0</span> <span style="color:var(--text3)">tok</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-seg"><span style="color:var(--text3)">credits</span> <span class="val" id="db-live-cr" style="color:var(--amber)">0.0</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-seg"><span style="color:var(--text3)">model</span> <span class="val" id="db-live-model" style="color:var(--purple)">Sonnet 4.6</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-seg"><span style="color:var(--text3)">month</span> <span class="val" id="db-live-month" style="color:var(--text)">0/1000</span> <span style="color:var(--text3)">cr</span></div>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="dash-btn active" onclick="dbFilter('all',this)">All</button>
+        <button class="dash-btn" onclick="dbFilter('chat',this)">Chat</button>
+        <button class="dash-btn" onclick="dbFilter('agent',this)">Agent</button>
+        <button class="dash-btn" onclick="dbFilter('review',this)">Review</button>
+        <button class="dash-btn" onclick="addSession()">+ Simulate</button>
+      </div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dl">Today's credits</div><div class="dv" id="db-today" style="color:var(--green)">0.0</div><div class="ds">of 33 daily budget</div></div>
+      <div class="dash-card"><div class="dl">Monthly used</div><div class="dv" id="db-month" style="color:var(--amber)">0</div><div class="ds">of 1,000 credits</div></div>
+      <div class="dash-card"><div class="dl">Most expensive session</div><div class="dv" id="db-max" style="color:var(--red)">0.0</div><div class="ds">credits</div></div>
+    </div>
+    <div class="sec-head">Token usage by type (today)</div>
+    <div class="card">
+      <div class="usage-row"><span class="usage-label">Chat sessions</span><div class="usage-track"><div class="usage-bar" id="ub-chat" style="background:var(--blue);width:0%"></div></div><span class="usage-val" id="uv-chat">0 cr</span></div>
+      <div class="usage-row"><span class="usage-label">Agent mode</span><div class="usage-track"><div class="usage-bar" id="ub-agent" style="background:var(--amber);width:0%"></div></div><span class="usage-val" id="uv-agent">0 cr</span></div>
+      <div class="usage-row"><span class="usage-label">Code Review</span><div class="usage-track"><div class="usage-bar" id="ub-review" style="background:var(--red);width:0%"></div></div><span class="usage-val" id="uv-review">0 cr</span></div>
+      <div class="usage-row"><span class="usage-label">Completions</span><div class="usage-track"><div class="usage-bar" id="ub-comp" style="background:var(--green);width:100%"></div></div><span class="usage-val" style="color:var(--green)">FREE</span></div>
+    </div>
+    <div class="sec-head">Session log</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="session-table">
+        <tr><th>Time</th><th>Type</th><th>Model</th><th>Tokens</th><th>Credits</th><th>Status</th></tr>
+        <tbody id="session-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ████ AUDITOR ████ -->
+  <div id="page-auditor" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Paste your <code style="font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)">.github/copilot-instructions.md</code> below. Runs 100% locally — no data sent anywhere.</p>
+    <textarea class="audit-area" id="audit-input" placeholder="Paste your copilot-instructions.md content here...
+
+Example:
+# Project instructions
+You are an expert developer. Please always write clean, well-documented code with proper error handling. Make sure to follow best practices and write tests for everything. Be helpful and friendly in your responses."></textarea>
+    <button class="audit-btn" onclick="runAudit()">Audit instructions →</button>
+    <div class="audit-results" id="audit-results" style="display:none"></div>
+  </div>
+
+  <!-- ████ UPDATE ████ -->
+  <div id="page-update" class="page">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">When Copilot billing, models, or tips change — here's exactly what to update and where.</p>
+    <div class="sec-head">Update workflow</div>
+    <div class="update-step"><div class="us-num">1</div><div class="us-b"><div class="us-t">Check GitHub changelog monthly</div><div class="us-d">Bookmark <code>github.blog/changelog</code> + filter tag "copilot". New models, pricing changes, new features appear here first. Takes 5 min/month.</div></div></div>
+    <div class="update-step"><div class="us-num">2</div><div class="us-b"><div class="us-t">Update model rates in the calculator</div><div class="us-d">In this file, find the <code>&lt;select id="model-sel"&gt;</code> element. Each option value is <code>"input_rate,output_rate"</code> in $/million tokens. Update numbers when GitHub changes pricing.</div></div></div>
+    <div class="update-step"><div class="us-num">3</div><div class="us-b"><div class="us-t">Update plan credit amounts</div><div class="us-d">Find <code>Pro: 1,000 cr/mo</code> in the topbar and <code>PLAN_CREDITS</code> in the script. Change when plan allowances update.</div></div></div>
+    <div class="update-step"><div class="us-num">4</div><div class="us-b"><div class="us-t">Add new checklist items</div><div class="us-d">Find <code>const checklistData</code> in the script. Add new item objects: <code>{ id:'x1', impact:'high', title:'...', desc:'...', saving:'...' }</code></div></div></div>
+    <div class="update-step"><div class="us-num">5</div><div class="us-b"><div class="us-t">Update prompt library templates</div><div class="us-d">Find <code>const PROMPTS</code> in the script. Edit existing templates or add new ones as the team finds better patterns.</div></div></div>
+    <div class="update-step"><div class="us-num">6</div><div class="us-b"><div class="us-t">Redistribute the file</div><div class="us-d">Single HTML file — just re-share it. No build step, no install. Drop in Teams/Slack/email. Works offline.</div></div></div>
+
+    <div class="divider"></div>
+    <div class="sec-head">What triggers an update</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="change-table">
+        <tr><th>Event</th><th>What to update</th><th>Urgency</th></tr>
+        <tr><td class="trigger">New model released</td><td>Add row to model-sel + model table</td><td>⚡ Same week</td></tr>
+        <tr><td class="trigger">Price change</td><td>model-sel option values + model table</td><td>⚡ Same day</td></tr>
+        <tr><td class="trigger">Plan credit change</td><td>Topbar pills + PLAN_CREDITS var</td><td>⚡ Same day</td></tr>
+        <tr><td class="trigger">New Copilot feature</td><td>Add checklist item + tip in context/vscode pages</td><td>📅 Within a week</td></tr>
+        <tr><td class="trigger">New billing rule</td><td>FAQ section + checklist billing category</td><td>⚡ Same day</td></tr>
+        <tr><td class="trigger">Team finds better prompt pattern</td><td>Prompt library PROMPTS array</td><td>📅 Any time</td></tr>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+    <div class="sec-head">Reusable .github/prompts/ setup</div>
+    <div class="tip-list">
+      <div class="tip"><div class="ti">📁</div><div class="tb"><div class="tt">Create the folder</div><div class="td"><code>mkdir -p .github/prompts</code> — Copilot recognises this path natively in VS Code 1.99+.</div></div></div>
+      <div class="tip"><div class="ti">📄</div><div class="tb"><div class="tt">Name files *.prompt.md</div><div class="td">Example: <code>refactor.prompt.md</code>, <code>review.prompt.md</code>, <code>debug.prompt.md</code>. Reference with <code>#file:.github/prompts/refactor.prompt.md</code></div></div></div>
+      <div class="tip"><div class="ti">🔑</div><div class="tb"><div class="tt">Key benefit: on-demand, not always-on</div><div class="td">Unlike <code>copilot-instructions.md</code>, prompt files load only when you reference them. Zero cost when not in use.</div><div class="ts">Use for fat prompts (arch review, migration plans) that you'd otherwise retype every time.</div></div></div>
+      <div class="tip"><div class="ti">👥</div><div class="tb"><div class="tt">Commit to repo — whole team benefits</div><div class="td"><code>git add .github/prompts/ && git commit -m "chore: add reusable copilot prompts"</code></div></div></div>
+    </div>
+  </div>
+
+  <!-- ████ CHECKLIST ████ -->
+  <div id="page-checklist" class="page">
+    <div class="cl-prog">
+      <div class="cl-top">
+        <div><div class="cl-lbl" id="cl-lbl">0 of 26 completed</div><div class="cl-sub">Check off as you implement</div></div>
+        <button class="reset-btn" onclick="resetCL()">↺ Reset</button>
+      </div>
+      <div class="cl-track"><div class="cl-fill" id="cl-fill" style="width:0%"></div></div>
+      <div class="cl-pills">
+        <div class="clp h">High: <span id="cnt-h">0/10</span></div>
+        <div class="clp m">Medium: <span id="cnt-m">0/8</span></div>
+        <div class="clp q">Wins/Free: <span id="cnt-q">0/8</span></div>
+      </div>
+    </div>
+    <div class="fbtn-row">
+      <button class="fbtn active" onclick="setF('all',this)">All (26)</button>
+      <button class="fbtn" onclick="setF('high',this)">High impact</button>
+      <button class="fbtn" onclick="setF('medium',this)">Medium</button>
+      <button class="fbtn" onclick="setF('quick',this)">Quick wins</button>
+      <button class="fbtn" onclick="setF('free',this)">Always free</button>
+      <button class="fbtn" onclick="setF('new',this)">New</button>
+      <button class="fbtn" onclick="setF('todo',this)">To do</button>
+    </div>
+    <div id="cl-list"></div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+/* ─── NAV ─── */
+const PAGE_META = {
+  calc:['Cost calculator','Drag sliders. See exact credit cost.'],
+  faq:['Token FAQ','1 token ≠ 1 credit. All team questions answered.'],
+  models:['Model picker','Same tokens, wildly different costs.'],
+  prompts:['Prompt examples','Before/after — real token reduction.'],
+  library:['Prompt library','Reusable .github/prompts/ templates.'],
+  terse:['Terse output','Copy-paste blocks. Cut output tokens 40–75%.'],
+  context:['Context hygiene','Invisible leaks. Fix before you type.'],
+  vscode:['VS Code settings','Fine-grained control. Commit to repo.'],
+  scenarios:['Real scenarios','Full before/after with real numbers.'],
+  dashboard:['Usage dashboard','Local session log. Real-time status bar.'],
+  auditor:['Instruction auditor','Paste instructions. Get audit. 100% local.'],
+  update:['How to update','Keep this file current. Prompt library setup.'],
+  checklist:['Full checklist','26 tips. Track progress.'],
+};
+function nav(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  const [t,s]=PAGE_META[id]||['',''];
+  document.getElementById('pg-title').textContent=t;
+  document.getElementById('pg-sub').textContent=s;
+}
+
+/* ─── CALC ─── */
+function recalc(){
+  const inp=parseInt(document.getElementById('inp').value);
+  const out=parseInt(document.getElementById('out').value);
+  const[ir,or_]=document.getElementById('model-sel').value.split(',').map(Number);
+  document.getElementById('inp-v').textContent=inp.toLocaleString();
+  document.getElementById('out-v').textContent=out.toLocaleString();
+  const ic=inp*ir/1e6, oc=out*or_/1e6, tot=ic+oc;
+  const cr=tot/0.01, pct=cr/1000*100;
+  document.getElementById('s-cost').textContent='$'+tot.toFixed(4);
+  document.getElementById('s-cred').textContent=cr.toFixed(1);
+  document.getElementById('s-pct').textContent=pct.toFixed(1)+'%';
+  document.getElementById('s-reqs').textContent=Math.floor(1000/Math.max(cr,.01)).toLocaleString();
+  const cc=cr<10?'var(--green)':cr<50?'var(--amber)':'var(--red)';
+  document.getElementById('s-cred').style.color=cc;
+  document.getElementById('s-pct').style.color=cc;
+  document.getElementById('r-inp').textContent='$'+ic.toFixed(4);
+  document.getElementById('r-out').textContent='$'+oc.toFixed(4);
+  const mx=Math.max(ic,oc,.001);
+  document.getElementById('rb-inp').style.width=Math.min(ic/mx*90,90)+'%';
+  document.getElementById('rb-out').style.width=Math.min(oc/mx*90,90)+'%';
+  const m=document.getElementById('calc-msg');
+  if(cr<5){m.style.background='var(--green-dim)';m.style.color='var(--green)';m.textContent='✓ Efficient — sustainable daily use.';}
+  else if(cr<30){m.style.background='var(--amber-dim)';m.style.color='var(--amber)';m.textContent='⚠ Moderate — watch session count.';}
+  else{m.style.background='var(--red-dim)';m.style.color='var(--red)';m.textContent='✗ High cost — complex tasks only.';}
+}
+recalc();
+
+/* ─── FAQ ─── */
+const FAQS=[
+  {q:'Is 1 token = 1 AI Credit?',a:`<strong>No.</strong> Tokens and credits are different units.<br><br>
+<strong>Token</strong> = piece of text. ~4 chars = 1 token. "hello world" ≈ 3 tokens.<br>
+<strong>Credit</strong> = billing unit. 1 credit = $0.01 USD.<br><br>
+How many tokens per credit depends on the model:
+<div class="formula">Credits = (input_tokens × input_$/M + output_tokens × output_$/M) ÷ 1,000,000 ÷ 0.01</div>
+Example — 30,000 input + 3,000 output on Sonnet 4.6 ($3/$15 per M):<br>
+(30,000 × $3 + 3,000 × $15) ÷ 1,000,000 = $0.045 + $0.045 = $0.09 → <strong>9 credits</strong><br><br>
+Same tokens on GPT-5 mini ($0.50/$1.50): → <strong>0.2 credits</strong>. 45× cheaper.`},
+  {q:'What exactly is a token? How do I measure mine?',a:`A token is the unit LLMs process text in. Rough rules:<br><br>
+<table><tr><th>Content</th><th>Approx tokens</th></tr>
+<tr><td>1 English word</td><td>1–2 tokens</td></tr>
+<tr><td>1 line of code</td><td>5–15 tokens</td></tr>
+<tr><td>100-line JS file</td><td>~800–1,200 tokens</td></tr>
+<tr><td>copilot-instructions.md (500 words)</td><td>~650 tokens</td></tr>
+<tr><td>20 open editor tabs</td><td>20,000–100,000 tokens</td></tr></table><br>
+Measure: paste text into <code>platform.openai.com/tokenizer</code> (free, works for all major models).`},
+  {q:'What are input vs output tokens? Which costs more?',a:`<strong>Input tokens</strong> = everything sent to the model: your prompt + all context (open files, instructions, chat history, MCP tool descriptions).<br><br>
+<strong>Output tokens</strong> = what the model generates back: code, explanation, review comments.<br><br>
+Output costs <strong>4–10× more</strong> per token than input. On Sonnet 4.6: input $3/M vs output $15/M (5× more).<br><br>
+This is why "No comments, no explanation" at the end of a prompt saves so much — it directly cuts the expensive token type.`},
+  {q:'What counts as free? What burns credits?',a:`<table><tr><th>Feature</th><th>Credits?</th></tr>
+<tr><td>Inline code completions</td><td style="color:var(--green)">FREE always</td></tr>
+<tr><td>Next Edit Suggestions (Tab)</td><td style="color:var(--green)">FREE always</td></tr>
+<tr><td>Copilot Chat (all models)</td><td style="color:var(--amber)">Burns credits</td></tr>
+<tr><td>Agent mode</td><td style="color:var(--red)">Burns credits (multiplied by steps)</td></tr>
+<tr><td>Code Review on PRs</td><td style="color:var(--red)">Burns credits + Actions minutes</td></tr>
+<tr><td>Copilot CLI</td><td style="color:var(--amber)">Burns credits</td></tr></table>`},
+  {q:'My plan says 1,000 credits. How long will that last?',a:`Depends entirely on your habits. Rough daily budget: <strong>~33 credits/day</strong> (1,000 ÷ 30 days).<br><br>
+<table><tr><th>Activity</th><th>Credits used</th></tr>
+<tr><td>20 Chat Q&A (GPT-5 mini, scoped)</td><td>~4 credits</td></tr>
+<tr><td>20 Chat Q&A (GPT-5.5, long session)</td><td>~130 credits</td></tr>
+<tr><td>1 agent refactor (optimized)</td><td>~20 credits</td></tr>
+<tr><td>1 agent refactor (unoptimized, Opus)</td><td>~465 credits</td></tr>
+<tr><td>1 PR code review (Sonnet)</td><td>~15 credits</td></tr></table><br>
+Optimized devs: 1,000 credits lasts the full month easily. Unoptimized: can drain in 2–3 days.`},
+  {q:'Does cached context cost the same as fresh input?',a:`Cheaper — but only sometimes, and Copilot doesn't fully expose cache hit rates.<br><br>
+GitHub bills <strong>input + output + cached tokens</strong>. Cached tokens (reused context across turns) are typically <strong>10–50% cheaper</strong> per token than fresh input, depending on the model.<br><br>
+You can't force cache hits. Best you can do: keep conversation context consistent across turns rather than reformatting it, so the model can reuse previous context windows.`},
+  {q:'How do I know when I\'m running out of credits?',a:`Three ways:<br><br>
+1. <strong>GitHub Billing → Preview bill</strong> — shows accumulated credits mid-cycle. Check weekly.<br>
+2. <strong>Set overage cap to $0</strong> — Copilot just stops. No surprise charges. Best guardrail.<br>
+3. <strong>Chat error messages</strong> — Copilot Chat shows "credit limit reached" when pool exhausted.<br><br>
+Org admins: GitHub sends alert emails at configurable usage thresholds (80%, 100%).`},
+];
+
+function buildFAQ(){
+  const el=document.getElementById('faq-list');
+  el.innerHTML=FAQS.map((f,i)=>`
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(${i},this)"><span>${f.q}</span><span class="arr">▼</span></div>
+      <div class="faq-a" id="fa-${i}">${f.a}</div>
+    </div>`).join('');
+}
+function toggleFAQ(i,btn){
+  const a=document.getElementById('fa-'+i);
+  const open=a.classList.contains('open');
+  document.querySelectorAll('.faq-a').forEach(x=>x.classList.remove('open'));
+  document.querySelectorAll('.faq-q').forEach(x=>x.classList.remove('open'));
+  if(!open){a.classList.add('open');btn.classList.add('open');}
+}
+buildFAQ();
+
+/* ─── SCENARIOS ─── */
+function showSc(id,btn){
+  ['agent','chat','review'].forEach(s=>document.getElementById('sc-'+s).style.display=s===id?'block':'none');
+  document.querySelectorAll('.sc-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+}
+
+/* ─── PROMPT LIBRARY ─── */
+const PROMPTS=[
+  {title:'Code review',file:'review.prompt.md',tag:'Quality',tokens:'~120',desc:'Structured code review. Returns ranked issues with fix suggestions.',
+   body:`You are a senior engineer doing a code review.
+Review the selected code for:
+1. Bugs and logic errors (CRITICAL)
+2. Security issues (CRITICAL)
+3. Performance problems (HIGH)
+4. Readability / naming (LOW)
+
+Output format:
+[SEVERITY] Line N: issue. Fix: suggestion.
+
+No praise. No summary. Issues only.`},
+  {title:'Refactor',file:'refactor.prompt.md',tag:'Quality',tokens:'~90',desc:'Clean refactor. Keeps same API surface, improves internals.',
+   body:`Refactor the selected code.
+Goals: readability, reduce duplication, improve naming.
+Constraints: keep exact same function signatures and exports.
+Output: refactored code only. No explanation. No comments unless logic is non-obvious.`},
+  {title:'Write tests',file:'tests.prompt.md',tag:'Testing',tokens:'~110',desc:'Generates unit tests for selected code. Asks about framework first.',
+   body:`Write unit tests for the selected code.
+Framework: [Jest/Vitest/pytest — specify your stack]
+Cover: happy path, edge cases, error conditions.
+Format: one describe block, named test cases.
+No test framework setup code. Tests only.`},
+  {title:'Debug',file:'debug.prompt.md',tag:'Debug',tokens:'~100',desc:'Targeted debug. Takes error + code, returns root cause + fix.',
+   body:`Debug the following error in the selected code.
+
+Error: [PASTE FULL ERROR + STACK TRACE HERE]
+
+Return:
+1. Root cause (1 sentence)
+2. Fix (code only, minimal change)
+3. Why this caused the error (1 sentence)
+
+No explanation beyond this format.`},
+  {title:'Migration plan',file:'migration.prompt.md',tag:'Architecture',tokens:'~140',desc:'Step-by-step migration plan. Breaks work into safe atomic steps.',
+   body:`Create a migration plan for: [DESCRIBE MIGRATION]
+
+Current state: [BRIEF DESCRIPTION]
+Target state: [BRIEF DESCRIPTION]
+
+Output: numbered steps. Each step must be:
+- Atomic (deployable independently)
+- Reversible (rollback possible)
+- Testable (clear success criteria)
+
+No narrative. Steps only. Max 10 steps.`},
+  {title:'Explain code',file:'explain.prompt.md',tag:'Docs',tokens:'~80',desc:'Concise explanation of what selected code does and why.',
+   body:`Explain the selected code concisely.
+Format:
+- What it does (1–2 sentences)
+- Why it's built this way (1 sentence)
+- Gotchas / non-obvious behaviour (bullet list, if any)
+
+No line-by-line walkthrough. No code re-quoting.`},
+];
+
+function buildLibrary(){
+  const el=document.getElementById('prompt-library');
+  el.innerHTML=PROMPTS.map((p,i)=>`
+    <div class="prompt-item">
+      <div class="pi-head" onclick="togglePrompt(${i},this)">
+        <div class="pi-meta">
+          <span class="pi-title">${p.title}</span>
+          <span class="pill pg">${p.tag}</span>
+          <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">${p.tokens} tok</span>
+        </div>
+        <span style="font-size:12px;color:var(--text3)">▼</span>
+      </div>
+      <div class="pi-body" id="pl-${i}">
+        <div class="pi-desc">${p.desc}<br>
+          Save as: <code style="font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)">.github/prompts/${p.file}</code> —
+          use: <code style="font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--green)">#file:.github/prompts/${p.file}</code>
+        </div>
+        <div class="pi-code" id="pc-${i}">${escHtml(p.body)}<button class="copy-btn" onclick="copyEl('pc-${i}',this)">Copy</button></div>
+        <div class="pi-saving">↓ Reuse instead of retyping. Saved as file = loaded on demand only.</div>
+      </div>
+    </div>`).join('');
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function togglePrompt(i,btn){
+  const b=document.getElementById('pl-'+i);
+  b.classList.toggle('open');
+}
+function copyEl(id,btn){
+  const el=document.getElementById(id);
+  const text=el.innerText.replace(/Copy$/,'').trim();
+  navigator.clipboard.writeText(text).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1500);});
+}
+function copyText(id,btn){
+  const text=document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1500);});
+}
+buildLibrary();
+
+/* ─── DASHBOARD (local sim) ─── */
+const MODELS_DB=['GPT-5 mini','GPT-5.4','Sonnet 4.6','Opus 4.8','GPT-5.5'];
+const TYPES=['chat','chat','chat','agent','review'];
+let sessions=[];
+let dbType='all';
+const PLAN_CREDITS=1000;
+
+function rnd(a,b){return Math.random()*(b-a)+a;}
+function fmtTime(d){return d.toTimeString().slice(0,5);}
+
+function addSession(){
+  const type=TYPES[Math.floor(Math.random()*TYPES.length)];
+  const model=type==='review'?'Sonnet 4.6':type==='agent'?MODELS_DB[Math.floor(Math.random()*3)+1]:MODELS_DB[Math.floor(Math.random()*3)];
+  const tok=type==='agent'?Math.round(rnd(40000,180000)):type==='review'?Math.round(rnd(15000,50000)):Math.round(rnd(2000,25000));
+  const rateMap={'GPT-5 mini':0.002,'GPT-5.4':0.06,'Sonnet 4.6':0.09,'Opus 4.8':0.15,'GPT-5.5':0.16};
+  const cr=parseFloat(((tok*(rateMap[model]||0.09))/1000).toFixed(2));
+  sessions.unshift({time:new Date(),type,model,tok,cr});
+  if(sessions.length>20)sessions.pop();
+  renderDash();
+}
+
+// seed initial data
+for(let i=0;i<8;i++)addSession();
+
+function renderDash(){
+  const vis=dbType==='all'?sessions:sessions.filter(s=>s.type===dbType);
+  const today=vis.reduce((a,s)=>a+s.cr,0);
+  const month=sessions.reduce((a,s)=>a+s.cr,0);
+  const mx=sessions.reduce((a,s)=>Math.max(a,s.cr),0);
+  document.getElementById('db-today').textContent=today.toFixed(1);
+  document.getElementById('db-month').textContent=Math.round(month);
+  document.getElementById('db-max').textContent=mx.toFixed(1);
+  document.getElementById('db-live-tok').textContent=(sessions[0]?.tok||0).toLocaleString();
+  document.getElementById('db-live-cr').textContent=(sessions[0]?.cr||0).toFixed(2);
+  document.getElementById('db-live-model').textContent=sessions[0]?.model||'—';
+  document.getElementById('db-live-month').textContent=Math.round(month)+'/'+PLAN_CREDITS;
+  const byCat={chat:0,agent:0,review:0};
+  sessions.forEach(s=>{byCat[s.type]=(byCat[s.type]||0)+s.cr;});
+  const maxCat=Math.max(...Object.values(byCat),1);
+  ['chat','agent','review'].forEach(t=>{
+    document.getElementById('ub-'+t).style.width=(byCat[t]/maxCat*100)+'%';
+    document.getElementById('uv-'+t).textContent=byCat[t].toFixed(1)+' cr';
+  });
+  const tbody=document.getElementById('session-tbody');
+  tbody.innerHTML=vis.slice(0,10).map(s=>{
+    const status=s.cr<5?'<span class="badge-ok">✓ low</span>':s.cr<20?'<span class="badge-warn">⚠ mid</span>':'<span class="badge-hot">✗ high</span>';
+    return `<tr><td>${fmtTime(s.time)}</td><td>${s.type}</td><td>${s.model}</td><td>${s.tok.toLocaleString()}</td><td style="color:${s.cr<5?'var(--green)':s.cr<20?'var(--amber)':'var(--red)'}">${s.cr}</td><td>${status}</td></tr>`;
+  }).join('');
+}
+function dbFilter(t,btn){
+  dbType=t;
+  document.querySelectorAll('.dash-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDash();
+}
+
+/* ─── AUDITOR ─── */
+const AUDIT_PATTERNS=[
+  {re:/you are an? (expert|senior|experienced|skilled)/i,sev:'🔴',title:'Role preamble wastes tokens',desc:'Copilot already knows what it is. "You are an expert developer" adds ~10 tokens of zero value.',fix:'Delete the role preamble entirely.'},
+  {re:/please (always|make sure|ensure|be sure)/i,sev:'🔴',title:'Polite filler detected',desc:'"Please always write clean code" — the "please always" is ~3 tokens of social filler that does nothing.',fix:'Delete pleasantries. Write the constraint directly: "Write clean code."'},
+  {re:/write (clean|well.documented|proper|good) code/i,sev:'🟡',title:'Generic quality instruction',desc:'Copilot already tries to write clean code. Restating it wastes tokens with zero extra signal.',fix:'Delete or replace with a specific, non-obvious constraint.'},
+  {re:/follow best practices/i,sev:'🟡',title:'"Best practices" adds zero signal',desc:'Every model already follows "best practices." This is content-free filler.',fix:'Delete. Specify which practices if you mean something specific (e.g., "prefer functional components over class components").'},
+  {re:/be helpful|be friendly|be (concise|verbose|detailed)/i,sev:'🔴',title:'Personality/style instruction',desc:'Personality defaults are already built in. Redundant in instructions file.',fix:'Delete. If you need terse output, use the specific terse block from the Terse Output page.'},
+  {re:/write tests for everything/i,sev:'🔴',title:'Blanket test instruction wastes output tokens',desc:'"Write tests for everything" will cause Copilot to generate tests even when you didn\'t ask for code. Massive output token cost.',fix:'Delete. Add to tests.prompt.md as a reusable prompt instead.'},
+  {re:/(always|never|make sure).{0,60}(always|never|make sure)/i,sev:'🟡',title:'Repetitive instruction pattern',desc:'Multiple "always/never" rules that overlap inflate file size without adding precision.',fix:'Consolidate: keep one clear rule per concern.'},
+  {re:/https?:\/\/\S+/g,sev:'🟡',title:'URL in instructions',desc:'URLs add tokens and Copilot can\'t fetch them. Zero value in instructions file.',fix:'Remove URLs. Describe the resource in 3–5 words instead.'},
+  {re:/error handling/i,sev:'🟡',title:'"Error handling" too generic',desc:'Every senior dev adds error handling. Non-specific instructions waste tokens.',fix:'Replace with: "Use Result types, not exceptions." or "Throw typed errors with user-readable messages." Be specific.'},
+  {re:/(.{50,})\n.*\1/i,sev:'🟡',title:'Possible duplicate content',desc:'Similar lines detected. Duplicates inflate token count with no benefit.',fix:'Deduplicate. One statement per rule.'},
+];
+
+function countTokens(text){return Math.ceil(text.split(/\s+/).length*1.3);}
+
+function runAudit(){
+  const text=document.getElementById('audit-input').value.trim();
+  if(!text){alert('Paste your copilot-instructions.md content first.');return;}
+  const tokens=countTokens(text);
+  const lines=text.split('\n').length;
+  const credits15=(tokens*15/1e6/0.01).toFixed(3);
+  const issues=AUDIT_PATTERNS.filter(p=>p.re.test(text));
+  const score=Math.max(0,100-issues.length*12-(tokens>500?20:tokens>300?10:0));
+
+  let html=`<div class="audit-stat-row">
+    <div class="ast"><div class="av" style="color:${tokens>500?'var(--red)':tokens>300?'var(--amber)':'var(--green)'}">${tokens}</div><div class="al">Est. tokens</div></div>
+    <div class="ast"><div class="av" style="color:var(--text)">${lines}</div><div class="al">Lines</div></div>
+    <div class="ast"><div class="av" style="color:var(--amber)">${credits15}</div><div class="al">Credits/15-step agent</div></div>
+    <div class="ast"><div class="av" style="color:${score>70?'var(--green)':score>40?'var(--amber)':'var(--red)'}">${score}/100</div><div class="al">Efficiency score</div></div>
+  </div>`;
+
+  if(tokens>500)html+=`<div style="padding:10px 13px;background:var(--red-dim);border-radius:var(--r);font-size:13px;color:var(--red);margin-bottom:12px;font-weight:500">⚠ ${tokens} tokens is too high. Target: under 300. Every excess 100 tokens = ~${(100*15/1e6/0.01*15).toFixed(3)} extra credits per 15-step agent session.</div>`;
+  else if(tokens>300)html+=`<div style="padding:10px 13px;background:var(--amber-dim);border-radius:var(--r);font-size:13px;color:var(--amber);margin-bottom:12px;font-weight:500">⚡ ${tokens} tokens — borderline. Trim to under 300.</div>`;
+  else html+=`<div style="padding:10px 13px;background:var(--green-dim);border-radius:var(--r);font-size:13px;color:var(--green);margin-bottom:12px;font-weight:500">✓ Token count is good (${tokens}).</div>`;
+
+  if(issues.length===0){
+    html+=`<div style="padding:12px 14px;background:var(--green-dim);border-radius:var(--r);font-size:13px;color:var(--green);font-weight:500">✓ No common issues found. Instructions look lean.</div>`;
+  }else{
+    html+=`<div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">${issues.length} issue${issues.length>1?'s':''} found</div>`;
+    html+=issues.map(i=>`<div class="audit-issue"><div class="ai-sev">${i.sev}</div><div class="ai-b"><div class="ai-t">${i.title}</div><div class="ai-d">${i.desc}</div><div class="ai-fix">Fix: ${i.fix}</div></div></div>`).join('');
+  }
+  const el=document.getElementById('audit-results');
+  el.innerHTML=html;el.style.display='block';
+}
+
+/* ─── CHECKLIST ─── */
+const CL_DATA=[
+  {cat:'Model selection',items:[
+    {id:'m1',impact:'high',title:'GPT-5 mini for routine tasks',desc:'Getters, setters, CRUD, boilerplate. Never needs frontier model.',saving:'Up to 99% cheaper vs Opus fast mode'},
+    {id:'m2',impact:'high',title:'Downgrade for Q&A + explanations',desc:'Explaining code ≠ architecture. Use cheapest model for explanatory questions.',saving:'60–80% credit reduction on chat'},
+    {id:'m3',impact:'high',title:'Opus / GPT-5.5 for architecture only',desc:'Multi-file reasoning, system design, hard debugging only. Never daily.',saving:'Prevents 10–20% monthly drain in one session'},
+    {id:'m4',impact:'high',title:'Never use Opus 4.6 fast mode by default',desc:'$15/$75 per M = ~340× GPT-5 mini. Critical tasks only.',saving:'Eliminates single biggest cost spike'},
+  ]},
+  {cat:'Context hygiene',items:[
+    {id:'c1',impact:'high',title:'Close unrelated tabs before chatting',desc:'Every open file = potential hidden context. 20 tabs = up to 100K tokens.',saving:'50–70% input token reduction'},
+    {id:'c2',impact:'high',title:'Select code before Chat',desc:'No selection = full repo index. 10–20 selected lines = precise scope.',saving:'80%+ input token reduction'},
+    {id:'c3',impact:'medium',title:'Add .copilotignore',desc:'Exclude node_modules, dist, .cache, logs, generated files.',saving:'10–30K tokens removed from every request'},
+    {id:'c4',impact:'high',title:'Trim copilot-instructions.md to <300 tokens',desc:'Landmines only. Delete anything a good dev already knows.',saving:'20–23% reduction every agent task'},
+    {id:'c5',impact:'medium',title:'One IDE window per microservice',desc:'Multi-service files open = context multiplied across unrelated code.',saving:'30–50% cross-service context reduction'},
+  ]},
+  {cat:'Chat & session habits',items:[
+    {id:'s1',impact:'high',title:'New chat per task',desc:'Each message re-sends full history. 20-turn chat = 5× more tokens.',saving:'Up to 80% long-session input reduction'},
+    {id:'s2',impact:'free',title:'Use inline autocomplete for coding',desc:'Completions = unlimited, always free. Never burn credits.',saving:'100% free — zero credits'},
+    {id:'s3',impact:'free',title:'Next Edit Suggestions = free',desc:'Tab to accept. Zero credits. Great for repetitive patterns.',saving:'100% free — zero credits'},
+    {id:'s4',impact:'quick',title:'Snooze inline suggestions when reading',desc:'Status bar snooze avoids idle background calls during code review.',saving:'Eliminates idle token usage'},
+  ]},
+  {cat:'Prompt discipline',items:[
+    {id:'p1',impact:'medium',title:'Specific + brief prompts',desc:'"Refactor for readability. Keep same signature." beats 3-sentence preamble.',saving:'40–60% fewer input tokens'},
+    {id:'p2',impact:'medium',title:'Constrain output length',desc:'"No comments, no tests, no explanation" cuts output 3–5×.',saving:'50–70% fewer output tokens'},
+    {id:'p3',impact:'medium',title:'Use English for prompts',desc:'CJK costs 1.7–2.4× more tokens for same content.',saving:'Up to 60% reduction for CJK users'},
+    {id:'p4',impact:'high',title:'Never paste entire files',desc:'10–30 lines + "// rest omitted" comment. Never full file.',saving:'Prevents 200K+ token blowouts'},
+    {id:'p5',impact:'medium',title:'Break agent tasks into sub-tasks',desc:'5 focused prompts on 4 files < 1 broad prompt on 20 files.',saving:'30–50% on complex refactors'},
+  ]},
+  {cat:'Agent mode & MCP',items:[
+    {id:'a1',impact:'high',title:'Audit + remove unused MCP servers',desc:'Each server: 100–500 tokens/step. 15 servers × 15 steps = 112K overhead.',saving:'Up to 30% total agent cost reduction'},
+    {id:'a2',impact:'high',title:'Agent mode = multi-file tasks only',desc:'Single-file changes → Chat. Agent mode stacks retries + file reads.',saving:'Prevents 50-credit sessions daily'},
+    {id:'a3',impact:'medium',title:'Code Review = important PRs only',desc:'Review burns credits + GitHub Actions minutes. Not every tiny PR.',saving:'80%+ credit reduction on reviews'},
+  ]},
+  {cat:'VS Code & config (new)',items:[
+    {id:'v1',impact:'new',title:'Disable Copilot for noisy file types',desc:'xml, yaml, env, dotenv, sql — zero signal, all overhead. Disable in settings.',saving:'Cuts hidden config-file context'},
+    {id:'v2',impact:'new',title:'Disable workspace indexing on monorepos',desc:'"github.copilot.codebase": "off" for workspaces where full index inflates every Chat.',saving:'Prevents repo-wide context on every message'},
+    {id:'v3',impact:'new',title:'Path-scoped instruction files',desc:'.github/instructions/*.instructions.md with applyTo. Loads only for matching files.',saving:'Replaces one 2K-token global file with small focused ones'},
+    {id:'v4',impact:'new',title:'Terse output in copilot-instructions.md',desc:'"Code only unless explanation asked." Makes all responses shorter by default.',saving:'40–75% fewer output tokens'},
+    {id:'v5',impact:'new',title:'Commit .vscode/settings.json',desc:'Team inherits exclusions + scope rules on clone. No manual setup per dev.',saving:'Multiplies your work across whole team'},
+  ]},
+  {cat:'Billing guardrails',items:[
+    {id:'b1',impact:'free',title:'Set overage cap to $0',desc:'GitHub Billing → additional spend = $0. Copilot stops at limit. No surprise bills.',saving:'Guarantees never exceed plan'},
+    {id:'b2',impact:'quick',title:'Check preview bill weekly',desc:'Billing Overview → preview bill. Spot runaway agent sessions early.',saving:'Catch spikes before they compound'},
+  ]},
+];
+
+let ckd={}, clFilter='all';
+
+function ipPill(impact){
+  const m={high:'ip-h High impact',medium:'ip-m Medium',quick:'ip-q Quick win',free:'ip-f Always free',new:'ip-n New'};
+  const[cls,lbl]=(m[impact]||'ip-h New').split(' ');
+  return`<span class="ip ${cls}">${lbl}</span>`;
+}
+
+function renderCL(){
+  const el=document.getElementById('cl-list');
+  let html='';
+  CL_DATA.forEach(sec=>{
+    const vis=sec.items.filter(t=>{
+      if(clFilter==='all')return true;
+      if(clFilter==='todo')return !ckd[t.id];
+      return t.impact===clFilter;
+    });
+    if(!vis.length)return;
+    html+=`<div class="cl-sec"><div class="cl-cat">${sec.cat}</div>`;
+    vis.forEach(t=>{
+      const done=!!ckd[t.id];
+      html+=`<div class="cl-item${done?' done':''}" onclick="ckToggle('${t.id}')">
+        <div class="cl-chk${done?' ck':''}">${done?'✓':''}</div>
+        <div class="cl-b"><div class="cl-t">${t.title} ${ipPill(t.impact)}</div>
+        <div class="cl-d">${t.desc}</div>
+        <div class="cl-s">↓ ${t.saving}</div></div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+  updateCLStats();
+}
+function ckToggle(id){ckd[id]=!ckd[id];renderCL();}
+function updateCLStats(){
+  const all=CL_DATA.flatMap(s=>s.items);
+  const tot=all.length,done=all.filter(t=>ckd[t.id]).length;
+  const hi=all.filter(t=>t.impact==='high');
+  const md=all.filter(t=>t.impact==='medium');
+  const ot=all.filter(t=>t.impact==='quick'||t.impact==='free');
+  document.getElementById('cl-lbl').textContent=`${done} of ${tot} completed`;
+  document.getElementById('cl-fill').style.width=Math.round(done/tot*100)+'%';
+  document.getElementById('cnt-h').textContent=`${hi.filter(t=>ckd[t.id]).length}/${hi.length}`;
+  document.getElementById('cnt-m').textContent=`${md.filter(t=>ckd[t.id]).length}/${md.length}`;
+  document.getElementById('cnt-q').textContent=`${ot.filter(t=>ckd[t.id]).length}/${ot.length}`;
+  document.getElementById('nav-prog').textContent=`${done}/${tot}`;
+}
+function setF(f,btn){clFilter=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCL();}
+function resetCL(){ckd={};renderCL();}
+renderCL();
+</script>
+</body>
+</html>
