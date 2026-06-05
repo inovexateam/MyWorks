@@ -1,29 +1,26 @@
 /**
  * extract-selectors.js
- * Auto-discovers ALL pages from app — no hardcoded URLs.
- * Crawls sitemap / nav links / href links recursively.
+ * Auto-discovers pages. For SPAs with no nav links, extracts from entry URL directly.
  * Run: APP_URL=https://your-app.com node extract-selectors.js
  */
 
 const { chromium } = require('@playwright/test');
 const fs  = require('fs');
-const url = require('url');
 
-const APP_URL   = process.env.APP_URL   || 'https://your-app.com';
-const AUTH_USER = process.env.AUTH_USER || '';
-const AUTH_PASS = process.env.AUTH_PASS || '';
-const MAX_PAGES = parseInt(process.env.MAX_PAGES || '20'); // safety cap
-
-const BASE_HOST = new URL(APP_URL).hostname;
+const APP_URL    = process.env.APP_URL   || 'https://your-app.com';
+const AUTH_USER  = process.env.AUTH_USER || '';
+const AUTH_PASS  = process.env.AUTH_PASS || '';
+const MAX_PAGES  = parseInt(process.env.MAX_PAGES || '20');
+const BASE_HOST  = new URL(APP_URL).hostname;
 
 // ── Framework detection ──────────────────────────────────────────────────────
 async function detectFramework(page) {
   return await page.evaluate(() => {
-    if (document.querySelector('[ng-version],[_nghost],app-root'))            return 'angular';
-    if (document.querySelector('#__NEXT_DATA__,[data-reactroot]'))            return 'react';
-    if (document.querySelector('#__nuxt,[data-v-]'))                          return 'vue';
+    if (document.querySelector('[ng-version],[_nghost],app-root'))               return 'angular';
+    if (document.querySelector('#__NEXT_DATA__,[data-reactroot]'))               return 'react';
+    if (document.querySelector('#__nuxt,[data-v-]'))                             return 'vue';
     if (document.querySelector('script[src*="blazor"]') || window.__blazorSignalR) return 'blazor';
-    if (document.querySelector('input[name*="__VIEWSTATE"],[id*="ctl00"]'))   return 'aspx';
+    if (document.querySelector('input[name*="__VIEWSTATE"],[id*="ctl00"]'))      return 'aspx';
     return 'html';
   });
 }
@@ -35,19 +32,16 @@ async function waitForFramework(page, fw) {
       case 'angular':
         await page.waitForFunction(() =>
           window.getAllAngularTestabilities?.()?.every(t => t.isStable()) ?? true
-        , { timeout: 15000 });
-        break;
+        , { timeout: 15000 }); break;
       case 'blazor':
         await page.waitForFunction(() =>
           !document.querySelector('blazor-error-ui') && document.readyState === 'complete'
         , { timeout: 20000 });
-        await page.waitForTimeout(1500);
-        break;
+        await page.waitForTimeout(1500); break;
       case 'react':
       case 'vue':
         await page.waitForSelector('#root,#app,#__nuxt,[data-reactroot]', { timeout: 10000 });
-        await page.waitForLoadState('networkidle');
-        break;
+        await page.waitForLoadState('networkidle'); break;
       default:
         await page.waitForLoadState('networkidle');
     }
@@ -56,29 +50,25 @@ async function waitForFramework(page, fw) {
   }
 }
 
-// ── Discover all internal page URLs ─────────────────────────────────────────
+// ── Discover pages (nav links + sitemap). Falls back to entry URL only ────────
 async function discoverPages(page) {
   const visited = new Set();
   const toVisit = [APP_URL];
   const found   = [];
 
-  // 1. Try sitemap.xml first
+  // Try sitemap
   try {
-    const sitemapRes = await page.goto(`${APP_URL}/sitemap.xml`, { timeout: 8000 });
-    if (sitemapRes?.ok()) {
+    const res = await page.goto(`${APP_URL}/sitemap.xml`, { timeout: 8000 });
+    if (res?.ok()) {
       const content = await page.content();
       const matches = [...content.matchAll(/<loc>(.*?)<\/loc>/g)];
       matches.forEach(m => {
-        const u = m[1].trim();
-        if (new URL(u).hostname === BASE_HOST) toVisit.push(u);
+        try { if (new URL(m[1].trim()).hostname === BASE_HOST) toVisit.push(m[1].trim()); } catch(_) {}
       });
-      console.log(`✓ sitemap.xml → ${matches.length} URLs found`);
+      console.log(`✓ sitemap.xml → ${matches.length} URLs`);
     }
-  } catch (_) {
-    console.log('  sitemap.xml not found, crawling nav links...');
-  }
+  } catch (_) { console.log('  no sitemap, crawling nav links...'); }
 
-  // 2. Crawl app recursively via nav/sidebar links
   while (toVisit.length && found.length < MAX_PAGES) {
     const current = toVisit.shift();
     if (visited.has(current)) continue;
@@ -89,17 +79,16 @@ async function discoverPages(page) {
       const fw = await detectFramework(page);
       await waitForFramework(page, fw);
 
-      // Derive page name from pathname
       const pathname = new URL(current).pathname.replace(/^\/|\/$/g, '') || 'home';
-      const name     = pathname.replace(/\//g, '_') || 'home';
-
+      // Use filename without extension as page name for static HTML files
+      const name = pathname.split('/').pop().replace(/\.[^.]+$/, '') || 'home';
       found.push({ name, url: current, framework: fw });
       console.log(`  found: [${name}] (${fw}) → ${current}`);
 
-      // Collect internal links from nav, sidebar, menu — not all hrefs (avoids noise)
+      // Collect internal nav links
       const newLinks = await page.evaluate((baseHost) => {
-        const NAV_SCOPE = 'nav a, [role="navigation"] a, aside a, header a, [class*="sidebar"] a, [class*="menu"] a, [class*="nav"] a';
-        return [...document.querySelectorAll(NAV_SCOPE)]
+        const NAV = 'nav a,[role="navigation"] a,aside a,header a,[class*="sidebar"] a,[class*="menu"] a,[class*="nav"] a';
+        return [...document.querySelectorAll(NAV)]
           .map(a => a.href)
           .filter(h => {
             try {
@@ -117,28 +106,37 @@ async function discoverPages(page) {
     }
   }
 
+  // SPA / single page fallback — always include entry URL
+  if (found.length === 0) {
+    console.log('  no pages discovered via nav — using entry URL directly');
+    const pathname = new URL(APP_URL).pathname.replace(/^\/|\/$/g, '') || 'home';
+    const name     = pathname.split('/').pop().replace(/\.[^.]+$/, '') || 'home';
+    found.push({ name, url: APP_URL, framework: 'html' });
+  }
+
   return found;
 }
 
-// ── Extract selectors ────────────────────────────────────────────────────────
+// ── Extract ALL interactive + section elements ────────────────────────────────
 async function extractSelectors(page, pageName, fw) {
   return await page.evaluate(({ name, fw }) => {
+
     function best(el) {
-      if (el.getAttribute('data-testid'))    return `[data-testid="${el.getAttribute('data-testid')}"]`;
+      if (el.getAttribute('data-testid'))     return `[data-testid="${el.getAttribute('data-testid')}"]`;
       if (fw === 'angular') {
-        if (el.getAttribute('data-cy'))      return `[data-cy="${el.getAttribute('data-cy')}"]`;
+        if (el.getAttribute('data-cy'))       return `[data-cy="${el.getAttribute('data-cy')}"]`;
         if (el.getAttribute('formcontrolname')) return `[formcontrolname="${el.getAttribute('formcontrolname')}"]`;
       }
       const id = el.id;
       if (id && !/ctl\d+_|ContentPlaceHolder|MasterPage|\$/.test(id)) return `#${id}`;
       const nm = el.getAttribute('name');
-      if (nm && !/\$/.test(nm))             return `[name="${nm}"]`;
-      if (el.getAttribute('aria-label'))    return `[aria-label="${el.getAttribute('aria-label')}"]`;
-      if (el.placeholder)                   return `[placeholder="${el.placeholder}"]`;
+      if (nm && !/\$/.test(nm))               return `[name="${nm}"]`;
+      if (el.getAttribute('aria-label'))      return `[aria-label="${el.getAttribute('aria-label')}"]`;
+      if (el.placeholder)                     return `[placeholder="${el.placeholder}"]`;
       if (fw === 'blazor' && el.getAttribute('_bl_')) return `[_bl_="${el.getAttribute('_bl_')}"]`;
       const text = el.innerText?.trim().replace(/\s+/g,' ').slice(0,40);
       if (text && !['INPUT','SELECT','TEXTAREA'].includes(el.tagName)) return `text=${text}`;
-      if (el.tagName === 'INPUT' && el.type) return `input[type="${el.type}"]`;
+      if (el.tagName === 'INPUT' && el.type)  return `input[type="${el.type}"]`;
       const sc = [...el.classList].find(c => !c.match(/active|focus|hover|selected|ng-|js-|is-|has-|v-/));
       return sc ? `${el.tagName.toLowerCase()}.${sc}` : el.tagName.toLowerCase();
     }
@@ -150,11 +148,26 @@ async function extractSelectors(page, pageName, fw) {
         s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
     }
 
+    // Wider net — includes tabs, checkboxes, range sliders, nav items
     const INTERACTIVE = [
-      'input:not([type="hidden"])','button','a[href]','select','textarea',
-      '[role="button"]','[role="link"]','[role="menuitem"]','[role="tab"]',
-      '[onclick]','label[for]','[data-toggle]','[data-bs-toggle]',
-      '[formcontrolname]','[mat-button]','[mat-raised-button]',
+      'input:not([type="hidden"])',
+      'button',
+      'a[href]',
+      'select',
+      'textarea',
+      '[role="button"]',
+      '[role="link"]',
+      '[role="menuitem"]',
+      '[role="tab"]',
+      '[role="checkbox"]',
+      '[role="slider"]',
+      '[onclick]',
+      'label[for]',
+      '[data-toggle]',
+      '[data-bs-toggle]',
+      '[formcontrolname]',
+      '[mat-button]',
+      '[mat-raised-button]',
     ].join(',');
 
     return [...document.querySelectorAll(INTERACTIVE)]
@@ -177,25 +190,16 @@ async function extractSelectors(page, pageName, fw) {
 // ── Auth ─────────────────────────────────────────────────────────────────────
 async function login(page) {
   console.log('→ Logging in...');
-  await page.goto(`${APP_URL}/login`, { waitUntil: 'networkidle' }).catch(() =>
-    page.goto(APP_URL, { waitUntil: 'networkidle' })
-  );
+  await page.goto(`${APP_URL}/login`, { waitUntil: 'networkidle' })
+    .catch(() => page.goto(APP_URL, { waitUntil: 'networkidle' }));
   const fw = await detectFramework(page);
   await waitForFramework(page, fw);
-
-  const userTry   = ['input[type="email"]','input[name="username"]','input[name="email"]',
-                     'input[name="UserName"]','#UserName','#username','#email',
-                     '[formcontrolname="username"]','[formcontrolname="email"]',
-                     'input[placeholder*="user" i]','input[placeholder*="email" i]'];
-  const passTry   = ['input[type="password"]','input[name="password"]','input[name="Password"]',
-                     '#password','#Password','[formcontrolname="password"]'];
-  const submitTry = ['button[type="submit"]','input[type="submit"]',
-                     'button:has-text("Login")','button:has-text("Sign in")','button:has-text("Log in")'];
-
+  const userTry   = ['input[type="email"]','input[name="username"]','input[name="email"]','input[name="UserName"]','#UserName','#username','#email','[formcontrolname="username"]','[formcontrolname="email"]','input[placeholder*="user" i]','input[placeholder*="email" i]'];
+  const passTry   = ['input[type="password"]','input[name="password"]','input[name="Password"]','#password','#Password','[formcontrolname="password"]'];
+  const submitTry = ['button[type="submit"]','input[type="submit"]','button:has-text("Login")','button:has-text("Sign in")','button:has-text("Log in")'];
   for (const s of userTry)   { const e = await page.$(s); if (e) { await e.fill(AUTH_USER); break; } }
   for (const s of passTry)   { const e = await page.$(s); if (e) { await e.fill(AUTH_PASS); break; } }
   for (const s of submitTry) { const e = await page.$(s); if (e) { await e.click();         break; } }
-
   await page.waitForLoadState('networkidle').catch(() => {});
   console.log('✓ Auth done');
 }
@@ -214,10 +218,9 @@ async function login(page) {
     console.log('✓ Session saved → auth-state.json\n');
   }
 
-  // Auto-discover all pages
   console.log(`\n→ Crawling ${APP_URL} (max ${MAX_PAGES} pages)...\n`);
   const pages = await discoverPages(page);
-  console.log(`\n→ ${pages.length} pages discovered. Extracting selectors...\n`);
+  console.log(`\n→ ${pages.length} page(s) found. Extracting selectors...\n`);
 
   const allSelectors = {};
   let total = 0;
@@ -237,7 +240,7 @@ async function login(page) {
   }
 
   fs.writeFileSync('selectors.json', JSON.stringify(allSelectors, null, 2));
-  console.log(`\n✓ selectors.json — ${pages.length} pages, ${total} selectors`);
+  console.log(`\n✓ selectors.json — ${pages.length} page(s), ${total} total selectors`);
   console.log('→ Next: node generate-tests.js');
   await browser.close();
 })();

@@ -60,15 +60,6 @@ def format_morning_brief(
     # Indices
     lines.append("*📊 MARKETS*")
     for name, d in indices.items():
-        arrow = _arrow(d["pct"])
-        sign  = "+" if d["pct"] >= 0 else ""
-        lines.append(
-            f"{arrow} *{_esc(name)}* — {_esc(f'{d[chr(112)+(chr(114)+chr(105)+chr(99)+chr(101))):,.2f}')}"  # noqa
-        )
-    # rebuild cleanly
-    lines = lines[:-len(indices)]  # remove last block, redo
-    lines.append("*📊 MARKETS*")
-    for name, d in indices.items():
         arrow = "📈" if d["pct"] >= 0 else "📉"
         sign  = "+" if d["pct"] >= 0 else ""
         lines.append(
