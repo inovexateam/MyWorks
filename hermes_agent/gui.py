@@ -198,7 +198,6 @@ class HermesGUI:
         self.clock_label = tk.Label(right, text="", bg=C["bg"],
                                     fg=C["muted"], font=("Courier", 9))
         self.clock_label.pack(side="left")
-        self._tick_clock()
 
         # ── Divider ──────────────────────────────────────────────────────────
         tk.Frame(self.root, bg=C["border"], height=1).pack(fill="x")
@@ -239,6 +238,9 @@ class HermesGUI:
 
         # ── Right panel: controls + log ───────────────────────────────────────
         self._build_right_panel(right_panel)
+
+        # Start clock only after all widgets are created
+        self._tick_clock()
 
     # ── Tab: Portfolio ────────────────────────────────────────────────────────
 
