@@ -226,3 +226,198 @@ def format_earnings_reminder(earnings: list, upcoming_days: int = 14) -> str:
 
     lines.append("\n_— Hermes Agent_")
     return "\n".join(lines)
+
+
+# ── 5. Signal Digest (TODAY / 1W / 1M) ──────────────────────────────────────
+
+def format_signal_digest(signals: list, timeframe: str = "TODAY") -> str:
+    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
+    tf_label = {"TODAY": "TODAY'S SIGNALS", "1W": "1\\-WEEK OUTLOOK", "1M": "1\\-MONTH OUTLOOK"}
+    tf_sigs  = [s for s in signals if s["timeframe"] == timeframe]
+
+    lines = [
+        f"🧠 *HERMES SIGNAL DIGEST — {_esc(tf_label.get(timeframe, timeframe))}*",
+        f"_{_esc(now)}_",
+        "",
+    ]
+
+    if not tf_sigs:
+        lines.append("_No significant signals detected\\._")
+        lines.append("\n_— Hermes Agent_")
+        return "\n".join(lines)
+
+    # Group by severity
+    for sev in ("CRITICAL", "HIGH", "MEDIUM"):
+        sev_sigs = [s for s in tf_sigs if s["severity"] == sev]
+        if not sev_sigs:
+            continue
+        emoji = {"CRITICAL": "🚨", "HIGH": "⚠️", "MEDIUM": "ℹ️"}.get(sev, "•")
+        lines.append(f"*{emoji} {_esc(sev)}*")
+        for s in sev_sigs:
+            sym = s["symbol"]
+            lines.append(f"• \\[*{_esc(sym)}*\\] {_esc(s['summary'])}")
+        lines.append("")
+
+    lines.append("_— Hermes Agent_")
+    return "\n".join(lines)
+
+
+# ── 6. Corporate Action Alert ────────────────────────────────────────────────
+
+def format_corporate_action_alert(action: dict) -> str:
+    sym   = _esc(action["symbol"])
+    cat   = action["category"]
+    emoji = {"DIVIDEND": "💰", "BONUS": "🎁", "SPLIT": "✂️",
+              "RIGHTS": "📋", "MEETING": "🏛", "OTHER": "📌"}.get(cat, "📌")
+    days  = action["days_out"]
+    urgency = "TODAY" if days == 0 else f"in {days}d"
+
+    return (
+        f"{emoji} *HERMES CORPORATE ACTION ALERT*\n\n"
+        f"*{sym}* — *{_esc(cat)}*\n"
+        f"📅 Ex\\-Date: `{_esc(action['ex_date'])}` \\({_esc(urgency)}\\)\n"
+        f"📋 Details: {_esc(action['action'])}\n\n"
+        f"_{_esc(datetime.now().strftime('%H:%M IST'))}_\n"
+        f"_— Hermes Agent_"
+    )
+
+
+# ── 7. Macro Event Alert ─────────────────────────────────────────────────────
+
+def format_macro_alert(event: dict, crude: dict = None, inr: dict = None) -> str:
+    days = event["days_out"]
+    urgency = "🚨 TODAY" if days == 0 else f"⚠️ in {days}d"
+
+    lines = [
+        f"🌐 *HERMES MACRO ALERT*",
+        "",
+        f"*{_esc(event['event'])}*",
+        f"{_esc(urgency)} · {_esc(event['date'])}",
+        f"Impact: *{_esc(event['impact'])}*",
+        "",
+    ]
+
+    if crude and crude.get("price"):
+        arrow = "📈" if crude["pct"] >= 0 else "📉"
+        crude_pct = f"{crude['pct']:+.2f}"
+        lines.append(f"{arrow} Brent Crude: `${crude['price']:.2f}` "
+                     f"\\({_esc(crude_pct)}%\\)")
+
+    if inr and inr.get("rate"):
+        arrow = "📉" if inr["pct"] >= 0 else "📈"
+        inr_pct = f"{inr['pct']:+.4f}"
+        lines.append(f"{arrow} INR\\/USD: `₹{inr['rate']:.2f}` "
+                     f"\\({_esc(inr_pct)}\\)")
+
+    lines.append(f"\n_{_esc(datetime.now().strftime('%H:%M IST'))}_")
+    lines.append("_— Hermes Agent_")
+    return "\n".join(lines)
+
+
+# ── 8. Bulk/Block Deal Alert ─────────────────────────────────────────────────
+
+def format_deal_alert(deal: dict) -> str:
+    action = deal.get("buy_sell", "").upper()
+    emoji  = "🟢" if "BUY" in action else "🔴"
+    sym    = _esc(deal["symbol"])
+    now    = datetime.now().strftime("%H:%M:%S IST")
+
+    return (
+        f"{emoji} *HERMES {_esc(deal['type'])} DEAL ALERT*\n\n"
+        f"*{sym}* — {_esc(action)}\n"
+        f"👤 Client: {_esc(deal['client'])}\n"
+        f"📊 Qty: `{deal['qty']:,}` shares\n"
+        f"💰 Value: `₹{deal['value_cr']:.2f} Cr` @ `₹{deal['price']:,.2f}`\n\n"
+        f"_{_esc(now)}_\n"
+        f"_— Hermes Agent_"
+    )
+
+
+# ── 9. FII Trend Alert ───────────────────────────────────────────────────────
+
+def format_fii_trend_alert(signal: dict) -> str:
+    return (
+        f"🏦 *HERMES FII TREND ALERT*\n\n"
+        f"{_esc(signal['summary'])}\n\n"
+        f"_Sustained flow = smart money conviction\\. Review positions\\._\n"
+        f"_{_esc(datetime.now().strftime('%H:%M IST'))}_\n"
+        f"_— Hermes Agent_"
+    )
+
+
+# ── 10. Morning Brief — extended with signals ────────────────────────────────
+
+def format_morning_brief_extended(
+    indices: dict,
+    portfolio_rows: list,
+    fii_dii: dict,
+    news: list,
+    earnings_soon: list,
+    signals_today: list,
+    crude: dict = None,
+    inr: dict   = None,
+    global_mkts: list = None,
+    macro_events: list = None,
+) -> str:
+    """Extended morning brief that includes signals, macro, global markets."""
+    from formatter import format_morning_brief
+    # Build base brief first
+    base = format_morning_brief(indices, portfolio_rows, fii_dii, news, earnings_soon)
+
+    extra = []
+
+    # Global markets
+    if global_mkts:
+        extra.append("*🌍 GLOBAL MARKETS*")
+        for g in global_mkts[:4]:
+            arrow   = "📈" if g["pct"] >= 0 else "📉"
+            g_pct   = f"{g['pct']:+.2f}"
+            extra.append(
+                f"{arrow} *{_esc(g['name'])}* `{g['price']:,.2f}` "
+                f"\\({_esc(g_pct)}%\\)"
+            )
+        extra.append("")
+
+    # Macro
+    if crude and crude.get("price"):
+        arrow     = "📈" if crude["pct"] >= 0 else "📉"
+        crude_pct = f"{crude['pct']:+.2f}"
+        extra.append(
+            f"{arrow} *Brent Crude*: `${crude['price']:.2f}` "
+            f"\\({_esc(crude_pct)}%\\)"
+        )
+    if inr and inr.get("rate"):
+        arrow   = "📉" if inr["pct"] >= 0 else "📈"
+        inr_pct = f"{inr['pct']:+.4f}"
+        extra.append(
+            f"{arrow} *INR\\/USD*: `₹{inr['rate']:.2f}` "
+            f"\\({_esc(inr_pct)}\\)"
+        )
+    if crude or inr:
+        extra.append("")
+
+    # Macro events this week
+    if macro_events:
+        extra.append("*📅 MACRO EVENTS THIS WEEK*")
+        for ev in macro_events[:3]:
+            urgency = "🚨" if ev["urgent"] else "📌"
+            extra.append(
+                f"{urgency} {_esc(ev['event'])} — {_esc(str(ev['days_out']))}d "
+                f"\\({_esc(ev['date'])}\\)"
+            )
+        extra.append("")
+
+    # Today's top signals
+    critical = [s for s in signals_today if s["severity"] in ("CRITICAL", "HIGH")]
+    if critical:
+        extra.append("*🧠 TODAY'S KEY SIGNALS*")
+        for s in critical[:5]:
+            extra.append(f"• {_esc(s['summary'])}")
+        extra.append("")
+
+    if not extra:
+        return base
+
+    # Insert extra block before the footer
+    footer = "_— Hermes Agent · Free · Open Source_"
+    return base.replace(footer, "\n".join(extra) + "\n" + footer)

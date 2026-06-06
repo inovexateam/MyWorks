@@ -1,16 +1,16 @@
 """
-Hermes Agent — Main Scheduler
-Orchestrates all four tasks:
-  1. 08:00 IST  → Morning Brief (indices + FII + portfolio P&L + news)
-  2. Market hrs → Price Alert watcher (continuous polling)
-  3. 15:45 IST  → After-market 52W Range Report
-  4. Daily       → Earnings Calendar (sent with morning brief + 3-day reminders)
-
-Run:
-    python main.py
-
-Dependencies:
-    pip install yfinance requests schedule pytz
+Hermes Agent — Main Scheduler (v2)
+All jobs:
+  08:00  Morning brief (extended with signals, macro, global)
+  06:00  Corporate actions + earnings warning
+  06:30  Macro events calendar
+  Hourly (market hrs) Bulk/block deal scan
+  Hourly (market hrs) FII trend check
+  Hourly (market hrs) OI scan
+  Hourly (market hrs) Circuit breaker check
+  15:45  52W range report
+  09:00 Sun  Weekly signal digest (1W + 1M outlook)
+  30s poll   Price alerts (existing)
 """
 
 import schedule
@@ -18,26 +18,30 @@ import time
 import logging
 import threading
 import pytz
-from datetime import datetime
+from datetime import datetime, date
 
 import config
 from data_fetcher import (
-    get_indices,
-    get_portfolio_pnl,
-    get_fii_dii_data,
-    get_news_headlines,
-    get_52w_analysis,
-    get_earnings_calendar,
+    get_indices, get_portfolio_pnl, get_fii_dii_data,
+    get_news_headlines, get_52w_analysis, get_earnings_calendar,
 )
 from formatter import (
-    format_morning_brief,
-    format_52w_report,
-    format_earnings_reminder,
+    format_52w_report, format_earnings_reminder,
+    format_signal_digest, format_corporate_action_alert,
+    format_macro_alert, format_deal_alert, format_fii_trend_alert,
+    format_morning_brief_extended,
 )
 from telegram_sender import TelegramSender
 from alert_watcher import AlertWatcher
-
-# ── Logging ──────────────────────────────────────────────────────────────────
+from signals import collect_all_signals, filter_by_timeframe
+from sources.nse import (
+    get_bulk_deals, get_block_deals, get_circuit_stocks, get_fii_dii_trend,
+)
+from sources.bse import get_corporate_actions
+from sources.macro import (
+    get_upcoming_macro_events, get_high_impact_news,
+    get_crude_price, get_inr_usd, get_global_markets,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,73 +52,165 @@ logging.basicConfig(
     ],
 )
 log = logging.getLogger("hermes.main")
-
 IST = pytz.timezone("Asia/Kolkata")
 
 
-# ── Utilities ─────────────────────────────────────────────────────────────────
-
 def ist_now() -> datetime:
     return datetime.now(IST)
-
-
-def is_market_open() -> bool:
-    """True during NSE trading hours on weekdays (IST)."""
-    now = ist_now()
-    if now.weekday() >= 5:       # Saturday=5, Sunday=6
-        return False
-    t = now.time()
-    from datetime import time as dtime
-    open_t  = dtime(config.MARKET_OPEN_HOUR,  config.MARKET_OPEN_MINUTE)
-    close_t = dtime(config.MARKET_CLOSE_HOUR, config.MARKET_CLOSE_MINUTE)
-    return open_t <= t <= close_t
 
 
 def is_weekday() -> bool:
     return ist_now().weekday() < 5
 
 
-# ── Task runners ──────────────────────────────────────────────────────────────
+def is_market_open() -> bool:
+    now = ist_now()
+    if now.weekday() >= 5:
+        return False
+    from datetime import time as dtime
+    t = now.time()
+    return dtime(config.MARKET_OPEN_HOUR, config.MARKET_OPEN_MINUTE) <= t <= \
+           dtime(config.MARKET_CLOSE_HOUR, config.MARKET_CLOSE_MINUTE)
+
+
+def _offset_time(time_str: str, minutes: int) -> str:
+    h, m  = map(int, time_str.split(":"))
+    total = (h * 60 + m + minutes) % (24 * 60)
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+# ── Job: Morning Brief (extended) ────────────────────────────────────────────
 
 def run_morning_brief():
-    """Fetch everything and send the morning brief."""
     if not is_weekday():
-        log.info("Morning brief skipped — weekend.")
         return
-
-    log.info("▶ Running morning brief…")
+    log.info("▶ Morning brief (extended)…")
     try:
-        indices       = get_indices()
-        portfolio_pnl = get_portfolio_pnl(config.PORTFOLIO)
-        fii_dii       = get_fii_dii_data()
-        news          = get_news_headlines(config.WATCHLIST, max_per_stock=2)
-        earnings      = get_earnings_calendar(config.WATCHLIST)
+        indices    = get_indices()
+        port_pnl   = get_portfolio_pnl(config.PORTFOLIO)
+        fii_dii    = get_fii_dii_data()
+        news       = get_news_headlines(config.WATCHLIST, max_per_stock=2)
+        earnings   = get_earnings_calendar(config.WATCHLIST)
+        soon       = [e for e in earnings if e["days_out"] <= config.EARNINGS_REMINDER_DAYS]
+        signals    = collect_all_signals(config.WATCHLIST)
+        today_sigs = filter_by_timeframe(signals, "TODAY")
+        crude      = get_crude_price()
+        inr        = get_inr_usd()
+        global_mkts= get_global_markets()
+        macro_evts = get_upcoming_macro_events(days_ahead=7)
 
-        # Flag upcoming earnings for in-brief reminder
-        earnings_soon = [e for e in earnings if e["days_out"] <= config.EARNINGS_REMINDER_DAYS]
-
-        msg = format_morning_brief(
-            indices       = indices,
-            portfolio_rows = portfolio_pnl,
-            fii_dii       = fii_dii,
-            news          = news,
-            earnings_soon = earnings_soon,
+        msg = format_morning_brief_extended(
+            indices, port_pnl, fii_dii, news, soon,
+            today_sigs, crude, inr, global_mkts, macro_evts,
         )
         sender.send_long(msg)
-        log.info("✅ Morning brief sent.")
-
+        log.info("✅ Extended morning brief sent.")
     except Exception as e:
         log.exception(f"Morning brief failed: {e}")
-        sender.send("⚠️ Hermes: Morning brief failed\\. Check logs\\.", parse_mode="MarkdownV2")
+        sender.send("⚠️ Hermes: Morning brief failed\\.", parse_mode="MarkdownV2")
 
+
+# ── Job: Corporate Actions Warning ───────────────────────────────────────────
+
+def run_corporate_actions():
+    if not is_weekday():
+        return
+    log.info("▶ Corporate actions check…")
+    try:
+        actions = get_corporate_actions(config.WATCHLIST, days_ahead=30)
+        urgent  = [a for a in actions if a["days_out"] <= 5]
+        for a in urgent:
+            msg = format_corporate_action_alert(a)
+            sender.send(msg)
+        if urgent:
+            log.info(f"✅ {len(urgent)} corporate action alert(s) sent.")
+        else:
+            log.info("No urgent corporate actions today.")
+    except Exception as e:
+        log.exception(f"Corporate actions job failed: {e}")
+
+
+# ── Job: Macro Events Calendar ────────────────────────────────────────────────
+
+def run_macro_events():
+    if not is_weekday():
+        return
+    log.info("▶ Macro events check…")
+    try:
+        events = get_upcoming_macro_events(days_ahead=7)
+        urgent = [e for e in events if e["days_out"] <= 3]
+        crude  = get_crude_price()
+        inr    = get_inr_usd()
+        for ev in urgent:
+            msg = format_macro_alert(ev, crude, inr)
+            sender.send(msg)
+        if urgent:
+            log.info(f"✅ {len(urgent)} macro event alert(s) sent.")
+    except Exception as e:
+        log.exception(f"Macro events job failed: {e}")
+
+
+# ── Job: Bulk/Block Deal Scanner ─────────────────────────────────────────────
+
+def run_bulk_block_scan():
+    if not is_market_open():
+        return
+    log.info("▶ Bulk/block deal scan…")
+    try:
+        bulk  = get_bulk_deals(config.WATCHLIST)
+        block = get_block_deals(config.WATCHLIST)
+        for deal in bulk + block:
+            if deal.get("value_cr", 0) >= 5:   # only alert if ≥₹5Cr
+                msg = format_deal_alert(deal)
+                sender.send(msg)
+        if bulk or block:
+            log.info(f"✅ Deals found: {len(bulk)} bulk, {len(block)} block.")
+    except Exception as e:
+        log.exception(f"Bulk/block scan failed: {e}")
+
+
+# ── Job: FII Trend Check ──────────────────────────────────────────────────────
+
+def run_fii_trend():
+    if not is_market_open():
+        return
+    log.info("▶ FII trend check…")
+    try:
+        from signals import signals_from_fii_trend
+        trend = get_fii_dii_trend()
+        sigs  = signals_from_fii_trend(trend)
+        for s in sigs:
+            msg = format_fii_trend_alert(s)
+            sender.send(msg)
+    except Exception as e:
+        log.exception(f"FII trend check failed: {e}")
+
+
+# ── Job: Circuit Breaker Check ────────────────────────────────────────────────
+
+def run_circuit_check():
+    if not is_market_open():
+        return
+    log.info("▶ Circuit check…")
+    try:
+        from signals import signals_from_circuit
+        circuits = get_circuit_stocks(config.WATCHLIST)
+        sigs     = signals_from_circuit(circuits)
+        for s in sigs:
+            sender.send(
+                f"🚨 *CIRCUIT BREAKER*\n\n{s['summary']}\n\n"
+                f"_— Hermes Agent_", parse_mode="MarkdownV2"
+            )
+    except Exception as e:
+        log.exception(f"Circuit check failed: {e}")
+
+
+# ── Job: 52W Report ───────────────────────────────────────────────────────────
 
 def run_52w_report():
-    """Fetch 52W data for all watchlist stocks and send after-market report."""
     if not is_weekday():
-        log.info("52W report skipped — weekend.")
         return
-
-    log.info("▶ Running 52W report…")
+    log.info("▶ 52W report…")
     try:
         analysis = get_52w_analysis(config.WATCHLIST, config.DANGER_ZONE_PCT)
         msg = format_52w_report(analysis)
@@ -122,99 +218,68 @@ def run_52w_report():
         log.info("✅ 52W report sent.")
     except Exception as e:
         log.exception(f"52W report failed: {e}")
-        sender.send("⚠️ Hermes: 52W report failed\\. Check logs\\.", parse_mode="MarkdownV2")
 
 
-def run_earnings_reminder():
-    """Send earnings calendar daily (weekdays). Highlights near-term dates."""
-    if not is_weekday():
-        return
-    log.info("▶ Running earnings reminder check…")
+# ── Job: Weekly Signal Digest (1W + 1M) ──────────────────────────────────────
+
+def run_weekly_digest():
+    log.info("▶ Weekly signal digest…")
     try:
-        earnings = get_earnings_calendar(config.WATCHLIST)
-        # Only send standalone reminder if something is ≤ EARNINGS_REMINDER_DAYS away
-        upcoming = [e for e in earnings if e["days_out"] <= config.EARNINGS_REMINDER_DAYS]
-        if upcoming:
-            msg = format_earnings_reminder(earnings)
+        signals = collect_all_signals(config.WATCHLIST)
+        for tf in ("1W", "1M"):
+            msg = format_signal_digest(signals, tf)
             sender.send_long(msg)
-            log.info(f"✅ Earnings reminder sent ({len(upcoming)} stock(s) close).")
-        else:
-            log.info("No imminent earnings — skipping standalone reminder.")
+        log.info("✅ Weekly digest sent.")
     except Exception as e:
-        log.exception(f"Earnings reminder failed: {e}")
+        log.exception(f"Weekly digest failed: {e}")
 
 
-# ── Boot ──────────────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     log.info("=" * 60)
-    log.info("  HERMES AGENT — STARTING UP")
+    log.info("  HERMES AGENT v2 — STARTING UP")
     log.info("=" * 60)
 
-    # Validate Telegram connection
     if not sender.test_connection():
-        log.error("❌ Telegram connection failed. Check your BOT_TOKEN and CHAT_ID in config.py.")
+        log.error("❌ Telegram connection failed. Check .env")
         return
 
-    log.info("✅ Telegram connected.")
-
-    # ── Schedule fixed-time tasks ─────────────────────────────────────────────
+    # Fixed-time jobs
+    schedule.every().day.at("06:00").do(run_corporate_actions)
+    schedule.every().day.at("06:30").do(run_macro_events)
     schedule.every().day.at(config.MORNING_BRIEF_TIME).do(run_morning_brief)
     schedule.every().day.at(config.AFTER_MARKET_TIME).do(run_52w_report)
-    # Earnings reminder fires 30 min before morning brief
-    reminder_time = _offset_time(config.MORNING_BRIEF_TIME, minutes=-30)
-    schedule.every().day.at(reminder_time).do(run_earnings_reminder)
+    schedule.every().sunday.at("09:00").do(run_weekly_digest)
 
-    log.info(f"📅 Scheduled: Morning brief @ {config.MORNING_BRIEF_TIME} IST")
-    log.info(f"📅 Scheduled: 52W report    @ {config.AFTER_MARKET_TIME} IST")
-    log.info(f"📅 Scheduled: Earnings check @ {reminder_time} IST")
+    # Hourly market-hours jobs
+    schedule.every(1).hours.do(run_bulk_block_scan)
+    schedule.every(1).hours.do(run_fii_trend)
+    schedule.every(1).hours.do(run_circuit_check)
 
-    # ── Alert watcher in background thread ───────────────────────────────────
+    log.info("📅 All jobs scheduled.")
+
+    # Alert watcher thread
     watcher = AlertWatcher(
-        alerts       = config.PRICE_ALERTS,
-        sender       = sender,
-        poll_seconds = config.ALERT_POLL_SECONDS,
+        alerts=config.PRICE_ALERTS,
+        sender=sender,
+        poll_seconds=config.ALERT_POLL_SECONDS,
     )
-    alert_thread = threading.Thread(
-        target = watcher.run,
-        args   = (is_market_open,),
-        daemon = True,
-        name   = "AlertWatcher",
-    )
-    alert_thread.start()
-    log.info(f"🔔 Alert watcher running (polls every {config.ALERT_POLL_SECONDS}s during market hours).")
+    threading.Thread(target=watcher.run, args=(is_market_open,),
+                     daemon=True, name="AlertWatcher").start()
+    log.info("🔔 Alert watcher armed.")
 
-    # ── Optional: send brief immediately on startup if market not yet open ───
-    now_str = ist_now().strftime("%H:%M")
-    if now_str < config.MORNING_BRIEF_TIME:
-        log.info("Hermes started before brief time — waiting for scheduled run.")
-    else:
-        log.info("Hermes started mid-session. Sending startup status…")
-        sender.send(
-            "🟢 *Hermes Agent online\\.*\n"
-            "_Alert watcher armed\\. Next brief: tomorrow 08:00 IST\\._",
-            parse_mode="MarkdownV2",
-        )
+    sender.send("🟢 *Hermes Agent v2 online\\.*\n_All signal monitors armed\\._",
+                parse_mode="MarkdownV2")
 
-    # ── Main loop ─────────────────────────────────────────────────────────────
-    log.info("Hermes is running. Press Ctrl+C to stop.")
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 
-def _offset_time(time_str: str, minutes: int) -> str:
-    """Offset a HH:MM string by N minutes."""
-    h, m = map(int, time_str.split(":"))
-    total = h * 60 + m + minutes
-    total = total % (24 * 60)
-    return f"{total // 60:02d}:{total % 60:02d}"
-
-
-# ── Global sender (shared by scheduler + watcher) ────────────────────────────
 sender = TelegramSender(
-    token   = config.TELEGRAM_BOT_TOKEN,
-    chat_id = config.TELEGRAM_CHAT_ID,
+    token=config.TELEGRAM_BOT_TOKEN,
+    chat_id=config.TELEGRAM_CHAT_ID,
 )
 
 if __name__ == "__main__":
