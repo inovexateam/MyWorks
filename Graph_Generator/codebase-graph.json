@@ -1,21 +1,638 @@
 {
   "version": "1.0",
-  "generated": "2026-06-04T21:44:22.997987+00:00",
-  "generator": "gen_graph.py",
-  "language": "csharp",
-  "hash": "4f53cda18c2baa0c",
+  "generated": "2026-06-06T10:04:47.067935+00:00",
+  "generator": "gen_graph_python.py",
+  "language": "python",
+  "hash": "11097d718e23bea2",
   "stats": {
-    "total_files": 0,
-    "total_nodes": 0,
-    "total_edges": 0,
-    "controllers": 0,
+    "total_files": 4,
+    "total_nodes": 16,
+    "total_edges": 62,
+    "routers": 0,
     "services": 0,
     "repositories": 0,
     "models": 0,
-    "interfaces": 0,
-    "middlewares": 0,
-    "dbcontexts": 0
+    "middleware": 0,
+    "tasks": 0,
+    "dependencies": 0,
+    "views": 0
   },
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "gen_graph.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "gen_graph.py",
+      "lines": [
+        70,
+        75
+      ],
+      "module": "gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "gen_graph.py",
+      "lines": [
+        49,
+        66
+      ],
+      "module": "gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "gen_graph.py",
+      "lines": [
+        79,
+        89
+      ],
+      "module": "gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "gen_graph.py",
+      "lines": [
+        42,
+        45
+      ],
+      "module": "gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_angular.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "gen_graph_angular.py",
+      "lines": [
+        75,
+        80
+      ],
+      "module": "gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_angular.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "gen_graph_angular.py",
+      "lines": [
+        56,
+        71
+      ],
+      "module": "gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_angular.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "gen_graph_angular.py",
+      "lines": [
+        84,
+        96
+      ],
+      "module": "gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_angular.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "gen_graph_angular.py",
+      "lines": [
+        49,
+        52
+      ],
+      "module": "gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_java.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "gen_graph_java.py",
+      "lines": [
+        81,
+        86
+      ],
+      "module": "gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_java.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "gen_graph_java.py",
+      "lines": [
+        62,
+        77
+      ],
+      "module": "gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_java.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "gen_graph_java.py",
+      "lines": [
+        90,
+        101
+      ],
+      "module": "gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_java.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "gen_graph_java.py",
+      "lines": [
+        55,
+        58
+      ],
+      "module": "gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_python.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "gen_graph_python.py",
+      "lines": [
+        76,
+        81
+      ],
+      "module": "gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_python.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "gen_graph_python.py",
+      "lines": [
+        56,
+        72
+      ],
+      "module": "gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_python.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "gen_graph_python.py",
+      "lines": [
+        85,
+        96
+      ],
+      "module": "gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "gen_graph_python.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "gen_graph_python.py",
+      "lines": [
+        49,
+        52
+      ],
+      "module": "gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "gen_graph",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph",
+      "target": "typing.Any",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_angular",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_java",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "ast",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "gen_graph_python",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    }
+  ]
 }

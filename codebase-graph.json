@@ -1,0 +1,1835 @@
+{
+  "version": "1.0",
+  "generated": "2026-06-06T10:12:37.672294+00:00",
+  "generator": "gen_graph_python.py",
+  "language": "python",
+  "hash": "dc9d9b0845d2c3e3",
+  "stats": {
+    "total_files": 15,
+    "total_nodes": 40,
+    "total_edges": 191,
+    "routers": 0,
+    "services": 0,
+    "repositories": 0,
+    "models": 0,
+    "middleware": 0,
+    "tasks": 0,
+    "dependencies": 0,
+    "views": 0
+  },
+  "nodes": [
+    {
+      "id": "Graph_Generator.gen_graph.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "Graph_Generator/gen_graph.py",
+      "lines": [
+        70,
+        75
+      ],
+      "module": "Graph_Generator.gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "Graph_Generator/gen_graph.py",
+      "lines": [
+        49,
+        66
+      ],
+      "module": "Graph_Generator.gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "Graph_Generator/gen_graph.py",
+      "lines": [
+        79,
+        89
+      ],
+      "module": "Graph_Generator.gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "Graph_Generator/gen_graph.py",
+      "lines": [
+        42,
+        45
+      ],
+      "module": "Graph_Generator.gen_graph",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_angular.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "Graph_Generator/gen_graph_angular.py",
+      "lines": [
+        75,
+        80
+      ],
+      "module": "Graph_Generator.gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_angular.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "Graph_Generator/gen_graph_angular.py",
+      "lines": [
+        56,
+        71
+      ],
+      "module": "Graph_Generator.gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_angular.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "Graph_Generator/gen_graph_angular.py",
+      "lines": [
+        84,
+        96
+      ],
+      "module": "Graph_Generator.gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_angular.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "Graph_Generator/gen_graph_angular.py",
+      "lines": [
+        49,
+        52
+      ],
+      "module": "Graph_Generator.gen_graph_angular",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_angular"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_java.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "Graph_Generator/gen_graph_java.py",
+      "lines": [
+        81,
+        86
+      ],
+      "module": "Graph_Generator.gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_java.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "Graph_Generator/gen_graph_java.py",
+      "lines": [
+        62,
+        77
+      ],
+      "module": "Graph_Generator.gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_java.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "Graph_Generator/gen_graph_java.py",
+      "lines": [
+        90,
+        101
+      ],
+      "module": "Graph_Generator.gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_java.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "Graph_Generator/gen_graph_java.py",
+      "lines": [
+        55,
+        58
+      ],
+      "module": "Graph_Generator.gen_graph_java",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_java"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_python.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "Graph_Generator/gen_graph_python.py",
+      "lines": [
+        76,
+        81
+      ],
+      "module": "Graph_Generator.gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_python.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "Graph_Generator/gen_graph_python.py",
+      "lines": [
+        56,
+        72
+      ],
+      "module": "Graph_Generator.gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_python.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "Graph_Generator/gen_graph_python.py",
+      "lines": [
+        85,
+        96
+      ],
+      "module": "Graph_Generator.gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_python.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "Graph_Generator/gen_graph_python.py",
+      "lines": [
+        49,
+        52
+      ],
+      "module": "Graph_Generator.gen_graph_python",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "hermes_agent.alert_watcher.AlertWatcher",
+      "kind": "class",
+      "name": "AlertWatcher",
+      "file": "hermes_agent/alert_watcher.py",
+      "lines": [
+        21,
+        149
+      ],
+      "module": "hermes_agent.alert_watcher",
+      "summary": "",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "alert_watcher"
+      ]
+    },
+    {
+      "id": "hermes_agent.alert_watcher.AlertWatcher.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "hermes_agent/alert_watcher.py",
+      "lines": [
+        22,
+        31
+      ],
+      "module": "hermes_agent.alert_watcher",
+      "summary": "alerts      : list of alert dicts from config.py",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "alert_watcher"
+      ],
+      "parameters": [
+        {
+          "name": "alerts",
+          "type": "list"
+        },
+        {
+          "name": "sender",
+          "type": ""
+        },
+        {
+          "name": "poll_seconds",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.alert_watcher.AlertWatcher.poll_once",
+      "kind": "function",
+      "name": "poll_once",
+      "file": "hermes_agent/alert_watcher.py",
+      "lines": [
+        99,
+        132
+      ],
+      "module": "hermes_agent.alert_watcher",
+      "summary": "Run a single poll cycle across all alerts.",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "alert_watcher"
+      ]
+    },
+    {
+      "id": "hermes_agent.alert_watcher.AlertWatcher.run",
+      "kind": "function",
+      "name": "run",
+      "file": "hermes_agent/alert_watcher.py",
+      "lines": [
+        134,
+        149
+      ],
+      "module": "hermes_agent.alert_watcher",
+      "summary": "Continuously poll during market hours.",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "alert_watcher"
+      ],
+      "parameters": [
+        {
+          "name": "market_open_fn",
+          "type": ""
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.Card",
+      "kind": "class",
+      "name": "Card",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        109,
+        118
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "gui"
+      ],
+      "base_classes": [
+        "tk.Frame"
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.Card.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        110,
+        118
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "gui"
+      ],
+      "parameters": [
+        {
+          "name": "parent",
+          "type": ""
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.HermesButton",
+      "kind": "class",
+      "name": "HermesButton",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        121,
+        138
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "gui"
+      ],
+      "base_classes": [
+        "tk.Button"
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.HermesButton.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        122,
+        134
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "gui"
+      ],
+      "parameters": [
+        {
+          "name": "parent",
+          "type": ""
+        },
+        {
+          "name": "text",
+          "type": ""
+        },
+        {
+          "name": "command",
+          "type": ""
+        },
+        {
+          "name": "accent",
+          "type": ""
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.HermesButton.set_busy",
+      "kind": "function",
+      "name": "set_busy",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        136,
+        138
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "gui"
+      ],
+      "parameters": [
+        {
+          "name": "busy",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.HermesGUI",
+      "kind": "class",
+      "name": "HermesGUI",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        145,
+        1201
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "gui"
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.HermesGUI.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        146,
+        172
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "gui"
+      ],
+      "parameters": [
+        {
+          "name": "root",
+          "type": "tk.Tk"
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.QueueLogHandler",
+      "kind": "class",
+      "name": "QueueLogHandler",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        69,
+        73
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "Sends log records into the GUI log queue.",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "gui"
+      ],
+      "base_classes": [
+        "logging.Handler"
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.QueueLogHandler.emit",
+      "kind": "function",
+      "name": "emit",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        71,
+        73
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "gui"
+      ],
+      "parameters": [
+        {
+          "name": "record",
+          "type": ""
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.SectionLabel",
+      "kind": "class",
+      "name": "SectionLabel",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        99,
+        106
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "gui"
+      ],
+      "base_classes": [
+        "tk.Label"
+      ]
+    },
+    {
+      "id": "hermes_agent.gui.SectionLabel.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "hermes_agent/gui.py",
+      "lines": [
+        100,
+        106
+      ],
+      "module": "hermes_agent.gui",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "gui"
+      ],
+      "parameters": [
+        {
+          "name": "parent",
+          "type": ""
+        },
+        {
+          "name": "text",
+          "type": ""
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.telegram_sender.TelegramSender",
+      "kind": "class",
+      "name": "TelegramSender",
+      "file": "hermes_agent/telegram_sender.py",
+      "lines": [
+        13,
+        95
+      ],
+      "module": "hermes_agent.telegram_sender",
+      "summary": "",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "telegram_sender"
+      ]
+    },
+    {
+      "id": "hermes_agent.telegram_sender.TelegramSender.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "hermes_agent/telegram_sender.py",
+      "lines": [
+        16,
+        18
+      ],
+      "module": "hermes_agent.telegram_sender",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "telegram_sender"
+      ],
+      "parameters": [
+        {
+          "name": "token",
+          "type": "str"
+        },
+        {
+          "name": "chat_id",
+          "type": "str"
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.telegram_sender.TelegramSender.send",
+      "kind": "function",
+      "name": "send",
+      "file": "hermes_agent/telegram_sender.py",
+      "lines": [
+        23,
+        52
+      ],
+      "module": "hermes_agent.telegram_sender",
+      "summary": "Send a message. Returns True on success.",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "telegram_sender"
+      ],
+      "parameters": [
+        {
+          "name": "text",
+          "type": "str"
+        },
+        {
+          "name": "parse_mode",
+          "type": "str"
+        },
+        {
+          "name": "retries",
+          "type": "int"
+        }
+      ],
+      "return_type": "bool"
+    },
+    {
+      "id": "hermes_agent.telegram_sender.TelegramSender.send_long",
+      "kind": "function",
+      "name": "send_long",
+      "file": "hermes_agent/telegram_sender.py",
+      "lines": [
+        54,
+        80
+      ],
+      "module": "hermes_agent.telegram_sender",
+      "summary": "Telegram max message length is 4096 chars.",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "telegram_sender"
+      ],
+      "parameters": [
+        {
+          "name": "text",
+          "type": "str"
+        },
+        {
+          "name": "parse_mode",
+          "type": "str"
+        }
+      ],
+      "return_type": "bool"
+    },
+    {
+      "id": "hermes_agent.telegram_sender.TelegramSender.test_connection",
+      "kind": "function",
+      "name": "test_connection",
+      "file": "hermes_agent/telegram_sender.py",
+      "lines": [
+        82,
+        95
+      ],
+      "module": "hermes_agent.telegram_sender",
+      "summary": "Ping Telegram to verify bot token and chat ID are valid.",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "telegram_sender"
+      ],
+      "return_type": "bool"
+    },
+    {
+      "id": "resume_screener.resume_screener_v2.App",
+      "kind": "class",
+      "name": "App",
+      "file": "resume_screener/resume_screener_v2.py",
+      "lines": [
+        918,
+        1358
+      ],
+      "module": "resume_screener.resume_screener_v2",
+      "summary": "",
+      "tags": [
+        "class",
+        "resume_screener",
+        "resume_screener_v2"
+      ],
+      "base_classes": [
+        "tk.Tk"
+      ]
+    },
+    {
+      "id": "resume_screener.resume_screener_v2.App.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "resume_screener/resume_screener_v2.py",
+      "lines": [
+        919,
+        928
+      ],
+      "module": "resume_screener.resume_screener_v2",
+      "summary": "",
+      "tags": [
+        "function",
+        "resume_screener",
+        "resume_screener_v2"
+      ]
+    },
+    {
+      "id": "resume_screener.resume_screener_v3.App",
+      "kind": "class",
+      "name": "App",
+      "file": "resume_screener/resume_screener_v3.py",
+      "lines": [
+        738,
+        1108
+      ],
+      "module": "resume_screener.resume_screener_v3",
+      "summary": "",
+      "tags": [
+        "class",
+        "resume_screener",
+        "resume_screener_v3"
+      ],
+      "base_classes": [
+        "tk.Tk"
+      ]
+    },
+    {
+      "id": "resume_screener.resume_screener_v3.App.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "resume_screener/resume_screener_v3.py",
+      "lines": [
+        739,
+        747
+      ],
+      "module": "resume_screener.resume_screener_v3",
+      "summary": "",
+      "tags": [
+        "function",
+        "resume_screener",
+        "resume_screener_v3"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph",
+      "target": "typing.Any",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_angular",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_java",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "ast",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_python",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher.AlertWatcher",
+      "target": "hermes_agent.alert_watcher.AlertWatcher.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.alert_watcher.AlertWatcher",
+      "target": "hermes_agent.alert_watcher.AlertWatcher.poll_once",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.alert_watcher.AlertWatcher",
+      "target": "hermes_agent.alert_watcher.AlertWatcher.run",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "datetime.timedelta",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "data_fetcher.get_price",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.alert_watcher",
+      "target": "formatter.format_price_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.config",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.config",
+      "target": "dotenv.load_dotenv",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.config",
+      "target": "store.load",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.data_fetcher",
+      "target": "yfinance",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.data_fetcher",
+      "target": "requests",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.data_fetcher",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.data_fetcher",
+      "target": "datetime.date",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.data_fetcher",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.data_fetcher",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.data_fetcher",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.formatter",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui.QueueLogHandler",
+      "target": "logging.Handler",
+      "kind": "inherits"
+    },
+    {
+      "source": "hermes_agent.gui.QueueLogHandler",
+      "target": "hermes_agent.gui.QueueLogHandler.emit",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.gui.SectionLabel",
+      "target": "tk.Label",
+      "kind": "inherits"
+    },
+    {
+      "source": "hermes_agent.gui.SectionLabel",
+      "target": "hermes_agent.gui.SectionLabel.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.gui.Card",
+      "target": "tk.Frame",
+      "kind": "inherits"
+    },
+    {
+      "source": "hermes_agent.gui.Card",
+      "target": "hermes_agent.gui.Card.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.gui.HermesButton",
+      "target": "tk.Button",
+      "kind": "inherits"
+    },
+    {
+      "source": "hermes_agent.gui.HermesButton",
+      "target": "hermes_agent.gui.HermesButton.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.gui.HermesButton",
+      "target": "hermes_agent.gui.HermesButton.set_busy",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.gui.HermesGUI",
+      "target": "hermes_agent.gui.tk.Tk",
+      "kind": "depends_on",
+      "label": "root"
+    },
+    {
+      "source": "hermes_agent.gui.HermesGUI",
+      "target": "hermes_agent.gui.HermesGUI.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "tkinter",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "tkinter.ttk",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "tkinter.scrolledtext",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "tkinter.messagebox",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "threading",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "queue",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "schedule",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "pytz",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "config",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "data_fetcher.get_indices",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "data_fetcher.get_portfolio_pnl",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "data_fetcher.get_fii_dii_data",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "data_fetcher.get_news_headlines",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "data_fetcher.get_52w_analysis",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "data_fetcher.get_earnings_calendar",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_morning_brief",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_52w_report",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_earnings_reminder",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "telegram_sender.TelegramSender",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "alert_watcher.AlertWatcher",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "datetime.time",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "store.save",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "data_fetcher.get_price",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_price_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "schedule",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "threading",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "pytz",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "config",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "data_fetcher.get_indices",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "data_fetcher.get_portfolio_pnl",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "data_fetcher.get_fii_dii_data",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "data_fetcher.get_news_headlines",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "data_fetcher.get_52w_analysis",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "data_fetcher.get_earnings_calendar",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_morning_brief",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_52w_report",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_earnings_reminder",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "telegram_sender.TelegramSender",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "alert_watcher.AlertWatcher",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "datetime.time",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.store",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.store",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.telegram_sender.TelegramSender",
+      "target": "hermes_agent.telegram_sender.TelegramSender.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.telegram_sender.TelegramSender",
+      "target": "hermes_agent.telegram_sender.TelegramSender.send",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.telegram_sender.TelegramSender",
+      "target": "hermes_agent.telegram_sender.TelegramSender.send_long",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.telegram_sender.TelegramSender",
+      "target": "hermes_agent.telegram_sender.TelegramSender.test_connection",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.telegram_sender",
+      "target": "requests",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.telegram_sender",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.telegram_sender",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.parse_copilot_tokens",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.parse_copilot_tokens",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2.App",
+      "target": "tk.Tk",
+      "kind": "inherits"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2.App",
+      "target": "resume_screener.resume_screener_v2.App.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "math",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "threading",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "tkinter",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "tkinter.ttk",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "tkinter.filedialog",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "tkinter.messagebox",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "collections.defaultdict",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "pypdf.PdfReader",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "docx.Document",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "csv",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v2",
+      "target": "PyPDF2.PdfReader",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3.App",
+      "target": "tk.Tk",
+      "kind": "inherits"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3.App",
+      "target": "resume_screener.resume_screener_v3.App.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "os",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "csv",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "math",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "threading",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "tkinter",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "tkinter.ttk",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "tkinter.filedialog",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "tkinter.messagebox",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "collections.defaultdict",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "typing.Optional",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "pypdf.PdfReader",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "docx.Document",
+      "kind": "imports"
+    },
+    {
+      "source": "resume_screener.resume_screener_v3",
+      "target": "PyPDF2.PdfReader",
+      "kind": "imports"
+    }
+  ]
+}

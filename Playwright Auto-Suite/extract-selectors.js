@@ -1,144 +1,69 @@
 /**
  * extract-selectors.js
- * Auto-discovers pages. For SPAs with no nav links, extracts from entry URL directly.
+ * Give it a URL. It extracts every interactive element from every reachable page.
+ * No hardcoded page types. No assumptions. Just what's on the page.
+ *
  * Run: APP_URL=https://your-app.com node extract-selectors.js
  */
 
 const { chromium } = require('@playwright/test');
-const fs  = require('fs');
+const fs = require('fs');
 
-const APP_URL    = process.env.APP_URL   || 'https://your-app.com';
-const AUTH_USER  = process.env.AUTH_USER || '';
-const AUTH_PASS  = process.env.AUTH_PASS || '';
-const MAX_PAGES  = parseInt(process.env.MAX_PAGES || '20');
-const BASE_HOST  = new URL(APP_URL).hostname;
+const APP_URL  = process.env.APP_URL  || 'https://your-app.com';
+const AUTH_USER = process.env.AUTH_USER || '';
+const AUTH_PASS = process.env.AUTH_PASS || '';
+const MAX_PAGES = parseInt(process.env.MAX_PAGES || '20');
+const BASE_HOST = new URL(APP_URL).hostname;
 
-// ── Framework detection ──────────────────────────────────────────────────────
-async function detectFramework(page) {
-  return await page.evaluate(() => {
-    if (document.querySelector('[ng-version],[_nghost],app-root'))               return 'angular';
-    if (document.querySelector('#__NEXT_DATA__,[data-reactroot]'))               return 'react';
-    if (document.querySelector('#__nuxt,[data-v-]'))                             return 'vue';
+// ── Wait for page to settle (auto-detects framework) ─────────────────────────
+async function waitForPage(page) {
+  await page.waitForLoadState('networkidle').catch(() => {});
+
+  const fw = await page.evaluate(() => {
+    if (document.querySelector('[ng-version],[_nghost],app-root'))                return 'angular';
+    if (document.querySelector('#__NEXT_DATA__,[data-reactroot]'))                return 'react';
+    if (document.querySelector('#__nuxt,[data-v-]'))                              return 'vue';
     if (document.querySelector('script[src*="blazor"]') || window.__blazorSignalR) return 'blazor';
-    if (document.querySelector('input[name*="__VIEWSTATE"],[id*="ctl00"]'))      return 'aspx';
+    if (document.querySelector('input[name*="__VIEWSTATE"],[id*="ctl00"]'))       return 'aspx';
     return 'html';
   });
-}
 
-// ── Smart wait per framework ─────────────────────────────────────────────────
-async function waitForFramework(page, fw) {
   try {
     switch (fw) {
       case 'angular':
         await page.waitForFunction(() =>
           window.getAllAngularTestabilities?.()?.every(t => t.isStable()) ?? true
-        , { timeout: 15000 }); break;
+        , { timeout: 10000 }); break;
       case 'blazor':
-        await page.waitForFunction(() =>
-          !document.querySelector('blazor-error-ui') && document.readyState === 'complete'
-        , { timeout: 20000 });
         await page.waitForTimeout(1500); break;
       case 'react':
       case 'vue':
-        await page.waitForSelector('#root,#app,#__nuxt,[data-reactroot]', { timeout: 10000 });
         await page.waitForLoadState('networkidle'); break;
-      default:
-        await page.waitForLoadState('networkidle');
     }
-  } catch (_) {
-    await page.waitForLoadState('networkidle').catch(() => {});
-  }
+  } catch(_) {}
+
+  return fw;
 }
 
-// ── Discover pages (nav links + sitemap). Falls back to entry URL only ────────
-async function discoverPages(page) {
-  const visited = new Set();
-  const toVisit = [APP_URL];
-  const found   = [];
+// ── Extract every element exactly as it exists — no category mapping ──────────
+async function extractFromPage(page, pageName, pageUrl, fw) {
+  return await page.evaluate(({ pageName, pageUrl, fw }) => {
 
-  // Try sitemap
-  try {
-    const res = await page.goto(`${APP_URL}/sitemap.xml`, { timeout: 8000 });
-    if (res?.ok()) {
-      const content = await page.content();
-      const matches = [...content.matchAll(/<loc>(.*?)<\/loc>/g)];
-      matches.forEach(m => {
-        try { if (new URL(m[1].trim()).hostname === BASE_HOST) toVisit.push(m[1].trim()); } catch(_) {}
-      });
-      console.log(`✓ sitemap.xml → ${matches.length} URLs`);
-    }
-  } catch (_) { console.log('  no sitemap, crawling nav links...'); }
-
-  while (toVisit.length && found.length < MAX_PAGES) {
-    const current = toVisit.shift();
-    if (visited.has(current)) continue;
-    visited.add(current);
-
-    try {
-      await page.goto(current, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      const fw = await detectFramework(page);
-      await waitForFramework(page, fw);
-
-      const pathname = new URL(current).pathname.replace(/^\/|\/$/g, '') || 'home';
-      // Use filename without extension as page name for static HTML files
-      const name = pathname.split('/').pop().replace(/\.[^.]+$/, '') || 'home';
-      found.push({ name, url: current, framework: fw });
-      console.log(`  found: [${name}] (${fw}) → ${current}`);
-
-      // Collect internal nav links
-      const newLinks = await page.evaluate((baseHost) => {
-        const NAV = 'nav a,[role="navigation"] a,aside a,header a,[class*="sidebar"] a,[class*="menu"] a,[class*="nav"] a';
-        return [...document.querySelectorAll(NAV)]
-          .map(a => a.href)
-          .filter(h => {
-            try {
-              const u = new URL(h);
-              return u.hostname === baseHost &&
-                !h.includes('#') &&
-                !h.match(/\.(pdf|jpg|png|gif|svg|css|js|xml|zip)$/i);
-            } catch { return false; }
-          });
-      }, BASE_HOST);
-
-      newLinks.forEach(l => { if (!visited.has(l)) toVisit.push(l); });
-    } catch (e) {
-      console.warn(`  ✗ skipped ${current}: ${e.message}`);
-    }
-  }
-
-  // SPA / single page fallback — always include entry URL
-  if (found.length === 0) {
-    console.log('  no pages discovered via nav — using entry URL directly');
-    const pathname = new URL(APP_URL).pathname.replace(/^\/|\/$/g, '') || 'home';
-    const name     = pathname.split('/').pop().replace(/\.[^.]+$/, '') || 'home';
-    found.push({ name, url: APP_URL, framework: 'html' });
-  }
-
-  return found;
-}
-
-// ── Extract ALL interactive + section elements ────────────────────────────────
-async function extractSelectors(page, pageName, fw) {
-  return await page.evaluate(({ name, fw }) => {
-
-    function best(el) {
-      if (el.getAttribute('data-testid'))     return `[data-testid="${el.getAttribute('data-testid')}"]`;
-      if (fw === 'angular') {
-        if (el.getAttribute('data-cy'))       return `[data-cy="${el.getAttribute('data-cy')}"]`;
-        if (el.getAttribute('formcontrolname')) return `[formcontrolname="${el.getAttribute('formcontrolname')}"]`;
-      }
+    function bestSelector(el) {
+      if (el.getAttribute('data-testid'))       return `[data-testid="${el.getAttribute('data-testid')}"]`;
+      if (el.getAttribute('data-cy'))           return `[data-cy="${el.getAttribute('data-cy')}"]`;
+      if (el.getAttribute('formcontrolname'))   return `[formcontrolname="${el.getAttribute('formcontrolname')}"]`;
       const id = el.id;
       if (id && !/ctl\d+_|ContentPlaceHolder|MasterPage|\$/.test(id)) return `#${id}`;
       const nm = el.getAttribute('name');
-      if (nm && !/\$/.test(nm))               return `[name="${nm}"]`;
-      if (el.getAttribute('aria-label'))      return `[aria-label="${el.getAttribute('aria-label')}"]`;
-      if (el.placeholder)                     return `[placeholder="${el.placeholder}"]`;
-      if (fw === 'blazor' && el.getAttribute('_bl_')) return `[_bl_="${el.getAttribute('_bl_')}"]`;
-      const text = el.innerText?.trim().replace(/\s+/g,' ').slice(0,40);
-      if (text && !['INPUT','SELECT','TEXTAREA'].includes(el.tagName)) return `text=${text}`;
-      if (el.tagName === 'INPUT' && el.type)  return `input[type="${el.type}"]`;
-      const sc = [...el.classList].find(c => !c.match(/active|focus|hover|selected|ng-|js-|is-|has-|v-/));
-      return sc ? `${el.tagName.toLowerCase()}.${sc}` : el.tagName.toLowerCase();
+      if (nm && !/\$/.test(nm))                 return `[name="${nm}"]`;
+      if (el.getAttribute('aria-label'))        return `[aria-label="${el.getAttribute('aria-label')}"]`;
+      if (el.placeholder)                       return `[placeholder="${el.placeholder}"]`;
+      const txt = el.innerText?.trim().replace(/\s+/g, ' ').slice(0, 40);
+      if (txt && !['INPUT','SELECT','TEXTAREA'].includes(el.tagName)) return `text=${txt}`;
+      if (el.tagName === 'INPUT' && el.type)    return `input[type="${el.type}"]`;
+      const cls = [...el.classList].find(c => !c.match(/active|focus|hover|selected|ng-|js-|is-|has-|v-/));
+      return cls ? `${el.tagName.toLowerCase()}.${cls}` : el.tagName.toLowerCase();
     }
 
     function isVisible(el) {
@@ -148,63 +73,123 @@ async function extractSelectors(page, pageName, fw) {
         s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
     }
 
-    // Wider net — includes tabs, checkboxes, range sliders, nav items
-    const INTERACTIVE = [
+    const QUERY = [
       'input:not([type="hidden"])',
       'button',
       'a[href]',
       'select',
       'textarea',
       '[role="button"]',
-      '[role="link"]',
-      '[role="menuitem"]',
       '[role="tab"]',
       '[role="checkbox"]',
       '[role="slider"]',
+      '[role="menuitem"]',
+      '[role="link"]',
       '[onclick]',
-      'label[for]',
       '[data-toggle]',
       '[data-bs-toggle]',
       '[formcontrolname]',
-      '[mat-button]',
-      '[mat-raised-button]',
     ].join(',');
 
-    return [...document.querySelectorAll(INTERACTIVE)]
+    return [...document.querySelectorAll(QUERY)]
       .filter(isVisible)
       .map(el => ({
-        page:        name,
-        framework:   fw,
-        tag:         el.tagName.toLowerCase(),
-        type:        el.type || null,
-        text:        el.innerText?.trim().replace(/\s+/g,' ').slice(0,80) || null,
+        pageName,
+        pageUrl,
+        framework: fw,
+        tag:       el.tagName.toLowerCase(),
+        type:      el.type   || null,
+        role:      el.getAttribute('role') || null,
+        text:      el.innerText?.trim().replace(/\s+/g, ' ').slice(0, 100) || null,
         placeholder: el.placeholder || null,
-        ariaLabel:   el.getAttribute('aria-label') || null,
-        role:        el.getAttribute('role') || el.tagName.toLowerCase(),
-        selector:    best(el),
-        rawId:       el.id || null,
+        ariaLabel: el.getAttribute('aria-label') || null,
+        href:      el.href   || null,
+        selector:  bestSelector(el),
+        rawId:     el.id     || null,
       }));
-  }, { name: pageName, fw });
+  }, { pageName, pageUrl, fw });
 }
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
+// ── Discover all pages reachable from APP_URL ─────────────────────────────────
+async function discoverPages(page) {
+  const visited = new Set();
+  const queue   = [APP_URL];
+  const pages   = [];
+
+  // Try sitemap first
+  try {
+    const r = await page.goto(`${new URL(APP_URL).origin}/sitemap.xml`, { timeout: 6000 });
+    if (r?.ok()) {
+      const xml = await page.content();
+      [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].forEach(m => {
+        try { if (new URL(m[1]).hostname === BASE_HOST) queue.push(m[1].trim()); } catch(_) {}
+      });
+    }
+  } catch(_) {}
+
+  while (queue.length && pages.length < MAX_PAGES) {
+    const url = queue.shift();
+    if (visited.has(url)) continue;
+    visited.add(url);
+
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      const fw = await waitForPage(page);
+
+      // Page name from URL path/filename
+      const pathname = new URL(url).pathname;
+      const name = pathname
+        .replace(/^\/|\/$/g, '')
+        .replace(/\.[^.]+$/, '')          // remove extension
+        .replace(/\//g, '__')             // slashes → __
+        || 'home';
+
+      pages.push({ name, url, fw });
+      console.log(`  ✓ [${name}] (${fw}) → ${url}`);
+
+      // Collect internal nav/menu links only (avoids crawling every href)
+      const links = await page.evaluate((host) => {
+        const scope = 'nav a, header a, aside a, [role="navigation"] a, [class*="nav"] a, [class*="menu"] a, [class*="sidebar"] a';
+        return [...document.querySelectorAll(scope)]
+          .map(a => a.href)
+          .filter(h => {
+            try {
+              const u = new URL(h);
+              return u.hostname === host && !h.includes('#') && !/\.(jpg|png|pdf|svg|css|js|xml|zip)$/i.test(h);
+            } catch { return false; }
+          });
+      }, BASE_HOST);
+
+      links.forEach(l => { if (!visited.has(l)) queue.push(l); });
+
+    } catch(e) {
+      console.warn(`  ✗ ${url} — ${e.message}`);
+    }
+  }
+
+  // Single page / no nav links found → use entry URL directly
+  if (pages.length === 0) {
+    const pathname = new URL(APP_URL).pathname;
+    const name = pathname.replace(/^\/|\/$/g, '').replace(/\.[^.]+$/, '').replace(/\//g, '__') || 'home';
+    pages.push({ name, url: APP_URL, fw: 'html' });
+  }
+
+  return pages;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
 async function login(page) {
-  console.log('→ Logging in...');
-  await page.goto(`${APP_URL}/login`, { waitUntil: 'networkidle' })
-    .catch(() => page.goto(APP_URL, { waitUntil: 'networkidle' }));
-  const fw = await detectFramework(page);
-  await waitForFramework(page, fw);
-  const userTry   = ['input[type="email"]','input[name="username"]','input[name="email"]','input[name="UserName"]','#UserName','#username','#email','[formcontrolname="username"]','[formcontrolname="email"]','input[placeholder*="user" i]','input[placeholder*="email" i]'];
-  const passTry   = ['input[type="password"]','input[name="password"]','input[name="Password"]','#password','#Password','[formcontrolname="password"]'];
-  const submitTry = ['button[type="submit"]','input[type="submit"]','button:has-text("Login")','button:has-text("Sign in")','button:has-text("Log in")'];
-  for (const s of userTry)   { const e = await page.$(s); if (e) { await e.fill(AUTH_USER); break; } }
-  for (const s of passTry)   { const e = await page.$(s); if (e) { await e.fill(AUTH_PASS); break; } }
-  for (const s of submitTry) { const e = await page.$(s); if (e) { await e.click();         break; } }
+  await page.goto(APP_URL, { waitUntil: 'networkidle' });
+  for (const s of ['input[type="email"]','input[name="username"]','input[name="UserName"]','#username','#email','[formcontrolname="username"]'])
+    { const e = await page.$(s); if (e) { await e.fill(AUTH_USER); break; } }
+  for (const s of ['input[type="password"]','#password','[formcontrolname="password"]'])
+    { const e = await page.$(s); if (e) { await e.fill(AUTH_PASS); break; } }
+  for (const s of ['button[type="submit"]','input[type="submit"]','button:has-text("Login")','button:has-text("Sign in")'])
+    { const e = await page.$(s); if (e) { await e.click(); break; } }
   await page.waitForLoadState('networkidle').catch(() => {});
-  console.log('✓ Auth done');
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -213,34 +198,30 @@ async function login(page) {
   const page = await context.newPage();
 
   if (AUTH_USER && AUTH_PASS) {
+    console.log('→ Authenticating...');
     await login(page);
     await context.storageState({ path: 'auth-state.json' });
-    console.log('✓ Session saved → auth-state.json\n');
+    console.log('✓ Session saved → auth-state.json');
   }
 
-  console.log(`\n→ Crawling ${APP_URL} (max ${MAX_PAGES} pages)...\n`);
+  console.log(`\n→ Discovering pages from ${APP_URL}...\n`);
   const pages = await discoverPages(page);
-  console.log(`\n→ ${pages.length} page(s) found. Extracting selectors...\n`);
+  console.log(`\n→ ${pages.length} page(s) found. Extracting elements...\n`);
 
-  const allSelectors = {};
+  const result = {};
   let total = 0;
 
-  for (const { name, url: pageUrl, framework } of pages) {
-    try {
-      await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
-      await waitForFramework(page, framework);
-      const found = await extractSelectors(page, name, framework);
-      allSelectors[name] = found;
-      total += found.length;
-      console.log(`✓ [${name}] ${found.length} selectors (${framework})`);
-    } catch (e) {
-      console.warn(`✗ [${name}] ${e.message}`);
-      allSelectors[name] = [];
-    }
+  for (const { name, url, fw } of pages) {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await waitForPage(page);
+    const elements = await extractFromPage(page, name, url, fw);
+    result[name] = elements;
+    total += elements.length;
+    console.log(`✓ [${name}] → ${elements.length} elements`);
   }
 
-  fs.writeFileSync('selectors.json', JSON.stringify(allSelectors, null, 2));
-  console.log(`\n✓ selectors.json — ${pages.length} page(s), ${total} total selectors`);
+  fs.writeFileSync('selectors.json', JSON.stringify(result, null, 2));
+  console.log(`\n✓ selectors.json written — ${pages.length} page(s), ${total} elements total`);
   console.log('→ Next: node generate-tests.js');
   await browser.close();
 })();

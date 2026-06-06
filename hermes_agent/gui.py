@@ -328,18 +328,79 @@ class HermesGUI:
         frame = tk.Frame(self.notebook, bg=C["bg"])
         self.notebook.add(frame, text="  Alerts  ")
 
-        SectionLabel(frame, "Price Alert Rules — toggle to arm/disarm").pack(anchor="w", pady=(10, 4))
+        # ── Add / Edit form at top ────────────────────────────────────────────
+        SectionLabel(frame, "Add / Edit Alert").pack(anchor="w", pady=(10, 4))
 
-        scroll_frame = tk.Frame(frame, bg=C["bg"])
-        scroll_frame.pack(fill="both", expand=True)
+        form_card = Card(frame)
+        form_card.pack(fill="x", pady=(0, 8))
 
-        canvas = tk.Canvas(scroll_frame, bg=C["bg"], highlightthickness=0)
-        scrollbar = ttk.Scrollbar(scroll_frame, orient="vertical", command=canvas.yview)
+        # Row 1: Symbol + Condition + Level
+        row1 = tk.Frame(form_card, bg=C["bg2"])
+        row1.pack(fill="x", pady=(0, 6))
+
+        tk.Label(row1, text="Symbol", bg=C["bg2"], fg=C["muted"],
+                 font=("Courier", 8), width=8, anchor="w").pack(side="left")
+        self.alert_sym_var = tk.StringVar()
+        sym_entry = tk.Entry(row1, textvariable=self.alert_sym_var,
+                             bg=C["bg3"], fg=C["text"], insertbackground=C["text"],
+                             relief="flat", font=("Courier", 10), width=14,
+                             highlightbackground=C["border"], highlightthickness=1)
+        sym_entry.pack(side="left", padx=(0, 12))
+        sym_entry.insert(0, "RELIANCE.NS")
+
+        tk.Label(row1, text="Condition", bg=C["bg2"], fg=C["muted"],
+                 font=("Courier", 8), width=10, anchor="w").pack(side="left")
+        self.alert_cond_var = tk.StringVar(value="below")
+        cond_menu = ttk.Combobox(row1, textvariable=self.alert_cond_var,
+                                  values=["below", "above"], state="readonly",
+                                  width=8, font=("Courier", 10))
+        cond_menu.pack(side="left", padx=(0, 12))
+
+        tk.Label(row1, text="Level ₹", bg=C["bg2"], fg=C["muted"],
+                 font=("Courier", 8), width=8, anchor="w").pack(side="left")
+        self.alert_level_var = tk.StringVar()
+        level_entry = tk.Entry(row1, textvariable=self.alert_level_var,
+                               bg=C["bg3"], fg=C["text"], insertbackground=C["text"],
+                               relief="flat", font=("Courier", 10), width=10,
+                               highlightbackground=C["border"], highlightthickness=1)
+        level_entry.pack(side="left", padx=(0, 12))
+
+        # Row 2: Cooldown + buttons
+        row2 = tk.Frame(form_card, bg=C["bg2"])
+        row2.pack(fill="x")
+
+        tk.Label(row2, text="Cooldown (h)", bg=C["bg2"], fg=C["muted"],
+                 font=("Courier", 8), width=13, anchor="w").pack(side="left")
+        self.alert_cool_var = tk.StringVar(value="4")
+        cool_entry = tk.Entry(row2, textvariable=self.alert_cool_var,
+                              bg=C["bg3"], fg=C["text"], insertbackground=C["text"],
+                              relief="flat", font=("Courier", 10), width=6,
+                              highlightbackground=C["border"], highlightthickness=1)
+        cool_entry.pack(side="left", padx=(0, 16))
+
+        self.alert_editing_idx = None  # None = adding new, int = editing existing
+
+        self.alert_save_btn = HermesButton(row2, "＋  ADD ALERT",
+                                            self._save_alert, accent=True)
+        self.alert_save_btn.pack(side="left", padx=(0, 6))
+
+        HermesButton(row2, "✕  CLEAR FORM", self._clear_alert_form).pack(side="left")
+
+        self.form_status_lbl = tk.Label(row2, text="", bg=C["bg2"],
+                                         fg=C["green"], font=("Courier", 8))
+        self.form_status_lbl.pack(side="left", padx=10)
+
+        # ── Alert list ────────────────────────────────────────────────────────
+        SectionLabel(frame, "Active Alert Rules").pack(anchor="w", pady=(6, 4))
+
+        list_frame = tk.Frame(frame, bg=C["bg"])
+        list_frame.pack(fill="both", expand=True)
+
+        canvas = tk.Canvas(list_frame, bg=C["bg"], highlightthickness=0)
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
         self.alert_inner = tk.Frame(canvas, bg=C["bg"])
-
         self.alert_inner.bind("<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-
         canvas.create_window((0, 0), window=self.alert_inner, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
@@ -347,35 +408,141 @@ class HermesGUI:
 
         self._populate_alert_rows()
 
-        # Alert log section
-        SectionLabel(frame, "Recent Alert Fires").pack(anchor="w", pady=(10, 2))
+        # ── Recent fires log ──────────────────────────────────────────────────
+        SectionLabel(frame, "Recent Alert Fires").pack(anchor="w", pady=(8, 2))
         self.alert_log = scrolledtext.ScrolledText(
-            frame, height=5, bg=C["bg3"], fg=C["amber"],
+            frame, height=4, bg=C["bg3"], fg=C["amber"],
             font=("Courier", 8), relief="flat",
             insertbackground=C["text"], state="disabled",
             highlightbackground=C["border"], highlightthickness=1,
         )
         self.alert_log.pack(fill="x", pady=(0, 8))
 
+    def _save_alert(self):
+        """Validate form and add or update an alert in config.PRICE_ALERTS."""
+        sym   = self.alert_sym_var.get().strip().upper()
+        cond  = self.alert_cond_var.get().strip()
+        level_str = self.alert_level_var.get().strip()
+        cool_str  = self.alert_cool_var.get().strip()
+
+        # Validate
+        if not sym:
+            self._form_status("Symbol is required.", error=True); return
+        try:
+            level = float(level_str.replace(",", ""))
+            if level <= 0:
+                raise ValueError
+        except ValueError:
+            self._form_status("Level must be a positive number.", error=True); return
+        try:
+            cooldown = float(cool_str)
+            if cooldown < 0:
+                raise ValueError
+        except ValueError:
+            self._form_status("Cooldown must be a number ≥ 0.", error=True); return
+
+        # Normalise symbol — append .NS if missing and not an index alias
+        if sym not in ("NIFTY50", "BANKNIFTY", "SENSEX") and not sym.endswith(".NS") and not sym.startswith("^"):
+            sym = sym + ".NS"
+
+        new_alert = {
+            "symbol":        sym,
+            "condition":     cond,
+            "level":         level,
+            "cooldown_hours": cooldown,
+        }
+
+        if self.alert_editing_idx is not None:
+            # Update existing
+            config.PRICE_ALERTS[self.alert_editing_idx] = new_alert
+            self._form_status(f"Alert updated: {sym} {cond} {level:,.2f}")
+            self.alert_editing_idx = None
+            self.alert_save_btn.config(text="＋  ADD ALERT")
+        else:
+            # Check for duplicate
+            for a in config.PRICE_ALERTS:
+                if a["symbol"] == sym and a["condition"] == cond and a["level"] == level:
+                    self._form_status("Duplicate alert already exists.", error=True)
+                    return
+            config.PRICE_ALERTS.append(new_alert)
+            self._form_status(f"Alert added: {sym} {cond} ₹{level:,.2f}")
+
+        self._clear_alert_form()
+        self._populate_alert_rows()
+        self._save_alerts_to_config()
+        log.info(f"Alert saved: {new_alert}")
+
+    def _edit_alert(self, idx: int):
+        """Load an existing alert into the form for editing."""
+        alert = config.PRICE_ALERTS[idx]
+        self.alert_sym_var.set(alert["symbol"])
+        self.alert_cond_var.set(alert["condition"])
+        self.alert_level_var.set(str(alert["level"]))
+        self.alert_cool_var.set(str(alert["cooldown_hours"]))
+        self.alert_editing_idx = idx
+        self.alert_save_btn.config(text="✎  SAVE CHANGES")
+        self._form_status(f"Editing: {alert['symbol']} — make changes and click Save.")
+
+    def _delete_alert(self, idx: int):
+        """Delete an alert after confirmation."""
+        alert = config.PRICE_ALERTS[idx]
+        sym   = alert["symbol"].replace(".NS", "")
+        if messagebox.askyesno("Delete Alert",
+                                f"Delete alert:\n{sym} {alert['condition']} ₹{alert['level']:,.2f}?"):
+            config.PRICE_ALERTS.pop(idx)
+            self._populate_alert_rows()
+            self._save_alerts_to_config()
+            self._form_status(f"Deleted alert for {sym}.")
+            if self.alert_editing_idx == idx:
+                self._clear_alert_form()
+
+    def _clear_alert_form(self):
+        self.alert_sym_var.set("")
+        self.alert_cond_var.set("below")
+        self.alert_level_var.set("")
+        self.alert_cool_var.set("4")
+        self.alert_editing_idx = None
+        self.alert_save_btn.config(text="＋  ADD ALERT")
+        self.form_status_lbl.config(text="")
+
+    def _form_status(self, msg: str, error: bool = False):
+        self.form_status_lbl.config(
+            text=msg, fg=C["red"] if error else C["green"])
+        self.root.after(4000, lambda: self.form_status_lbl.config(text=""))
+
+    def _save_alerts_to_config(self):
+        """Persist current PRICE_ALERTS to data/alerts.json."""
+        try:
+            from store import save as _store_save
+            _store_save("alerts", config.PRICE_ALERTS)
+            log.info("data/alerts.json updated.")
+        except Exception as e:
+            log.error(f"Failed to save alerts: {e}")
+
     def _populate_alert_rows(self):
-        """Render one row per alert rule with toggle."""
+        """Render one row per alert rule with arm/disarm, edit, delete."""
         for widget in self.alert_inner.winfo_children():
             widget.destroy()
         self.alert_vars.clear()
 
+        if not config.PRICE_ALERTS:
+            tk.Label(self.alert_inner, text="No alerts configured. Add one above.",
+                     bg=C["bg"], fg=C["dim"], font=("Courier", 9)).pack(pady=20)
+            return
+
         for i, alert in enumerate(config.PRICE_ALERTS):
-            key    = f"{alert['symbol']}_{alert['condition']}_{alert['level']}"
-            var    = tk.BooleanVar(value=True)
+            key       = f"{alert['symbol']}_{alert['condition']}_{alert['level']}"
+            var       = tk.BooleanVar(value=True)
             self.alert_vars[key] = var
 
             row = Card(self.alert_inner)
             row.pack(fill="x", pady=3)
 
-            # Condition badge
-            badge_color = C["red"] if alert["condition"] == "below" else C["green"]
-            direction   = "▼ BELOW" if alert["condition"] == "below" else "▲ ABOVE"
-            sym_clean   = alert["symbol"].replace(".NS", "")
+            direction = "▼ BELOW" if alert["condition"] == "below" else "▲ ABOVE"
+            dir_col   = C["red"]   if alert["condition"] == "below" else C["green"]
+            sym_clean = alert["symbol"].replace(".NS", "")
 
+            # Left: symbol + detail
             left = tk.Frame(row, bg=C["bg2"])
             left.pack(side="left", fill="x", expand=True)
 
@@ -383,34 +550,54 @@ class HermesGUI:
                      font=("Courier", 11, "bold")).pack(anchor="w")
             tk.Label(left,
                      text=f"{direction}  ₹{alert['level']:,.2f}  ·  cooldown {alert['cooldown_hours']}h",
-                     bg=C["bg2"], fg=C["muted"],
+                     bg=C["bg2"], fg=dir_col,
                      font=("Courier", 8)).pack(anchor="w")
 
-            # Toggle
-            tog_frame = tk.Frame(row, bg=C["bg2"])
-            tog_frame.pack(side="right")
+            # Right: status label + toggle + edit + delete
+            right_f = tk.Frame(row, bg=C["bg2"])
+            right_f.pack(side="right")
 
-            status_lbl = tk.Label(tog_frame, text="ARMED", bg=C["bg2"],
-                                  fg=C["green"], font=("Courier", 8, "bold"))
-            status_lbl.pack(side="left", padx=(0, 8))
+            status_lbl = tk.Label(right_f, text="ARMED", bg=C["bg2"],
+                                   fg=C["green"], font=("Courier", 8, "bold"))
+            status_lbl.pack(side="left", padx=(0, 6))
 
             def _make_toggle(v, lbl, r):
                 def toggle():
                     if v.get():
-                        lbl.config(text="ARMED",  fg=C["green"])
+                        lbl.config(text="ARMED", fg=C["green"])
                         r.config(highlightbackground=C["border"])
                     else:
-                        lbl.config(text="OFF",    fg=C["dim"])
+                        lbl.config(text="OFF",   fg=C["dim"])
                         r.config(highlightbackground=C["dim"])
                 return toggle
 
             cb = tk.Checkbutton(
-                tog_frame, variable=var,
+                right_f, variable=var,
                 bg=C["bg2"], activebackground=C["bg2"],
-                selectcolor=C["green_dim"],
-                fg=C["green"], command=_make_toggle(var, status_lbl, row),
+                selectcolor=C["green_dim"], fg=C["green"],
+                command=_make_toggle(var, status_lbl, row),
             )
-            cb.pack(side="left")
+            cb.pack(side="left", padx=(0, 4))
+
+            # Edit button
+            edit_btn = tk.Button(
+                right_f, text="✎",
+                bg=C["bg3"], fg=C["blue"],
+                relief="flat", font=("Courier", 10),
+                cursor="hand2", padx=4,
+                command=lambda idx=i: self._edit_alert(idx),
+            )
+            edit_btn.pack(side="left", padx=(0, 4))
+
+            # Delete button
+            del_btn = tk.Button(
+                right_f, text="✕",
+                bg=C["bg3"], fg=C["red"],
+                relief="flat", font=("Courier", 10),
+                cursor="hand2", padx=4,
+                command=lambda idx=i: self._delete_alert(idx),
+            )
+            del_btn.pack(side="left")
 
     # ── Tab: 52W Range ────────────────────────────────────────────────────────
 
