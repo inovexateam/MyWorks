@@ -1,13 +1,13 @@
 {
   "version": "1.0",
-  "generated": "2026-06-07T15:07:12.752357+00:00",
+  "generated": "2026-06-07T18:06:56.259190+00:00",
   "generator": "gen_graph_python.py",
   "language": "python",
-  "hash": "f48a009db020bf7c",
+  "hash": "a9b08efe04129ffa",
   "stats": {
-    "total_files": 22,
-    "total_nodes": 45,
-    "total_edges": 282,
+    "total_files": 23,
+    "total_nodes": 49,
+    "total_edges": 296,
     "routers": 0,
     "services": 0,
     "repositories": 0,
@@ -333,6 +333,86 @@
         "class",
         "Graph_Generator",
         "gen_graph_python"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_typescript.GraphEdge",
+      "kind": "class",
+      "name": "GraphEdge",
+      "file": "Graph_Generator/gen_graph_typescript.py",
+      "lines": [
+        79,
+        84
+      ],
+      "module": "Graph_Generator.gen_graph_typescript",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_typescript"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_typescript.GraphNode",
+      "kind": "class",
+      "name": "GraphNode",
+      "file": "Graph_Generator/gen_graph_typescript.py",
+      "lines": [
+        56,
+        75
+      ],
+      "module": "Graph_Generator.gen_graph_typescript",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_typescript"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_typescript.GraphStats",
+      "kind": "class",
+      "name": "GraphStats",
+      "file": "Graph_Generator/gen_graph_typescript.py",
+      "lines": [
+        88,
+        100
+      ],
+      "module": "Graph_Generator.gen_graph_typescript",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_typescript"
+      ],
+      "decorators": [
+        "dataclass"
+      ]
+    },
+    {
+      "id": "Graph_Generator.gen_graph_typescript.NodeLocation",
+      "kind": "class",
+      "name": "NodeLocation",
+      "file": "Graph_Generator/gen_graph_typescript.py",
+      "lines": [
+        49,
+        52
+      ],
+      "module": "Graph_Generator.gen_graph_typescript",
+      "summary": "",
+      "tags": [
+        "class",
+        "Graph_Generator",
+        "gen_graph_typescript"
       ],
       "decorators": [
         "dataclass"
@@ -1292,6 +1372,76 @@
     },
     {
       "source": "Graph_Generator.gen_graph_python",
+      "target": "pathlib.Path",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "__future__.annotations",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "argparse",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "fnmatch",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "hashlib",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "json",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "sys",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "time",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "dataclasses.dataclass",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "dataclasses.field",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "dataclasses.asdict",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
+      "target": "datetime.timezone",
+      "kind": "imports"
+    },
+    {
+      "source": "Graph_Generator.gen_graph_typescript",
       "target": "pathlib.Path",
       "kind": "imports"
     },

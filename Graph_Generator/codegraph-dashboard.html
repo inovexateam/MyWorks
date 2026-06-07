@@ -2,724 +2,657 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CodeGraph Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CodeGraph Dashboard — All Languages</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;800&display=swap');
-  :root {
-    --bg:#0d0f14; --surf:#13161e; --surf2:#1a1e28; --border:rgba(255,255,255,0.07);
-    --border2:rgba(255,255,255,0.13); --accent:#7c6af7; --teal:#4ecdc4; --amber:#f7a76c;
-    --red:#f76c6c; --green:#6cf7a0; --text:#e8eaf0; --text2:#8b90a0; --text3:#555a6a;
-    --mono:'JetBrains Mono',monospace; --display:'Syne',sans-serif;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--mono);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;800&display=swap');
+:root{
+  --bg:#0d0f14;--surf:#13161e;--surf2:#1a1e28;
+  --b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);
+  --accent:#7c6af7;--teal:#4ecdc4;--amber:#f7a76c;
+  --red:#f76c6c;--green:#6cf7a0;
+  --text:#e8eaf0;--text2:#8b90a0;--text3:#555a6a;
+  --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-  /* ── Top bar ── */
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--surf);border-bottom:1px solid var(--border);flex-shrink:0;gap:16px;flex-wrap:wrap}
-  .logo{font-family:var(--display);font-size:20px;font-weight:800;letter-spacing:-0.5px;display:flex;align-items:center;gap:8px}
-  .logo-dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
-  .logo span{color:var(--accent)}
-  .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .status-pill{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);display:flex;align-items:center;gap:6px}
-  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--text3)}
-  .status-dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
-  .load-btn{font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;transition:opacity .15s}
-  .load-btn:hover{opacity:.85}
-  .reload-btn{font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
-  .reload-btn:hover{background:var(--surf2);color:var(--text)}
-  #file-input{display:none}
-  .meta-text{font-size:10px;color:var(--text3)}
+/* ── Topbar ── */
+.top{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:var(--surf);border-bottom:1px solid var(--b);flex-shrink:0;gap:12px;flex-wrap:wrap}
+.logo{font-family:var(--display);font-size:19px;font-weight:800;display:flex;align-items:center;gap:8px}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.logo span{color:var(--accent)}
+.top-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gen-badge{font-size:10px;color:var(--text3);padding:3px 10px;border:1px solid var(--b);border-radius:20px}
 
-  /* ── Layout ── */
-  .body{display:grid;grid-template-columns:260px 1fr 300px;flex:1;overflow:hidden}
+/* ── Language tabs ── */
+.lang-bar{display:flex;background:var(--surf);border-bottom:1px solid var(--b);flex-shrink:0;overflow-x:auto}
+.lang-tab{display:flex;align-items:center;gap:8px;padding:10px 20px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.lang-tab:hover{color:var(--text)}
+.lang-tab.on{color:var(--text);border-bottom-color:var(--accent)}
+.lang-tab .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lang-stats{font-size:10px;color:var(--text3);margin-left:4px}
 
-  /* ── Sidebar ── */
-  .sidebar{background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-  .panel-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);flex-shrink:0}
-  .count-badge{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:1px 8px;font-size:10px;color:var(--text2)}
-  .search-wrap{padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
-  .search-input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 10px;outline:none;transition:border-color .15s}
-  .search-input:focus{border-color:rgba(124,106,247,.5)}
-  .search-input::placeholder{color:var(--text3)}
-  .kind-filters{display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
-  .kf{font-size:9px;padding:3px 8px;border-radius:12px;border:1px solid var(--border);color:var(--text3);cursor:pointer;transition:all .12s;background:transparent;font-family:var(--mono)}
-  .kf.active{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.12)}
-  .node-list{flex:1;overflow-y:auto;padding:6px}
-  .node-list::-webkit-scrollbar{width:3px}
-  .node-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-  .node-item{padding:8px 10px;border-radius:7px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
-  .node-item:hover{background:var(--surf2);border-color:var(--border)}
-  .node-item.active{background:var(--surf2);border-color:rgba(124,106,247,.4)}
-  .node-item.hl{border-color:rgba(124,106,247,.5);background:rgba(124,106,247,.07)}
-  .ni-top{display:flex;align-items:center;gap:6px;margin-bottom:2px}
-  .ni-name{font-size:11px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .kbadge{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0;letter-spacing:.3px}
-  .ni-file{font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ni-sum{font-size:10px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ── Body layout ── */
+.body{display:grid;grid-template-columns:256px 1fr 292px;flex:1;overflow:hidden;min-height:0}
 
-  /* Kind badge colours */
-  .kb-controller{background:rgba(247,108,108,.2);color:#f76c6c}
-  .kb-service{background:rgba(124,106,247,.2);color:#7c6af7}
-  .kb-repository,.kb-repository_interface{background:rgba(78,205,196,.2);color:#4ecdc4}
-  .kb-dbcontext{background:rgba(78,205,196,.15);color:#4ecdc4}
-  .kb-middleware,.kb-filter,.kb-component{background:rgba(247,167,108,.2);color:#f7a76c}
-  .kb-interface,.kb-service_interface{background:rgba(108,247,160,.2);color:#6cf7a0}
-  .kb-model,.kb-entity,.kb-enum{background:rgba(255,255,255,.1);color:var(--text2)}
-  .kb-config{background:rgba(247,167,108,.15);color:#f7a76c}
-  .kb-action{background:rgba(247,108,108,.1);color:#f76c6c}
-  .kb-class,.kb-advice,.kb-handler{background:rgba(255,255,255,.07);color:var(--text3)}
+/* ── Sidebar ── */
+.sidebar{background:var(--surf);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.ph{padding:10px 13px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);flex-shrink:0}
+.cb{background:var(--surf2);border:1px solid var(--b);border-radius:10px;padding:1px 8px;font-size:10px;color:var(--text2)}
+.search{padding:7px 10px;border-bottom:1px solid var(--b);flex-shrink:0}
+.si{width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 10px;outline:none;transition:border-color .15s}
+.si:focus{border-color:rgba(124,106,247,.5)}
+.si::placeholder{color:var(--text3)}
+.kf-wrap{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border-bottom:1px solid var(--b);flex-shrink:0}
+.kf{font-size:9px;padding:2px 8px;border-radius:12px;border:1px solid var(--b);color:var(--text3);cursor:pointer;transition:all .12s;background:transparent;font-family:var(--mono)}
+.kf.on{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.1)}
+.nl{flex:1;overflow-y:auto;padding:5px}
+.nl::-webkit-scrollbar{width:3px}
+.nl::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.ni{padding:7px 9px;border-radius:7px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
+.ni:hover{background:var(--surf2);border-color:var(--b)}
+.ni.on{background:var(--surf2);border-color:rgba(124,106,247,.4)}
+.ni-top{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.ni-name{font-size:11px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0}
+.ni-file{font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ni-sum{font-size:10px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.leg{display:flex;flex-wrap:wrap;gap:6px;padding:7px 10px;border-top:1px solid var(--b);flex-shrink:0}
+.li{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text2)}
+.ld{width:6px;height:6px;border-radius:50%}
 
-  /* ── Canvas ── */
-  .canvas-wrap{position:relative;overflow:hidden;background:var(--bg)}
-  #canvas{position:absolute;top:0;left:0;width:100%;height:100%}
-  .canvas-hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text3);pointer-events:none;letter-spacing:.4px}
-  .canvas-btns{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:var(--surf);border:1px solid var(--border2);border-radius:10px;padding:6px 10px}
-  .cb{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s}
-  .cb:hover{background:var(--surf2);color:var(--text)}
-  .cb.on{background:rgba(124,106,247,.2);border-color:var(--accent);color:var(--accent)}
+/* ── Canvas ── */
+.cv-wrap{position:relative;overflow:hidden;background:var(--bg)}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.cv-hint{position:absolute;top:11px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text3);pointer-events:none}
+.cv-btns{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;background:var(--surf);border:1px solid var(--b2);border-radius:10px;padding:5px 9px}
+.btn{font-family:var(--mono);font-size:10px;padding:4px 11px;border-radius:5px;border:1px solid var(--b);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s}
+.btn:hover{background:var(--surf2);color:var(--text)}
+.btn.on{background:rgba(124,106,247,.2);border-color:var(--accent);color:var(--accent)}
 
-  /* ── Inspector ── */
-  .inspector{background:var(--surf);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-  .ins-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
-  .itab{flex:1;padding:11px 6px;background:transparent;border:none;color:var(--text2);font-family:var(--mono);font-size:10px;letter-spacing:.5px;cursor:pointer;border-bottom:2px solid transparent;transition:all .12s}
-  .itab.on{color:var(--accent);border-bottom-color:var(--accent)}
-  .itab:hover{color:var(--text)}
-  .tab-content{display:none;flex:1;overflow-y:auto;flex-direction:column}
-  .tab-content.on{display:flex}
-  .tab-content::-webkit-scrollbar{width:3px}
-  .tab-content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-  .ds{padding:12px 14px;border-bottom:1px solid var(--border)}
-  .dl{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
-  .dv{font-size:12px;color:var(--text)}
-  .dv.ac{color:var(--accent)}
-  .dv.tl{color:var(--teal);font-size:11px}
-  .conn-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:11px;transition:background .1s;margin-bottom:2px}
-  .conn-item:hover{background:var(--surf2)}
-  .conn-kind{font-size:9px;color:var(--text3);margin-left:auto;flex-shrink:0}
+/* ── Inspector ── */
+.ins{background:var(--surf);border-left:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.itabs{display:flex;border-bottom:1px solid var(--b);flex-shrink:0}
+.itab{flex:1;padding:10px 5px;background:transparent;border:none;color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer;border-bottom:2px solid transparent;transition:all .12s}
+.itab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tc{display:none;flex:1;overflow-y:auto;flex-direction:column;min-height:0}
+.tc.on{display:flex}
+.tc::-webkit-scrollbar{width:3px}
+.tc::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.ds{padding:10px 13px;border-bottom:1px solid var(--b)}
+.dl{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.dv{font-size:12px;color:var(--text)}
+.dv.ac{color:var(--accent)}
+.dv.tl{color:var(--teal);font-size:11px}
+.ci{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:11px;transition:background .1s;margin-bottom:2px}
+.ci:hover{background:var(--surf2)}
+.ck{font-size:9px;color:var(--text3);margin-left:auto}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:8px;color:var(--text3);font-size:11px;text-align:center;flex:1}
+.ei{font-size:32px;opacity:.35}
 
-  /* Stats tab */
-  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px}
-  .stat-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
-  .stat-val{font-size:22px;font-weight:700}
-  .stat-lbl{font-size:10px;color:var(--text2);margin-top:2px}
+/* stats */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px}
+.sc{background:var(--bg);border:1px solid var(--b);border-radius:7px;padding:9px 11px}
+.sv{font-size:20px;font-weight:700}.sl{font-size:10px;color:var(--text2);margin-top:2px}
 
-  /* Token tab */
-  .tok-section{padding:12px 14px}
-  .tok-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-  .tok-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px}
-  .tok-card.bad{border-color:rgba(247,108,108,.3)}
-  .tok-card.good{border-color:rgba(108,247,160,.3)}
-  .tok-lbl{font-size:9px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
-  .tok-card.bad .tok-lbl{color:var(--red)}
-  .tok-card.good .tok-lbl{color:var(--green)}
-  .tok-num{font-size:22px;font-weight:700}
-  .tok-card.bad .tok-num{color:var(--red)}
-  .tok-card.good .tok-num{color:var(--green)}
-  .tok-unit{font-size:10px;color:var(--text2)}
-  .bar-wrap{margin-bottom:8px}
-  .bar-row{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:4px}
-  .bar-track{height:6px;background:var(--surf2);border-radius:3px;overflow:hidden}
-  .bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .5s cubic-bezier(.4,0,.2,1)}
+/* tokens */
+.ts{padding:11px 13px}
+.tc2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
+.tk{background:var(--bg);border:1px solid var(--b);border-radius:7px;padding:9px}
+.tk.bad{border-color:rgba(247,108,108,.3)}.tk.good{border-color:rgba(108,247,160,.3)}
+.tkl{font-size:9px;letter-spacing:.7px;text-transform:uppercase;margin-bottom:3px}
+.tk.bad .tkl{color:var(--red)}.tk.good .tkl{color:var(--green)}
+.tkn{font-size:20px;font-weight:700}
+.tk.bad .tkn{color:var(--red)}.tk.good .tkn{color:var(--green)}
+.tku{font-size:10px;color:var(--text2)}
+.bw{margin-bottom:7px}
+.br{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:3px}
+.bt{height:5px;background:var(--surf2);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .5s cubic-bezier(.4,0,.2,1)}
 
-  /* JSON tab */
-  .json-wrap{padding:10px 12px;flex:1;overflow-y:auto}
-  pre.json-out{font-family:var(--mono);font-size:10px;line-height:1.65;color:var(--text2);white-space:pre-wrap;word-break:break-all}
-  .jk{color:var(--accent)} .jv{color:var(--teal)} .jn{color:var(--amber)}
+/* benefit tab */
+.benefit-section{padding:13px}
+.benefit-card{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:11px 13px;margin-bottom:8px}
+.benefit-title{font-size:11px;font-weight:700;color:var(--text);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.benefit-body{font-size:11px;color:var(--text2);line-height:1.65}
+.benefit-num{font-size:18px;font-weight:700;color:var(--green);display:block;margin-top:4px}
 
-  /* Empty + loading states */
-  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;color:var(--text3);font-size:11px;text-align:center;flex:1}
-  .empty-icon{font-size:36px;opacity:.35}
+/* json */
+.jw{padding:9px 11px;flex:1;overflow-y:auto}
+pre.jo{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--text2);white-space:pre-wrap;word-break:break-all}
+.jk{color:var(--accent)}.jv{color:var(--teal)}.jn{color:var(--amber)}
 
-  /* Drop overlay */
-  .drop-overlay{position:fixed;inset:0;background:rgba(13,15,20,.92);display:none;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:16px}
-  .drop-overlay.active{display:flex}
-  .drop-box{border:2px dashed var(--accent);border-radius:16px;padding:48px 64px;text-align:center;color:var(--accent);font-size:16px;font-weight:700}
-
-  /* Legend */
-  .legend{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;border-top:1px solid var(--border);flex-shrink:0}
-  .leg{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text2)}
-  .leg-dot{width:7px;height:7px;border-radius:50%}
+/* cmd box */
+.cmd-box{margin:0 13px 10px;background:var(--bg);border:1px solid var(--b);border-radius:7px;padding:9px 11px;font-size:11px;color:var(--teal)}
 </style>
 </head>
 <body>
 
-<!-- Drop overlay -->
-<div class="drop-overlay" id="drop-overlay">
-  <div class="drop-box">Drop codebase-graph.json here</div>
-  <div style="font-size:13px;color:var(--text2)">or click anywhere to dismiss</div>
-</div>
-
-<!-- Top bar -->
-<div class="topbar">
+<!-- Topbar -->
+<div class="top">
   <div class="logo"><div class="logo-dot"></div>Code<span>Graph</span></div>
-  <div class="topbar-right">
-    <div class="status-pill"><div class="status-dot" id="status-dot"></div><span id="status-text">No graph loaded</span></div>
-    <span class="meta-text" id="meta-hash"></span>
-    <span class="meta-text" id="meta-gen"></span>
-    <button class="reload-btn" onclick="autoLoad()" title="Try to auto-load codebase-graph.json from same folder">⟳ Auto-load</button>
-    <button class="load-btn" onclick="document.getElementById('file-input').click()">📂 Open JSON</button>
-    <input type="file" id="file-input" accept=".json" onchange="loadFromFile(event)"/>
+  <div class="top-right">
+    <span class="gen-badge" id="gen-badge">5 languages · real graphs embedded</span>
+    <span class="gen-badge" id="hash-badge"></span>
+    <button class="btn on" onclick="document.getElementById('fi').click()">📂 Load JSON</button>
+    <input type="file" id="fi" accept=".json" style="display:none" onchange="loadFile(event)"/>
   </div>
 </div>
+
+<!-- Language tabs -->
+<div class="lang-bar" id="lang-bar"></div>
 
 <!-- Body -->
 <div class="body">
-
-  <!-- Left sidebar -->
   <div class="sidebar">
-    <div class="panel-head">Nodes <span class="count-badge" id="node-count">0</span></div>
-    <div class="search-wrap">
-      <input class="search-input" id="search" placeholder="Search name, file, tag…" oninput="filterNodes()"/>
-    </div>
-    <div class="kind-filters" id="kind-filters"></div>
-    <div class="node-list" id="node-list">
-      <div class="empty"><div class="empty-icon">◎</div><div>Load a codebase-graph.json<br/>to see your nodes</div></div>
-    </div>
-    <div class="legend" id="legend"></div>
+    <div class="ph">Nodes <span class="cb" id="nc">0</span></div>
+    <div class="search"><input class="si" id="srch" placeholder="Search name, file, tag…" oninput="filterNodes()"/></div>
+    <div class="kf-wrap" id="kfw"></div>
+    <div class="nl" id="nl"></div>
+    <div class="leg" id="leg"></div>
   </div>
 
-  <!-- Canvas -->
-  <div class="canvas-wrap">
-    <canvas id="canvas"></canvas>
-    <div class="canvas-hint" id="canvas-hint">Load codebase-graph.json to visualise your codebase</div>
-    <div class="canvas-btns">
-      <button class="cb on" id="btn-select" onclick="setMode('select')">✦ Select</button>
-      <button class="cb" id="btn-pan" onclick="setMode('pan')">✥ Pan</button>
-      <button class="cb" onclick="resetView()">⟳ Reset</button>
-      <button class="cb" onclick="reLayout()">⊞ Layout</button>
+  <div class="cv-wrap">
+    <canvas id="cv"></canvas>
+    <div class="cv-hint" id="cv-hint">Select a language tab above to explore its graph</div>
+    <div class="cv-btns">
+      <button class="btn on" id="bsel" onclick="setMode('select')">✦ Select</button>
+      <button class="btn" id="bpan" onclick="setMode('pan')">✥ Pan</button>
+      <button class="btn" onclick="resetView()">⟳ Reset</button>
+      <button class="btn" onclick="reLayout()">⊞ Layout</button>
     </div>
   </div>
 
-  <!-- Inspector -->
-  <div class="inspector">
-    <div class="ins-tabs">
+  <div class="ins">
+    <div class="itabs">
       <button class="itab on" onclick="switchTab('inspect')">Inspect</button>
       <button class="itab" onclick="switchTab('tokens')">Tokens</button>
       <button class="itab" onclick="switchTab('stats')">Stats</button>
+      <button class="itab" onclick="switchTab('benefit')">Value</button>
       <button class="itab" onclick="switchTab('json')">JSON</button>
     </div>
-    <div class="tab-content on" id="tab-inspect">
-      <div class="empty" id="inspect-empty"><div class="empty-icon">◎</div><div>Click any node to inspect it</div></div>
-      <div id="inspect-detail" style="display:none;flex-direction:column;width:100%"></div>
+    <div class="tc on" id="tab-inspect">
+      <div class="empty" id="ie"><div class="ei">◎</div><div>Click any node to inspect</div></div>
+      <div id="id2" style="display:none;flex-direction:column;width:100%"></div>
     </div>
-    <div class="tab-content" id="tab-tokens">
-      <div class="empty" id="tok-empty"><div class="empty-icon">⬡</div><div>Load a graph to see<br/>token savings estimate</div></div>
-      <div id="tok-detail" style="display:none;width:100%"></div>
+    <div class="tc" id="tab-tokens">
+      <div class="empty" id="te"><div class="ei">⬡</div><div>Select a language to see token savings</div></div>
+      <div id="td" style="display:none;width:100%"></div>
     </div>
-    <div class="tab-content" id="tab-stats">
-      <div class="empty" id="stats-empty"><div class="empty-icon">◈</div><div>Load a graph to see stats</div></div>
-      <div id="stats-detail" style="display:none;width:100%"></div>
+    <div class="tc" id="tab-stats">
+      <div class="empty" id="se"><div class="ei">◈</div><div>Select a language to see stats</div></div>
+      <div id="sd" style="display:none;width:100%"></div>
     </div>
-    <div class="tab-content" id="tab-json">
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
-        <div class="dl" style="margin-bottom:2px">codebase-graph.json</div>
-        <div style="font-size:10px;color:var(--text3)" id="json-meta">—</div>
+    <div class="tc" id="tab-benefit">
+      <div class="benefit-section" id="bd">
+        <div class="benefit-card">
+          <div class="benefit-title">⚡ Faster Copilot answers</div>
+          <div class="benefit-body">Copilot reads the graph index first, walks 2 hops, loads only 5–12 relevant files instead of your entire repo. Answers arrive faster with less hallucination.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-title">💰 Lower token costs</div>
+          <div class="benefit-body">Each query saves 80–95% of tokens. 30 queries/day × 10 devs × 250 workdays:
+            <span class="benefit-num" id="annual-saving">calculating…</span>
+          </div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-title">🗺 Living architecture map</div>
+          <div class="benefit-body">The graph auto-regenerates on every git push via CI. It's always in sync — a live diagram of your codebase that anyone can open in a browser.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-title">🚀 Zero onboarding friction</div>
+          <div class="benefit-body">New developers load the dashboard, click any node, and instantly see what it does, what it depends on, and where it lives in the repo — before reading a single line of code.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-title">🔗 Works across all your stacks</div>
+          <div class="benefit-body">Same JSON format and dashboard for .NET, Java, Python, Angular, and TypeScript. One standard across all org repos.</div>
+        </div>
       </div>
-      <div class="json-wrap"><pre class="json-out" id="json-out">// Load a graph to view its raw JSON</pre></div>
+    </div>
+    <div class="tc" id="tab-json">
+      <div style="padding:9px 13px;border-bottom:1px solid var(--b);flex-shrink:0">
+        <div class="dl" style="margin-bottom:2px">codebase-graph.json</div>
+        <div style="font-size:10px;color:var(--text3)" id="jmeta">Select a language</div>
+      </div>
+      <div class="jw"><pre class="jo" id="jo">// Select a language tab to view its graph JSON</pre></div>
     </div>
   </div>
-
 </div>
 
 <script>
-// ═══════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════
-let GRAPH = null;
-let nodes = {};       // id → {x,y,vx,vy,...data}
-let edges = [];
-let selectedId = null;
-let queryHighlight = new Set();
-let activeKindFilter = null;
-let mode = 'select';
-let canvas, ctx;
-let viewX=0, viewY=0, viewScale=1;
-let dragging=null, dragOX=0, dragOY=0;
-let isPanning=false, panSX=0, panSY=0;
-let raf;
+// ══════════════════════════════════════════════
+// EMBEDDED REAL GRAPHS (generated from sample projects)
+// ══════════════════════════════════════════════
+const ALL_GRAPHS = {"dotnet":{"version":"1.0","generated":"2026-06-07T17:49:58.199033+00:00","generator":"gen_graph.py","language":"csharp","hash":"2473ffc848ded2b0","stats":{"total_files":9,"total_nodes":19,"total_edges":30,"controllers":2,"services":10,"repositories":0,"models":0,"interfaces":5,"middlewares":1,"dbcontexts":1},"nodes":[{"id":"SampleApp.Controllers.AuthController","kind":"controller","name":"AuthController","file":"Controllers/AuthController.cs","lines":[8,44],"namespace":"SampleApp.Controllers","summary":"","visibility":"public","tags":["controller","web","sampleapp","controllers"],"base_types":["ControllerBase"]},{"id":"SampleApp.Controllers.AuthController.Login","kind":"action","name":"Login","file":"Controllers/AuthController.cs","lines":[20,30],"namespace":"SampleApp.Controllers","summary":"Authenticates user and returns JWT token pair</summary>","visibility":"public","tags":["action","async","api-endpoint","sampleapp","controllers"],"is_async":true,"attributes":["HttpPost"],"return_type":"Task<IActionResult>","parameters":[{"type":"LoginRequest","name":"request"}]},{"id":"SampleApp.Controllers.AuthController.Logout","kind":"action","name":"Logout","file":"Controllers/AuthController.cs","lines":[36,46],"namespace":"SampleApp.Controllers","summary":"","visibility":"public","tags":["action","async","api-endpoint","sampleapp","controllers"],"is_async":true,"attributes":["HttpDelete"],"return_type":"Task<IActionResult>"},{"id":"SampleApp.Controllers.AuthController.Refresh","kind":"action","name":"Refresh","file":"Controllers/AuthController.cs","lines":[30,40],"namespace":"SampleApp.Controllers","summary":"Refreshes access token using refresh token</summary>","visibility":"public","tags":["action","async","api-endpoint","sampleapp","controllers"],"is_async":true,"attributes":["HttpPost"],"return_type":"Task<IActionResult>","parameters":[{"type":"RefreshRequest","name":"request"}]},{"id":"SampleApp.Controllers.OrdersController","kind":"controller","name":"OrdersController","file":"Controllers/OrdersController.cs","lines":[9,44],"namespace":"SampleApp.Controllers","summary":"","visibility":"public","tags":["controller","authorized","web","sampleapp","controllers"],"base_types":["ControllerBase"],"attributes":["Authorize"]},{"id":"SampleApp.Controllers.OrdersController.CancelOrder","kind":"action","name":"CancelOrder","file":"Controllers/OrdersController.cs","lines":[36,46],"namespace":"SampleApp.Controllers","summary":"","visibility":"public","tags":["action","async","api-endpoint","sampleapp","controllers"],"is_async":true,"attributes":["HttpPatch"],"return_type":"Task<IActionResult>","parameters":[{"type":"Guid","name":"id"}]},{"id":"SampleApp.Controllers.OrdersController.GetOrder","kind":"action","name":"GetOrder","file":"Controllers/OrdersController.cs","lines":[29,39],"namespace":"SampleApp.Controllers","summary":"","visibility":"public","tags":["action","async","api-endpoint","sampleapp","controllers"],"is_async":true,"attributes":["HttpGet"],"return_type":"Task<IActionResult>","parameters":[{"type":"Guid","name":"id"}]},{"id":"SampleApp.Data.AppDbContext","kind":"dbcontext","name":"AppDbContext","file":"Data/AppDbContext.cs","lines":[6,23],"namespace":"SampleApp.Data","summary":"EF Core DbContext. Configures entity mappings, indexes, and cascade rules.</summary>","visibility":"public","tags":["dbcontext","database","sampleapp","data"],"base_types":["DbContext"]},{"id":"SampleApp.Middleware.JwtMiddleware","kind":"middleware","name":"JwtMiddleware","file":"Middleware/JwtMiddleware.cs","lines":[6,27],"namespace":"SampleApp.Middleware","summary":"Validates JWT on every request, attaches ClaimsPrincipal to HttpContext</summary>","visibility":"public","tags":["middleware","pipeline","sampleapp"]},{"id":"SampleApp.Services.AuthService","kind":"service","name":"AuthService","file":"Services/AuthService.cs","lines":[15,50],"namespace":"SampleApp.Services","summary":"Handles JWT generation, refresh, and revocation. Stores refresh tokens in Redis.</summary>","visibility":"public","tags":["service","business-logic","sampleapp","services"],"interfaces":["IAuthService"]},{"id":"SampleApp.Services.IAuthService","kind":"service_interface","name":"IAuthService","file":"Services/AuthService.cs","lines":[7,13],"namespace":"SampleApp.Services","summary":"","visibility":"public","tags":["service_interface","business-logic","sampleapp","services"]},{"id":"SampleApp.Services.IInventoryService","kind":"service_interface","name":"IInventoryService","file":"Services/InventoryService.cs","lines":[5,11],"namespace":"SampleApp.Services","summary":"","visibility":"public","tags":["service_interface","business-logic","sampleapp","services"]},{"id":"SampleApp.Services.IOrderService","kind":"service_interface","name":"IOrderService","file":"Services/OrderService.cs","lines":[5,11],"namespace":"SampleApp.Services","summary":"","visibility":"public","tags":["service_interface","business-logic","sampleapp","services"]},{"id":"SampleApp.Services.IPaymentService","kind":"service_interface","name":"IPaymentService","file":"Services/PaymentService.cs","lines":[6,11],"namespace":"SampleApp.Services","summary":"","visibility":"public","tags":["service_interface","business-logic","sampleapp","services"]},{"id":"SampleApp.Services.IUserService","kind":"service_interface","name":"IUserService","file":"Services/UserService.cs","lines":[6,13],"namespace":"SampleApp.Services","summary":"","visibility":"public","tags":["service_interface","business-logic","sampleapp","services"]},{"id":"SampleApp.Services.InventoryService","kind":"service","name":"InventoryService","file":"Services/InventoryService.cs","lines":[13,37],"namespace":"SampleApp.Services","summary":"Manages stock reservation and release during order lifecycle</summary>","visibility":"public","tags":["service","business-logic","sampleapp","services"],"interfaces":["IInventoryService"]},{"id":"SampleApp.Services.OrderService","kind":"service","name":"OrderService","file":"Services/OrderService.cs","lines":[13,41],"namespace":"SampleApp.Services","summary":"Order lifecycle: create, retrieve, cancel. Emits domain events on state changes.</summary>","visibility":"public","tags":["service","business-logic","sampleapp","services"],"interfaces":["IOrderService"]},{"id":"SampleApp.Services.PaymentService","kind":"service","name":"PaymentService","file":"Services/PaymentService.cs","lines":[13,43],"namespace":"SampleApp.Services","summary":"Stripe integration: charge, refund, webhook handling for 3DS flows</summary>","visibility":"public","tags":["service","business-logic","sampleapp","services"],"interfaces":["IPaymentService"]},{"id":"SampleApp.Services.UserService","kind":"service","name":"UserService","file":"Services/UserService.cs","lines":[15,45],"namespace":"SampleApp.Services","summary":"User lifecycle management: CRUD, profile updates, password hashing</summary>","visibility":"public","tags":["service","business-logic","sampleapp","services"],"interfaces":["IUserService"]}],"edges":[{"source":"SampleApp.Controllers.AuthController","target":"ControllerBase","kind":"inherits"},{"source":"SampleApp.Controllers.AuthController","target":"SampleApp.Services.IAuthService","kind":"injects","label":"authService"},{"source":"SampleApp.Controllers.AuthController","target":"SampleApp.Services.IUserService","kind":"injects","label":"userService"},{"source":"SampleApp.Controllers.AuthController","target":"SampleApp.Controllers.AuthController.Login","kind":"has_action","label":"HttpPost"},{"source":"SampleApp.Controllers.AuthController","target":"SampleApp.Controllers.AuthController.Refresh","kind":"has_action","label":"HttpPost"},{"source":"SampleApp.Controllers.AuthController","target":"SampleApp.Controllers.AuthController.Logout","kind":"has_action","label":"HttpDelete"},{"source":"SampleApp.Controllers.OrdersController","target":"ControllerBase","kind":"inherits"},{"source":"SampleApp.Controllers.OrdersController","target":"SampleApp.Services.IOrderService","kind":"injects","label":"orderService"},{"source":"SampleApp.Controllers.OrdersController","target":"SampleApp.Services.IPaymentService","kind":"injects","label":"paymentService"},{"source":"SampleApp.Controllers.OrdersController","target":"SampleApp.Controllers.OrdersController.GetOrder","kind":"has_action","label":"HttpGet"},{"source":"SampleApp.Controllers.OrdersController","target":"SampleApp.Controllers.OrdersController.CancelOrder","kind":"has_action","label":"HttpPatch"},{"source":"SampleApp.Data.AppDbContext","target":"DbContext","kind":"inherits"},{"source":"SampleApp.Data.AppDbContext","target":"SampleApp.Data.User","kind":"has_entity"},{"source":"SampleApp.Data.AppDbContext","target":"SampleApp.Data.Order","kind":"has_entity"},{"source":"SampleApp.Data.AppDbContext","target":"SampleApp.Data.OrderItem","kind":"has_entity"},{"source":"SampleApp.Data.AppDbContext","target":"SampleApp.Data.Payment","kind":"has_entity"},{"source":"SampleApp.Data.AppDbContext","target":"SampleApp.Data.RefreshToken","kind":"has_entity"},{"source":"SampleApp.Middleware.JwtMiddleware","target":"SampleApp.Services.IAuthService","kind":"injects","label":"authService"},{"source":"SampleApp.Services.AuthService","target":"SampleApp.Services.IAuthService","kind":"implements"},{"source":"SampleApp.Services.AuthService","target":"SampleApp.Services.ITokenRepository","kind":"injects","label":"tokenRepository"},{"source":"SampleApp.Services.AuthService","target":"SampleApp.Services.IDistributedCache","kind":"injects","label":"cache"},{"source":"SampleApp.Services.InventoryService","target":"SampleApp.Services.IInventoryService","kind":"implements"},{"source":"SampleApp.Services.InventoryService","target":"SampleApp.Services.IInventoryRepository","kind":"injects","label":"inventoryRepository"},{"source":"SampleApp.Services.OrderService","target":"SampleApp.Services.IOrderService","kind":"implements"},{"source":"SampleApp.Services.OrderService","target":"SampleApp.Services.IOrderRepository","kind":"injects","label":"orderRepository"},{"source":"SampleApp.Services.OrderService","target":"SampleApp.Services.IInventoryService","kind":"injects","label":"inventoryService"},{"source":"SampleApp.Services.PaymentService","target":"SampleApp.Services.IPaymentService","kind":"implements"},{"source":"SampleApp.Services.PaymentService","target":"SampleApp.Services.IPaymentRepository","kind":"injects","label":"paymentRepository"},{"source":"SampleApp.Services.UserService","target":"SampleApp.Services.IUserService","kind":"implements"},{"source":"SampleApp.Services.UserService","target":"SampleApp.Services.IUserRepository","kind":"injects","label":"userRepository"}]},"java":{"version":"1.0","generated":"2026-06-07T17:49:58.294744+00:00","generator":"gen_graph_java.py","language":"java","framework":"spring","hash":"933f21a9e3b412d6","stats":{"total_files":14,"total_nodes":20,"total_edges":25,"controllers":2,"services":4,"repositories":4,"entities":2,"components":1,"filters":0,"configs":1,"interfaces":0},"nodes":[{"id":"com.example.app.config.AppConfig","kind":"config","name":"AppConfig","file":"main/java/com/example/app/config/AppConfig.java","lines":[4,13],"package":"com.example.app.config","summary":"","visibility":"public","tags":["config","example"],"annotations":["Configuration"]},{"id":"com.example.app.controller.AuthController","kind":"controller","name":"AuthController","file":"main/java/com/example/app/controller/AuthController.java","lines":[5,31],"package":"com.example.app.controller","summary":"","visibility":"public","tags":["controller","web","api-endpoint","example"],"annotations":["RestController","RequestMapping"]},{"id":"com.example.app.controller.AuthController.login","kind":"action","name":"login","file":"main/java/com/example/app/controller/AuthController.java","lines":[11,19],"package":"com.example.app.controller","summary":"Authenticates user and returns JWT token pair.","visibility":"public","tags":["action","example","controller"],"annotations":["PostMapping"]},{"id":"com.example.app.controller.AuthController.logout","kind":"action","name":"logout","file":"main/java/com/example/app/controller/AuthController.java","lines":[21,29],"package":"com.example.app.controller","summary":"Refreshes access token using refresh token.","visibility":"public","tags":["action","example","controller"],"annotations":["DeleteMapping"]},{"id":"com.example.app.controller.AuthController.refresh","kind":"action","name":"refresh","file":"main/java/com/example/app/controller/AuthController.java","lines":[17,25],"package":"com.example.app.controller","summary":"Refreshes access token using refresh token.","visibility":"public","tags":["action","example","controller"],"annotations":["PostMapping"]},{"id":"com.example.app.controller.OrderController","kind":"controller","name":"OrderController","file":"main/java/com/example/app/controller/OrderController.java","lines":[9,31],"package":"com.example.app.controller","summary":"REST controller for order lifecycle management.","visibility":"public","tags":["controller","web","api-endpoint","example"]},{"id":"com.example.app.controller.OrderController.cancelOrder","kind":"action","name":"cancelOrder","file":"main/java/com/example/app/controller/OrderController.java","lines":[25,33],"package":"com.example.app.controller","summary":"Creates a new order and initiates payment.","visibility":"public","tags":["action","example","controller"],"annotations":["PatchMapping"]},{"id":"com.example.app.controller.OrderController.createOrder","kind":"action","name":"createOrder","file":"main/java/com/example/app/controller/OrderController.java","lines":[15,23],"package":"com.example.app.controller","summary":"Creates a new order and initiates payment.","visibility":"public","tags":["action","example","controller"],"annotations":["PostMapping"]},{"id":"com.example.app.controller.OrderController.getOrder","kind":"action","name":"getOrder","file":"main/java/com/example/app/controller/OrderController.java","lines":[21,29],"package":"com.example.app.controller","summary":"Creates a new order and initiates payment.","visibility":"public","tags":["action","example","controller"],"annotations":["GetMapping"]},{"id":"com.example.app.middleware.JwtFilter","kind":"component","name":"JwtFilter","file":"main/java/com/example/app/middleware/JwtFilter.java","lines":[6,20],"package":"com.example.app.middleware","summary":"","visibility":"public","tags":["component","example","middleware"],"interfaces":["Filter"],"annotations":["Component"]},{"id":"com.example.app.model.Order","kind":"entity","name":"Order","file":"main/java/com/example/app/model/Order.java","lines":[4,13],"package":"com.example.app.model","summary":"","visibility":"public","tags":["entity","database","jpa","example","model"],"annotations":["Entity","Table"]},{"id":"com.example.app.model.User","kind":"entity","name":"User","file":"main/java/com/example/app/model/User.java","lines":[3,11],"package":"com.example.app.model","summary":"","visibility":"public","tags":["entity","database","jpa","example","model"],"annotations":["Entity","Table"]},{"id":"com.example.app.repository.OrderRepository","kind":"repository","name":"OrderRepository","file":"main/java/com/example/app/repository/OrderRepository.java","lines":[4,6],"package":"com.example.app.repository","summary":"","visibility":"public","tags":["repository","data-access","example"],"is_abstract":true,"is_interface":true,"base_types":["JpaRepository","String>"],"annotations":["Repository"]},{"id":"com.example.app.repository.PaymentRepository","kind":"repository","name":"PaymentRepository","file":"main/java/com/example/app/repository/PaymentRepository.java","lines":[4,10],"package":"com.example.app.repository","summary":"","visibility":"public","tags":["repository","data-access","example"],"is_abstract":true,"is_interface":true,"base_types":["JpaRepository","String>"],"annotations":["Repository"]},{"id":"com.example.app.repository.TokenRepository","kind":"repository","name":"TokenRepository","file":"main/java/com/example/app/repository/TokenRepository.java","lines":[4,10],"package":"com.example.app.repository","summary":"","visibility":"public","tags":["repository","data-access","example"],"is_abstract":true,"is_interface":true,"base_types":["JpaRepository","String>"],"annotations":["Repository"]},{"id":"com.example.app.repository.UserRepository","kind":"repository","name":"UserRepository","file":"main/java/com/example/app/repository/UserRepository.java","lines":[5,9],"package":"com.example.app.repository","summary":"","visibility":"public","tags":["repository","data-access","example"],"is_abstract":true,"is_interface":true,"base_types":["JpaRepository","String>"],"annotations":["Repository"]},{"id":"com.example.app.service.AuthService","kind":"service","name":"AuthService","file":"main/java/com/example/app/service/AuthService.java","lines":[5,29],"package":"com.example.app.service","summary":"","visibility":"public","tags":["service","business-logic","example"],"annotations":["Service"]},{"id":"com.example.app.service.OrderService","kind":"service","name":"OrderService","file":"main/java/com/example/app/service/OrderService.java","lines":[4,22],"package":"com.example.app.service","summary":"","visibility":"public","tags":["service","business-logic","example"],"annotations":["Service"]},{"id":"com.example.app.service.PaymentService","kind":"service","name":"PaymentService","file":"main/java/com/example/app/service/PaymentService.java","lines":[4,14],"package":"com.example.app.service","summary":"","visibility":"public","tags":["service","business-logic","example"],"annotations":["Service"]},{"id":"com.example.app.service.UserService","kind":"service","name":"UserService","file":"main/java/com/example/app/service/UserService.java","lines":[4,15],"package":"com.example.app.service","summary":"","visibility":"public","tags":["service","business-logic","example"],"annotations":["Service"]}],"edges":[{"source":"com.example.app.controller.AuthController","target":"com.example.app.service.AuthService","kind":"injects","label":"authService"},{"source":"com.example.app.controller.AuthController","target":"com.example.app.service.UserService","kind":"injects","label":"userService"},{"source":"com.example.app.controller.AuthController","target":"com.example.app.controller.AuthController.login","kind":"has_mapping","label":"PostMapping"},{"source":"com.example.app.controller.AuthController","target":"com.example.app.controller.AuthController.refresh","kind":"has_mapping","label":"PostMapping"},{"source":"com.example.app.controller.AuthController","target":"com.example.app.controller.AuthController.logout","kind":"has_mapping","label":"DeleteMapping"},{"source":"com.example.app.controller.OrderController","target":"com.example.app.service.OrderService","kind":"injects","label":"orderService"},{"source":"com.example.app.controller.OrderController","target":"com.example.app.service.PaymentService","kind":"injects","label":"paymentService"},{"source":"com.example.app.controller.OrderController","target":"com.example.app.controller.OrderController.createOrder","kind":"has_mapping","label":"PostMapping"},{"source":"com.example.app.controller.OrderController","target":"com.example.app.controller.OrderController.getOrder","kind":"has_mapping","label":"GetMapping"},{"source":"com.example.app.controller.OrderController","target":"com.example.app.controller.OrderController.cancelOrder","kind":"has_mapping","label":"PatchMapping"},{"source":"com.example.app.middleware.JwtFilter","target":"com.example.app.service.AuthService","kind":"injects","label":"authService"},{"source":"com.example.app.repository.OrderRepository","target":"org.springframework.data.jpa.repository.JpaRepository","kind":"extends"},{"source":"com.example.app.repository.OrderRepository","target":"com.example.app.repository.String>","kind":"extends"},{"source":"com.example.app.repository.PaymentRepository","target":"org.springframework.data.jpa.repository.JpaRepository","kind":"extends"},{"source":"com.example.app.repository.PaymentRepository","target":"com.example.app.repository.String>","kind":"extends"},{"source":"com.example.app.repository.TokenRepository","target":"org.springframework.data.jpa.repository.JpaRepository","kind":"extends"},{"source":"com.example.app.repository.TokenRepository","target":"com.example.app.repository.String>","kind":"extends"},{"source":"com.example.app.repository.UserRepository","target":"org.springframework.data.jpa.repository.JpaRepository","kind":"extends"},{"source":"com.example.app.repository.UserRepository","target":"com.example.app.repository.String>","kind":"extends"},{"source":"com.example.app.service.AuthService","target":"com.example.app.repository.TokenRepository","kind":"injects","label":"tokenRepository"},{"source":"com.example.app.service.AuthService","target":"com.example.app.service.String>","kind":"injects","label":"redisTemplate"},{"source":"com.example.app.service.OrderService","target":"com.example.app.repository.OrderRepository","kind":"injects","label":"orderRepository"},{"source":"com.example.app.service.OrderService","target":"com.example.app.service.InventoryService","kind":"injects","label":"inventoryService"},{"source":"com.example.app.service.PaymentService","target":"com.example.app.repository.PaymentRepository","kind":"injects","label":"paymentRepository"},{"source":"com.example.app.service.UserService","target":"com.example.app.repository.UserRepository","kind":"injects","label":"userRepository"}]},"python":{"version":"1.0","generated":"2026-06-07T17:49:57.975442+00:00","generator":"gen_graph_python.py","language":"python","hash":"da9a9dcca0148564","stats":{"total_files":19,"total_nodes":66,"total_edges":68,"routers":0,"services":5,"repositories":5,"models":13,"middleware":2,"tasks":0,"dependencies":0,"views":0},"nodes":[{"id":"middleware.auth_middleware.AuthMiddleware","kind":"middleware","name":"AuthMiddleware","file":"middleware/auth_middleware.py","lines":[4,11],"module":"middleware.auth_middleware","summary":"Validates JWT on every request and attaches decoded user to request state.","tags":["middleware","auth","auth_middleware"],"base_classes":["BaseHTTPMiddleware"]},{"id":"middleware.auth_middleware.AuthMiddleware.dispatch","kind":"function","name":"dispatch","file":"middleware/auth_middleware.py","lines":[7,11],"module":"middleware.auth_middleware","summary":"","tags":["function","async","auth","middleware","auth_middleware"],"is_async":true,"parameters":[{"name":"request","type":"Request"},{"name":"call_next","type":""}]},{"id":"middleware.logging_middleware.LoggingMiddleware","kind":"middleware","name":"LoggingMiddleware","file":"middleware/logging_middleware.py","lines":[5,13],"module":"middleware.logging_middleware","summary":"Logs request method, path, status code and response time for every request.","tags":["middleware","logging_middleware"],"base_classes":["BaseHTTPMiddleware"]},{"id":"middleware.logging_middleware.LoggingMiddleware.dispatch","kind":"function","name":"dispatch","file":"middleware/logging_middleware.py","lines":[8,13],"module":"middleware.logging_middleware","summary":"","tags":["function","async","middleware","logging_middleware"],"is_async":true,"parameters":[{"name":"request","type":"Request"},{"name":"call_next","type":""}]},{"id":"models.order.CreateOrderRequest","kind":"model","name":"CreateOrderRequest","file":"models/order.py","lines":[17,20],"module":"models.order","summary":"Order creation payload with items and payment method.","tags":["model","orders","models","order"],"base_classes":["BaseModel"]},{"id":"models.order.Order","kind":"model","name":"Order","file":"models/order.py","lines":[10,15],"module":"models.order","summary":"Order entity with status tracking and item collection.","tags":["model","orders","models","order"],"base_classes":["BaseModel"]},{"id":"models.order.OrderItem","kind":"model","name":"OrderItem","file":"models/order.py","lines":[4,8],"module":"models.order","summary":"Single line item with product reference and quantity.","tags":["model","orders","models","order"],"base_classes":["BaseModel"]},{"id":"models.schemas.CreateOrderRequest","kind":"model","name":"CreateOrderRequest","file":"models/schemas.py","lines":[31,34],"module":"models.schemas","summary":"Order creation payload with payment method.","tags":["model","orders","models","schemas"],"base_classes":["BaseModel"]},{"id":"models.schemas.CreateUserRequest","kind":"model","name":"CreateUserRequest","file":"models/schemas.py","lines":[19,22],"module":"models.schemas","summary":"User registration payload.","tags":["model","user","models","schemas"],"base_classes":["BaseModel"]},{"id":"models.schemas.LoginRequest","kind":"model","name":"LoginRequest","file":"models/schemas.py","lines":[14,17],"module":"models.schemas","summary":"Login credentials payload.","tags":["model","models","schemas"],"base_classes":["BaseModel"]},{"id":"models.schemas.Order","kind":"model","name":"Order","file":"models/schemas.py","lines":[24,29],"module":"models.schemas","summary":"Order entity with status tracking and item list.","tags":["model","orders","models","schemas"],"base_classes":["BaseModel"]},{"id":"models.schemas.OrderResponse","kind":"model","name":"OrderResponse","file":"models/schemas.py","lines":[36,40],"module":"models.schemas","summary":"Order response DTO returned by the API.","tags":["model","orders","models","schemas"],"base_classes":["BaseModel"]},{"id":"models.schemas.TokenPair","kind":"model","name":"TokenPair","file":"models/schemas.py","lines":[9,12],"module":"models.schemas","summary":"JWT access and refresh token pair returned after login.","tags":["model","models","schemas"],"base_classes":["BaseModel"]},{"id":"models.schemas.User","kind":"model","name":"User","file":"models/schemas.py","lines":[4,7],"module":"models.schemas","summary":"User entity with email and hashed password.","tags":["model","user","models","schemas"],"base_classes":["BaseModel"]},{"id":"models.user.CreateUserRequest","kind":"model","name":"CreateUserRequest","file":"models/user.py","lines":[10,13],"module":"models.user","summary":"User registration payload.","tags":["model","user","models"],"base_classes":["BaseModel"]},{"id":"models.user.LoginRequest","kind":"model","name":"LoginRequest","file":"models/user.py","lines":[15,18],"module":"models.user","summary":"Login credentials payload.","tags":["model","user","models"],"base_classes":["BaseModel"]},{"id":"models.user.User","kind":"model","name":"User","file":"models/user.py","lines":[4,8],"module":"models.user","summary":"User entity with unique email and bcrypt password hash.","tags":["model","user","models"],"base_classes":["BaseModel"]},{"id":"repositories.inventory_repository.InventoryRepository","kind":"repository","name":"InventoryRepository","file":"repositories/inventory_repository.py","lines":[1,11],"module":"repositories.inventory_repository","summary":"SQLAlchemy async repository for product inventory with atomic stock updates.","tags":["repository","repositories","inventory_repository"]},{"id":"repositories.inventory_repository.InventoryRepository.decrement","kind":"function","name":"decrement","file":"repositories/inventory_repository.py","lines":[4,5],"module":"repositories.inventory_repository","summary":"","tags":["function","async","repositories","inventory_repository"],"is_async":true,"parameters":[{"name":"product_id","type":"str"},{"name":"qty","type":"int"}]},{"id":"repositories.inventory_repository.InventoryRepository.get_stock","kind":"query","name":"get_stock","file":"repositories/inventory_repository.py","lines":[10,11],"module":"repositories.inventory_repository","summary":"","tags":["query","async","repositories","inventory_repository"],"is_async":true,"parameters":[{"name":"product_id","type":"str"}],"return_type":"int"},{"id":"repositories.inventory_repository.InventoryRepository.increment","kind":"function","name":"increment","file":"repositories/inventory_repository.py","lines":[7,8],"module":"repositories.inventory_repository","summary":"","tags":["function","async","repositories","inventory_repository"],"is_async":true,"parameters":[{"name":"product_id","type":"str"},{"name":"qty","type":"int"}]},{"id":"repositories.order_repository.OrderRepository","kind":"repository","name":"OrderRepository","file":"repositories/order_repository.py","lines":[1,11],"module":"repositories.order_repository","summary":"SQLAlchemy async repository for Order entity with status-based queries.","tags":["repository","orders","repositories","order_repository"]},{"id":"repositories.order_repository.OrderRepository.find_by_id","kind":"query","name":"find_by_id","file":"repositories/order_repository.py","lines":[7,8],"module":"repositories.order_repository","summary":"","tags":["query","async","orders","repositories","order_repository"],"is_async":true,"parameters":[{"name":"order_id","type":"str"}],"return_type":"dict"},{"id":"repositories.order_repository.OrderRepository.insert","kind":"function","name":"insert","file":"repositories/order_repository.py","lines":[4,5],"module":"repositories.order_repository","summary":"","tags":["function","async","orders","repositories","order_repository"],"is_async":true,"parameters":[{"name":"order","type":"dict"}],"return_type":"dict"},{"id":"repositories.order_repository.OrderRepository.update_status","kind":"function","name":"update_status","file":"repositories/order_repository.py","lines":[10,11],"module":"repositories.order_repository","summary":"","tags":["function","async","orders","repositories","order_repository"],"is_async":true,"parameters":[{"name":"order_id","type":"str"},{"name":"status","type":"str"}]},{"id":"repositories.payment_repository.PaymentRepository","kind":"repository","name":"PaymentRepository","file":"repositories/payment_repository.py","lines":[1,11],"module":"repositories.payment_repository","summary":"SQLAlchemy async repository for Payment records. Stripe ID uniquely indexed.","tags":["repository","payments","repositories","payment_repository"]},{"id":"repositories.payment_repository.PaymentRepository.find_by_order","kind":"query","name":"find_by_order","file":"repositories/payment_repository.py","lines":[7,8],"module":"repositories.payment_repository","summary":"","tags":["query","async","orders","payments","repositories","payment_repository"],"is_async":true,"parameters":[{"name":"order_id","type":"str"}],"return_type":"dict"},{"id":"repositories.payment_repository.PaymentRepository.mark_refunded","kind":"function","name":"mark_refunded","file":"repositories/payment_repository.py","lines":[10,11],"module":"repositories.payment_repository","summary":"","tags":["function","async","payments","repositories","payment_repository"],"is_async":true,"parameters":[{"name":"order_id","type":"str"}],"return_type":"dict"},{"id":"repositories.payment_repository.PaymentRepository.record","kind":"function","name":"record","file":"repositories/payment_repository.py","lines":[4,5],"module":"repositories.payment_repository","summary":"","tags":["function","async","payments","repositories","payment_repository"],"is_async":true,"parameters":[{"name":"order_id","type":"str"},{"name":"stripe_id","type":"str"}],"return_type":"dict"},{"id":"repositories.token_repository.TokenRepository","kind":"repository","name":"TokenRepository","file":"repositories/token_repository.py","lines":[1,11],"module":"repositories.token_repository","summary":"Manages refresh token persistence, validation, and bulk revocation.","tags":["repository","repositories","token_repository"]},{"id":"repositories.token_repository.TokenRepository.create_refresh_token","kind":"command","name":"create_refresh_token","file":"repositories/token_repository.py","lines":[4,5],"module":"repositories.token_repository","summary":"","tags":["command","async","repositories","token_repository"],"is_async":true,"parameters":[{"name":"user_id","type":"str"}],"return_type":"str"},{"id":"repositories.token_repository.TokenRepository.revoke_all","kind":"function","name":"revoke_all","file":"repositories/token_repository.py","lines":[10,11],"module":"repositories.token_repository","summary":"","tags":["function","async","repositories","token_repository"],"is_async":true,"parameters":[{"name":"user_id","type":"str"}]},{"id":"repositories.token_repository.TokenRepository.validate","kind":"function","name":"validate","file":"repositories/token_repository.py","lines":[7,8],"module":"repositories.token_repository","summary":"","tags":["function","async","repositories","token_repository"],"is_async":true,"parameters":[{"name":"token","type":"str"}],"return_type":"dict"},{"id":"repositories.user_repository.UserRepository","kind":"repository","name":"UserRepository","file":"repositories/user_repository.py","lines":[1,11],"module":"repositories.user_repository","summary":"SQLAlchemy async repository for User entity with unique email index.","tags":["repository","user","repositories","user_repository"]},{"id":"repositories.user_repository.UserRepository.find_by_email","kind":"query","name":"find_by_email","file":"repositories/user_repository.py","lines":[4,5],"module":"repositories.user_repository","summary":"","tags":["query","async","user","repositories","user_repository"],"is_async":true,"parameters":[{"name":"email","type":"str"}]},{"id":"repositories.user_repository.UserRepository.insert","kind":"function","name":"insert","file":"repositories/user_repository.py","lines":[7,8],"module":"repositories.user_repository","summary":"","tags":["function","async","user","repositories","user_repository"],"is_async":true,"parameters":[{"name":"user","type":"dict"}],"return_type":"dict"},{"id":"repositories.user_repository.UserRepository.update","kind":"function","name":"update","file":"repositories/user_repository.py","lines":[10,11],"module":"repositories.user_repository","summary":"","tags":["function","async","user","repositories","user_repository"],"is_async":true,"parameters":[{"name":"user_id","type":"str"},{"name":"data","type":"dict"}],"return_type":"dict"},{"id":"routers.auth.login","kind":"route","name":"login","file":"routers/auth.py","lines":[9,14],"module":"routers.auth","summary":"Authenticates user credentials and returns JWT access + refresh token pair.","tags":["route","async","api-endpoint","auth","routers"],"is_async":true,"decorators":["router.post"],"http_method":"POST","parameters":[{"name":"request","type":"dict"},{"name":"auth_svc","type":"AuthService"}]},{"id":"routers.auth.logout","kind":"route","name":"logout","file":"routers/auth.py","lines":[22,24],"module":"routers.auth","summary":"Revokes all tokens for the current user.","tags":["route","async","api-endpoint","auth","routers"],"is_async":true,"decorators":["router.delete"],"http_method":"DELETE","parameters":[{"name":"current_user","type":""},{"name":"auth_svc","type":"AuthService"}]},{"id":"routers.auth.refresh_token","kind":"route","name":"refresh_token","file":"routers/auth.py","lines":[17,19],"module":"routers.auth","summary":"Validates refresh token and rotates the token pair.","tags":["route","async","api-endpoint","auth","routers"],"is_async":true,"decorators":["router.post"],"http_method":"POST","parameters":[{"name":"token","type":"str"},{"name":"auth_svc","type":"AuthService"}]},{"id":"routers.orders.cancel_order","kind":"route","name":"cancel_order","file":"routers/orders.py","lines":[21,23],"module":"routers.orders","summary":"Cancels an order and releases inventory.","tags":["route","async","api-endpoint","orders","routers"],"is_async":true,"decorators":["router.patch"],"http_method":"PATCH","parameters":[{"name":"order_id","type":"str"},{"name":"order_svc","type":"OrderService"}]},{"id":"routers.orders.create_order","kind":"route","name":"create_order","file":"routers/orders.py","lines":[9,13],"module":"routers.orders","summary":"Creates a new order, reserves inventory and initiates payment.","tags":["route","async","api-endpoint","orders","routers"],"is_async":true,"decorators":["router.post"],"http_method":"POST","parameters":[{"name":"request","type":"dict"},{"name":"current_user","type":""},{"name":"order_svc","type":"OrderService"},{"name":"payment_svc","type":"PaymentService"}]},{"id":"routers.orders.get_order","kind":"route","name":"get_order","file":"routers/orders.py","lines":[16,18],"module":"routers.orders","summary":"Returns order details by ID.","tags":["route","async","api-endpoint","orders","routers"],"is_async":true,"decorators":["router.get"],"http_method":"GET","parameters":[{"name":"order_id","type":"str"},{"name":"order_svc","type":"OrderService"}]},{"id":"services.auth_service.AuthService","kind":"service","name":"AuthService","file":"services/auth_service.py","lines":[3,21],"module":"services.auth_service","summary":"Handles JWT generation, refresh token rotation, and revocation using Redis.","tags":["service","auth","services","auth_service"]},{"id":"services.auth_service.AuthService.__init__","kind":"function","name":"__init__","file":"services/auth_service.py","lines":[6,7],"module":"services.auth_service","summary":"","tags":["function","auth","services","auth_service"]},{"id":"services.auth_service.AuthService.generate_token","kind":"function","name":"generate_token","file":"services/auth_service.py","lines":[9,12],"module":"services.auth_service","summary":"Generates access and refresh token pair, stores refresh token in Redis.","tags":["function","async","auth","services","auth_service"],"is_async":true,"parameters":[{"name":"user","type":"dict"}],"return_type":"dict"},{"id":"services.auth_service.AuthService.refresh_token","kind":"function","name":"refresh_token","file":"services/auth_service.py","lines":[14,17],"module":"services.auth_service","summary":"Validates refresh token and rotates the pair.","tags":["function","async","auth","services","auth_service"],"is_async":true,"parameters":[{"name":"token","type":"str"}],"return_type":"dict"},{"id":"services.auth_service.AuthService.revoke_token","kind":"function","name":"revoke_token","file":"services/auth_service.py","lines":[19,21],"module":"services.auth_service","summary":"Revokes all active tokens for the user.","tags":["function","async","auth","services","auth_service"],"is_async":true,"parameters":[{"name":"user_id","type":"str"}]},{"id":"services.inventory_service.InventoryService","kind":"service","name":"InventoryService","file":"services/inventory_service.py","lines":[3,17],"module":"services.inventory_service","summary":"Manages stock reservation and release during order lifecycle.","tags":["service","services","inventory_service"]},{"id":"services.inventory_service.InventoryService.__init__","kind":"function","name":"__init__","file":"services/inventory_service.py","lines":[6,7],"module":"services.inventory_service","summary":"","tags":["function","services","inventory_service"]},{"id":"services.inventory_service.InventoryService.release","kind":"function","name":"release","file":"services/inventory_service.py","lines":[14,17],"module":"services.inventory_service","summary":"Releases reserved stock back to available inventory.","tags":["function","async","services","inventory_service"],"is_async":true,"parameters":[{"name":"items","type":"list"}]},{"id":"services.inventory_service.InventoryService.reserve","kind":"function","name":"reserve","file":"services/inventory_service.py","lines":[9,12],"module":"services.inventory_service","summary":"Atomically decrements stock for each item. Raises if insufficient.","tags":["function","async","services","inventory_service"],"is_async":true,"parameters":[{"name":"items","type":"list"}]},{"id":"services.order_service.OrderService","kind":"service","name":"OrderService","file":"services/order_service.py","lines":[4,24],"module":"services.order_service","summary":"Order lifecycle: create, retrieve, cancel. Coordinates with InventoryService.","tags":["service","orders","services","order_service"]},{"id":"services.order_service.OrderService.__init__","kind":"function","name":"__init__","file":"services/order_service.py","lines":[7,9],"module":"services.order_service","summary":"","tags":["function","orders","services","order_service"]},{"id":"services.order_service.OrderService.cancel","kind":"function","name":"cancel","file":"services/order_service.py","lines":[20,24],"module":"services.order_service","summary":"Cancels order and releases reserved inventory stock.","tags":["function","async","orders","services","order_service"],"is_async":true,"parameters":[{"name":"order_id","type":"str"}]},{"id":"services.order_service.OrderService.create","kind":"function","name":"create","file":"services/order_service.py","lines":[11,14],"module":"services.order_service","summary":"Creates order and reserves inventory. Raises if stock unavailable.","tags":["function","async","orders","services","order_service"],"is_async":true,"parameters":[{"name":"request","type":"dict"},{"name":"user_id","type":"str"}],"return_type":"dict"},{"id":"services.order_service.OrderService.find_by_id","kind":"query","name":"find_by_id","file":"services/order_service.py","lines":[16,18],"module":"services.order_service","summary":"Returns order by ID. Raises 404 if not found.","tags":["query","async","orders","services","order_service"],"is_async":true,"parameters":[{"name":"order_id","type":"str"}],"return_type":"dict"},{"id":"services.payment_service.PaymentService","kind":"service","name":"PaymentService","file":"services/payment_service.py","lines":[3,15],"module":"services.payment_service","summary":"Stripe integration for charging, refunding, and webhook handling.","tags":["service","payments","services","payment_service"]},{"id":"services.payment_service.PaymentService.__init__","kind":"function","name":"__init__","file":"services/payment_service.py","lines":[6,7],"module":"services.payment_service","summary":"","tags":["function","payments","services","payment_service"]},{"id":"services.payment_service.PaymentService.charge","kind":"function","name":"charge","file":"services/payment_service.py","lines":[9,11],"module":"services.payment_service","summary":"Creates Stripe PaymentIntent and records result in database.","tags":["function","async","payments","services","payment_service"],"is_async":true,"parameters":[{"name":"order_id","type":"str"},{"name":"payment_method_id","type":"str"}],"return_type":"dict"},{"id":"services.payment_service.PaymentService.refund","kind":"function","name":"refund","file":"services/payment_service.py","lines":[13,15],"module":"services.payment_service","summary":"Issues Stripe refund and marks payment record as refunded.","tags":["function","async","payments","services","payment_service"],"is_async":true,"parameters":[{"name":"order_id","type":"str"}],"return_type":"dict"},{"id":"services.user_service.UserService","kind":"service","name":"UserService","file":"services/user_service.py","lines":[3,19],"module":"services.user_service","summary":"User lifecycle management: lookup, creation, password hashing with bcrypt.","tags":["service","user","services","user_service"]},{"id":"services.user_service.UserService.__init__","kind":"function","name":"__init__","file":"services/user_service.py","lines":[6,7],"module":"services.user_service","summary":"","tags":["function","user","services","user_service"]},{"id":"services.user_service.UserService.create","kind":"function","name":"create","file":"services/user_service.py","lines":[13,15],"module":"services.user_service","summary":"Creates new user with bcrypt hashed password, salt rounds 12.","tags":["function","async","user","services","user_service"],"is_async":true,"parameters":[{"name":"email","type":"str"},{"name":"password","type":"str"}],"return_type":"dict"},{"id":"services.user_service.UserService.find_by_email","kind":"query","name":"find_by_email","file":"services/user_service.py","lines":[9,11],"module":"services.user_service","summary":"Finds user by email address. Returns None if not found.","tags":["query","async","user","services","user_service"],"is_async":true,"parameters":[{"name":"email","type":"str"}]},{"id":"services.user_service.UserService.update_profile","kind":"function","name":"update_profile","file":"services/user_service.py","lines":[17,19],"module":"services.user_service","summary":"Updates user profile fields in database.","tags":["function","async","user","services","user_service"],"is_async":true,"parameters":[{"name":"user_id","type":"str"},{"name":"data","type":"dict"}],"return_type":"dict"}],"edges":[{"source":"middleware.auth_middleware.AuthMiddleware","target":"starlette.middleware.base.BaseHTTPMiddleware","kind":"inherits"},{"source":"middleware.auth_middleware.AuthMiddleware","target":"middleware.auth_middleware.AuthMiddleware.dispatch","kind":"has_method"},{"source":"middleware.logging_middleware.LoggingMiddleware","target":"starlette.middleware.base.BaseHTTPMiddleware","kind":"inherits"},{"source":"middleware.logging_middleware.LoggingMiddleware","target":"middleware.logging_middleware.LoggingMiddleware.dispatch","kind":"has_method"},{"source":"middleware.logging_middleware","target":"time","kind":"imports"},{"source":"models.order.OrderItem","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.order.Order","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.order.CreateOrderRequest","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.order","target":"typing.Optional","kind":"imports"},{"source":"models.order","target":"typing.List","kind":"imports"},{"source":"models.schemas.User","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.schemas.TokenPair","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.schemas.LoginRequest","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.schemas.CreateUserRequest","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.schemas.Order","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.schemas.CreateOrderRequest","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.schemas.OrderResponse","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.schemas","target":"typing.Optional","kind":"imports"},{"source":"models.schemas","target":"typing.List","kind":"imports"},{"source":"models.user.User","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.user.CreateUserRequest","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.user.LoginRequest","target":"pydantic.BaseModel","kind":"inherits"},{"source":"models.user","target":"typing.Optional","kind":"imports"},{"source":"repositories.inventory_repository.InventoryRepository","target":"repositories.inventory_repository.InventoryRepository.decrement","kind":"has_method"},{"source":"repositories.inventory_repository.InventoryRepository","target":"repositories.inventory_repository.InventoryRepository.increment","kind":"has_method"},{"source":"repositories.inventory_repository.InventoryRepository","target":"repositories.inventory_repository.InventoryRepository.get_stock","kind":"has_method"},{"source":"repositories.order_repository.OrderRepository","target":"repositories.order_repository.OrderRepository.insert","kind":"has_method"},{"source":"repositories.order_repository.OrderRepository","target":"repositories.order_repository.OrderRepository.find_by_id","kind":"has_method"},{"source":"repositories.order_repository.OrderRepository","target":"repositories.order_repository.OrderRepository.update_status","kind":"has_method"},{"source":"repositories.payment_repository.PaymentRepository","target":"repositories.payment_repository.PaymentRepository.record","kind":"has_method"},{"source":"repositories.payment_repository.PaymentRepository","target":"repositories.payment_repository.PaymentRepository.find_by_order","kind":"has_method"},{"source":"repositories.payment_repository.PaymentRepository","target":"repositories.payment_repository.PaymentRepository.mark_refunded","kind":"has_method"},{"source":"repositories.token_repository.TokenRepository","target":"repositories.token_repository.TokenRepository.create_refresh_token","kind":"has_method"},{"source":"repositories.token_repository.TokenRepository","target":"repositories.token_repository.TokenRepository.validate","kind":"has_method"},{"source":"repositories.token_repository.TokenRepository","target":"repositories.token_repository.TokenRepository.revoke_all","kind":"has_method"},{"source":"repositories.user_repository.UserRepository","target":"repositories.user_repository.UserRepository.find_by_email","kind":"has_method"},{"source":"repositories.user_repository.UserRepository","target":"repositories.user_repository.UserRepository.insert","kind":"has_method"},{"source":"repositories.user_repository.UserRepository","target":"repositories.user_repository.UserRepository.update","kind":"has_method"},{"source":"routers.auth","target":"app.services.auth_service.AuthService","kind":"imports"},{"source":"routers.auth","target":"app.services.user_service.UserService","kind":"imports"},{"source":"routers.auth","target":"app.dependencies.auth.get_current_user","kind":"imports"},{"source":"routers.orders","target":"app.services.order_service.OrderService","kind":"imports"},{"source":"routers.orders","target":"app.services.payment_service.PaymentService","kind":"imports"},{"source":"routers.orders","target":"app.dependencies.auth.get_current_user","kind":"imports"},{"source":"services.auth_service.AuthService","target":"services.auth_service.AuthService.__init__","kind":"has_method"},{"source":"services.auth_service.AuthService","target":"services.auth_service.AuthService.generate_token","kind":"has_method"},{"source":"services.auth_service.AuthService","target":"services.auth_service.AuthService.refresh_token","kind":"has_method"},{"source":"services.auth_service.AuthService","target":"services.auth_service.AuthService.revoke_token","kind":"has_method"},{"source":"services.auth_service","target":"app.repositories.token_repository.TokenRepository","kind":"imports"},{"source":"services.inventory_service.InventoryService","target":"services.inventory_service.InventoryService.__init__","kind":"has_method"},{"source":"services.inventory_service.InventoryService","target":"services.inventory_service.InventoryService.reserve","kind":"has_method"},{"source":"services.inventory_service.InventoryService","target":"services.inventory_service.InventoryService.release","kind":"has_method"},{"source":"services.inventory_service","target":"app.repositories.inventory_repository.InventoryRepository","kind":"imports"},{"source":"services.order_service.OrderService","target":"services.order_service.OrderService.__init__","kind":"has_method"},{"source":"services.order_service.OrderService","target":"services.order_service.OrderService.create","kind":"has_method"},{"source":"services.order_service.OrderService","target":"services.order_service.OrderService.find_by_id","kind":"has_method"},{"source":"services.order_service.OrderService","target":"services.order_service.OrderService.cancel","kind":"has_method"},{"source":"services.order_service","target":"app.repositories.order_repository.OrderRepository","kind":"imports"},{"source":"services.order_service","target":"app.services.inventory_service.InventoryService","kind":"imports"},{"source":"services.payment_service.PaymentService","target":"services.payment_service.PaymentService.__init__","kind":"has_method"},{"source":"services.payment_service.PaymentService","target":"services.payment_service.PaymentService.charge","kind":"has_method"},{"source":"services.payment_service.PaymentService","target":"services.payment_service.PaymentService.refund","kind":"has_method"},{"source":"services.payment_service","target":"app.repositories.payment_repository.PaymentRepository","kind":"imports"},{"source":"services.user_service.UserService","target":"services.user_service.UserService.__init__","kind":"has_method"},{"source":"services.user_service.UserService","target":"services.user_service.UserService.find_by_email","kind":"has_method"},{"source":"services.user_service.UserService","target":"services.user_service.UserService.create","kind":"has_method"},{"source":"services.user_service.UserService","target":"services.user_service.UserService.update_profile","kind":"has_method"},{"source":"services.user_service","target":"app.repositories.user_repository.UserRepository","kind":"imports"}]},"angular":{"version":"1.0","generated":"2026-06-07T17:49:58.074837+00:00","generator":"gen_graph_angular.py","language":"typescript","framework":"angular","hash":"d3374e2a07520a25","stats":{"total_files":13,"total_nodes":16,"total_edges":34,"services":5,"components":2,"guards":2,"interceptors":2,"pipes":0,"directives":0,"modules":0,"models":5,"store":0},"nodes":[{"id":"components.dashboard.dashboard.DashboardComponent","kind":"component","name":"DashboardComponent","file":"components/dashboard/dashboard.component.ts","lines":[8,8],"module":"components.dashboard.dashboard","summary":"","tags":["component","ui","components","dashboard"],"selector":"app-dashboard","decorators":["Component"],"implements":["OnInit"]},{"id":"components.login.login.LoginComponent","kind":"component","name":"LoginComponent","file":"components/login/login.component.ts","lines":[6,6],"module":"components.login.login","summary":"","tags":["component","ui","components","login"],"selector":"app-login","decorators":["Component"]},{"id":"guards.auth.guard.AuthGuard","kind":"guard","name":"AuthGuard","file":"guards/auth.guard.ts","lines":[5,5],"module":"guards.auth.guard","summary":"","tags":["guard","auth","security","guards"],"decorators":["Injectable"],"implements":["CanActivate"],"provided_in":"root"},{"id":"guards.role.guard.RoleGuard","kind":"guard","name":"RoleGuard","file":"guards/role.guard.ts","lines":[5,5],"module":"guards.role.guard","summary":"","tags":["guard","security","guards"],"decorators":["Injectable"],"implements":["CanActivate"],"provided_in":"root"},{"id":"interceptors.auth.interceptor.AuthInterceptor","kind":"interceptor","name":"AuthInterceptor","file":"interceptors/auth.interceptor.ts","lines":[6,16],"module":"interceptors.auth.interceptor","summary":"","tags":["interceptor","auth","http","interceptors"],"decorators":["Injectable"],"implements":["HttpInterceptor"]},{"id":"interceptors.error.interceptor.ErrorInterceptor","kind":"interceptor","name":"ErrorInterceptor","file":"interceptors/error.interceptor.ts","lines":[7,21],"module":"interceptors.error.interceptor","summary":"","tags":["interceptor","http","interceptors"],"decorators":["Injectable"],"implements":["HttpInterceptor"]},{"id":"models.order.model.CreateOrderRequest","kind":"interface","name":"CreateOrderRequest","file":"models/order.model.ts","lines":[15,18],"module":"models.order.model","summary":"Order entity and creation request DTO.","tags":["interface","orders","models"]},{"id":"models.order.model.Order","kind":"interface","name":"Order","file":"models/order.model.ts","lines":[8,13],"module":"models.order.model","summary":"Order entity and creation request DTO.","tags":["interface","orders","models"]},{"id":"models.order.model.OrderItem","kind":"interface","name":"OrderItem","file":"models/order.model.ts","lines":[1,6],"module":"models.order.model","summary":"","tags":["interface","orders","models"]},{"id":"models.user.model.User","kind":"interface","name":"User","file":"models/user.model.ts","lines":[1,9],"module":"models.user.model","summary":"","tags":["interface","user","models"]},{"id":"services.auth.AuthService","kind":"service","name":"AuthService","file":"services/auth.service.ts","lines":[8,8],"module":"services.auth","summary":"","tags":["service","auth","services"],"decorators":["Injectable"],"provided_in":"root"},{"id":"services.notification.Notification","kind":"interface","name":"Notification","file":"services/notification.service.ts","lines":[4,4],"module":"services.notification","summary":"","tags":["interface","services"]},{"id":"services.notification.NotificationService","kind":"service","name":"NotificationService","file":"services/notification.service.ts","lines":[6,6],"module":"services.notification","summary":"","tags":["service","services"],"decorators":["Injectable"],"provided_in":"root"},{"id":"services.order.OrderService","kind":"service","name":"OrderService","file":"services/order.service.ts","lines":[6,6],"module":"services.order","summary":"","tags":["service","orders","services"],"decorators":["Injectable"],"provided_in":"root"},{"id":"services.token.TokenService","kind":"service","name":"TokenService","file":"services/token.service.ts","lines":[3,3],"module":"services.token","summary":"","tags":["service","services"],"decorators":["Injectable"],"provided_in":"root"},{"id":"services.user.UserService","kind":"service","name":"UserService","file":"services/user.service.ts","lines":[6,6],"module":"services.user","summary":"","tags":["service","user","services"],"decorators":["Injectable"],"provided_in":"root"}],"edges":[{"source":"components.dashboard.dashboard.DashboardComponent","target":"@angular/core","kind":"implements"},{"source":"components.dashboard.dashboard.DashboardComponent","target":"components.dashboard.dashboard.AuthService,","kind":"injects","label":"authService"},{"source":"components.dashboard.dashboard.DashboardComponent","target":"components.dashboard.dashboard.OrderService,","kind":"injects","label":"orderService"},{"source":"components.dashboard.dashboard.DashboardComponent","target":"../../services/user.service","kind":"injects","label":"userService"},{"source":"components.dashboard.dashboard","target":"services.auth.service","kind":"imports"},{"source":"components.dashboard.dashboard","target":"services.order.service","kind":"imports"},{"source":"components.dashboard.dashboard","target":"services.user.service","kind":"imports"},{"source":"components.dashboard.dashboard","target":"models.order.model","kind":"imports"},{"source":"components.dashboard.dashboard","target":"models.user.model","kind":"imports"},{"source":"components.login.login.LoginComponent","target":"components.login.login.AuthService,","kind":"injects","label":"authService"},{"source":"components.login.login.LoginComponent","target":"components.login.login.NotificationService,","kind":"injects","label":"notificationService"},{"source":"components.login.login","target":"services.auth.service","kind":"imports"},{"source":"components.login.login","target":"services.notification.service","kind":"imports"},{"source":"guards.auth.guard.AuthGuard","target":"@angular/router","kind":"implements"},{"source":"guards.auth.guard.AuthGuard","target":"guards.auth.guard.AuthService, private router","kind":"injects","label":"authService"},{"source":"guards.auth.guard","target":"guards.services.auth.service","kind":"imports"},{"source":"guards.role.guard.RoleGuard","target":"@angular/router","kind":"implements"},{"source":"guards.role.guard.RoleGuard","target":"../services/auth.service","kind":"injects","label":"authService"},{"source":"guards.role.guard","target":"guards.services.auth.service","kind":"imports"},{"source":"interceptors.auth.interceptor.AuthInterceptor","target":"@angular/common/http","kind":"implements"},{"source":"interceptors.auth.interceptor.AuthInterceptor","target":"../services/token.service","kind":"injects","label":"tokenService"},{"source":"interceptors.auth.interceptor","target":"interceptors.services.token.service","kind":"imports"},{"source":"interceptors.error.interceptor.ErrorInterceptor","target":"@angular/common/http","kind":"implements"},{"source":"interceptors.error.interceptor.ErrorInterceptor","target":"interceptors.error.interceptor.NotificationService, private authService","kind":"injects","label":"notificationService"},{"source":"interceptors.error.interceptor","target":"interceptors.services.notification.service","kind":"imports"},{"source":"interceptors.error.interceptor","target":"interceptors.services.auth.service","kind":"imports"},{"source":"services.auth.AuthService","target":"services.auth.HttpClient,","kind":"injects","label":"http"},{"source":"services.auth.AuthService","target":"services.auth.TokenService,","kind":"injects","label":"tokenService"},{"source":"services.auth","target":"services.token.service","kind":"imports"},{"source":"services.auth","target":"models.user.model","kind":"imports"},{"source":"services.order.OrderService","target":"@angular/common/http","kind":"injects","label":"http"},{"source":"services.order","target":"models.order.model","kind":"imports"},{"source":"services.user.UserService","target":"@angular/common/http","kind":"injects","label":"http"},{"source":"services.user","target":"models.user.model","kind":"imports"}]}};
 
-const KIND_COLOR = {
+const PROJ_META = {"dotnet":{"label":".NET / C#","icon":"\u2b21","color":"#7c6af7","cmd":"python gen_graph.py"},"java":{"label":"Java / Spring","icon":"\u2615","color":"#f7a76c","cmd":"python gen_graph_java.py --root src"},"python":{"label":"Python / FastAPI","icon":"\ud83d\udc0d","color":"#4ecdc4","cmd":"python gen_graph_python.py"},"angular":{"label":"Angular / TS","icon":"\u25b3","color":"#f76c6c","cmd":"python gen_graph_angular.py --root src/app"}};
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let GRAPH = null;
+let LANG  = null;
+let nodes = {};
+let edges = [];
+let selId = null;
+let kindFilter = null;
+let mode  = 'select';
+let canvas, ctx;
+let vx=0, vy=0, vs=1;
+let drag=null, dox=0, doy=0;
+let panning=false, psx=0, psy=0;
+
+const KC = {
   controller:'#f76c6c', service:'#7c6af7', repository:'#4ecdc4',
   repository_interface:'#4ecdc4', service_interface:'#6cf7a0',
   dbcontext:'#4ecdc4', middleware:'#f7a76c', filter:'#f7a76c',
-  component:'#f7a76c', entity:'#aaa', model:'#aaa', config:'#f7a76c',
-  interface:'#6cf7a0', action:'#f76c6c', class:'#666',
-  enum:'#aaa', advice:'#666', handler:'#666',
+  component:'#f76c6c', guard:'#f7a76c', interceptor:'#f7a76c',
+  pipe:'#f7a76c', directive:'#f7a76c', module:'#aaa',
+  interface:'#6cf7a0', model:'#aaa', entity:'#aaa', config:'#f7a76c',
+  action:'#f76c6c', reducer:'#4ecdc4', effect:'#7c6af7',
+  selector:'#f7a76c', store:'#7c6af7', route:'#f76c6c',
+  task:'#f7a76c', dependency:'#6cf7a0', class:'#666',
+  enum:'#aaa', function:'#888', query:'#4ecdc4', command:'#f7a76c',
+  view:'#f76c6c', viewset:'#f76c6c',
 };
-const KIND_R = {
-  controller:18, service:16, repository:15, repository_interface:14,
-  dbcontext:16, middleware:14, filter:14, component:13,
-  service_interface:13, interface:13, entity:14, model:12,
-  config:14, action:11, class:12, enum:11,
+const KR = {
+  controller:18,service:16,repository:15,component:17,guard:14,
+  interceptor:14,module:16,interface:13,model:12,entity:14,
+  config:13,action:11,route:12,middleware:14,filter:14,
+  service_interface:13,repository_interface:14,class:12,
+  function:11,query:11,command:11,task:13,effect:13,
+  reducer:13,selector:12,store:14,view:14,viewset:14,
 };
 
-// ═══════════════════════════════════════════
-// LOAD GRAPH
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('load', () => {
+  canvas = document.getElementById('cv');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', () => { resizeCanvas(); if(GRAPH) reLayout(); });
+  canvas.addEventListener('mousedown', mdown);
+  canvas.addEventListener('mousemove', mmove);
+  canvas.addEventListener('mouseup', mup);
+  canvas.addEventListener('wheel', mwheel, {passive:false});
+  buildLangTabs();
+  loop();
+  // Load first language automatically
+  switchLang('dotnet');
+  calcAnnualSaving();
+});
 
-// Auto-load: tries fetch('./codebase-graph.json') — works when served via
-// VSCode Live Server, python -m http.server, or any local web server
-async function autoLoad() {
-  try {
-    const r = await fetch('./codebase-graph.json?v=' + Date.now());
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    loadGraph(data);
-    setStatus('Auto-loaded from ./codebase-graph.json', true);
-  } catch(e) {
-    setStatus('Auto-load failed — use 📂 Open JSON or run a local server', false);
-    // Show helpful message
-    document.getElementById('canvas-hint').textContent =
-      'Auto-load needs a local server (Live Server / python -m http.server). Use 📂 Open JSON instead.';
-  }
+function resizeCanvas() {
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
 }
 
-// Manual file picker — always works, no server needed
-function loadFromFile(event) {
+// ══════════════════════════════════════════════
+// LANGUAGE TABS
+// ══════════════════════════════════════════════
+function buildLangTabs() {
+  const bar = document.getElementById('lang-bar');
+  bar.innerHTML = Object.entries(PROJ_META).map(([key, m]) => {
+    const g = ALL_GRAPHS[key];
+    const s = g?.stats || {};
+    return `<button class="lang-tab" id="lt-${key}" onclick="switchLang('${key}')">
+      <span style="font-size:14px">${m.icon}</span>
+      ${m.label}
+      <span class="lang-stats">${s.total_nodes||0}N · ${s.total_edges||0}E</span>
+    </button>`;
+  }).join('');
+  // TypeScript tab (manual load)
+  bar.innerHTML += `<button class="lang-tab" id="lt-ts" onclick="document.getElementById('fi').click()">
+    <span style="font-size:14px">📘</span> TypeScript / Node
+    <span class="lang-stats">load JSON</span>
+  </button>`;
+};
+
+function switchLang(key) {
+  LANG = key;
+  const g = ALL_GRAPHS[key];
+  if (!g) return;
+  // Tab highlight
+  document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('on'));
+  const el = document.getElementById('lt-'+key);
+  if (el) el.classList.add('on');
+  // Load graph
+  loadGraph(g, PROJ_META[key]);
+};
+
+// ══════════════════════════════════════════════
+// LOAD GRAPH
+// ══════════════════════════════════════════════
+function loadFile(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const data = JSON.parse(e.target.result);
-      loadGraph(data);
-      setStatus(`Loaded: ${file.name}`, true);
-    } catch(err) {
-      setStatus('Invalid JSON file', false);
-    }
+      const g = JSON.parse(e.target.result);
+      // Could be single graph or multi-graph object
+      if (g.nodes) { loadGraph(g, {label: file.name, color: '#7c6af7', cmd:''}); }
+      else {
+        // Multi-graph: merge into ALL_GRAPHS
+        Object.assign(ALL_GRAPHS, g);
+        buildLangTabs();
+        const firstKey = Object.keys(g)[0];
+        switchLang(firstKey);
+      }
+    } catch(e) { alert('Invalid JSON'); }
   };
   reader.readAsText(file);
 }
 
-function loadGraph(data) {
-  GRAPH = data;
-  initNodes();
-  renderSidebar();
-  renderStats();
-  renderTokens();
-  renderJSON();
-  buildKindFilters();
-  buildLegend();
-  document.getElementById('canvas-hint').textContent = 'Click node to inspect · Drag to rearrange · Scroll to zoom';
-  document.getElementById('meta-hash').textContent = data.hash ? `#${data.hash}` : '';
-  document.getElementById('meta-gen').textContent = data.generated
-    ? data.generated.slice(0,10) : '';
-  document.getElementById('json-meta').textContent =
-    `${data.stats?.total_nodes||0} nodes · ${data.stats?.total_edges||0} edges · ${data.language||'?'}`;
-}
-
-// Drag-and-drop onto window
-window.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-overlay').classList.add('active'); });
-window.addEventListener('dragleave', e => { if (!e.relatedTarget) document.getElementById('drop-overlay').classList.remove('active'); });
-window.addEventListener('drop', e => {
-  e.preventDefault();
-  document.getElementById('drop-overlay').classList.remove('active');
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => { try { loadGraph(JSON.parse(ev.target.result)); setStatus(`Loaded: ${file.name}`, true); } catch(err) {} };
-  reader.readAsText(file);
-});
-document.getElementById('drop-overlay').addEventListener('click', () =>
-  document.getElementById('drop-overlay').classList.remove('active'));
-
-function setStatus(msg, ok) {
-  document.getElementById('status-text').textContent = msg;
-  document.getElementById('status-dot').className = 'status-dot' + (ok ? ' live' : '');
-}
-
-// ═══════════════════════════════════════════
-// GRAPH PHYSICS
-// ═══════════════════════════════════════════
-function initNodes() {
+function loadGraph(g, meta) {
+  GRAPH = g;
+  edges = g.edges || [];
   nodes = {};
-  edges = GRAPH.edges || [];
   const W = canvas.width || 800, H = canvas.height || 600;
-  const nlist = GRAPH.nodes || [];
-  nlist.forEach((n, i) => {
-    const angle = (i / nlist.length) * Math.PI * 2;
-    const r = Math.min(W, H) * 0.3;
-    nodes[n.id] = {
-      ...n,
-      x: W/2 + Math.cos(angle)*r + (Math.random()-.5)*80,
-      y: H/2 + Math.sin(angle)*r + (Math.random()-.5)*80,
-      vx:0, vy:0,
-      radius: KIND_R[n.kind] || 13,
-    };
+  (g.nodes||[]).forEach((n, i) => {
+    const angle = (i / (g.nodes.length||1)) * Math.PI*2;
+    const r = Math.min(W,H)*0.3;
+    nodes[n.id] = { ...n, x: W/2+Math.cos(angle)*r+(Math.random()-.5)*80,
+      y: H/2+Math.sin(angle)*r+(Math.random()-.5)*80, vx:0, vy:0,
+      radius: KR[n.kind]||13 };
   });
-  viewX=0; viewY=0; viewScale=1;
-}
+  selId = null; kindFilter = null; vx=0; vy=0; vs=1;
+  renderSidebar(); renderStats(); renderTokens(); renderJSON();
+  buildKindFilters(); buildLegend();
+  document.getElementById('cv-hint').textContent = 'Click node to inspect · Drag to rearrange · Scroll to zoom';
+  document.getElementById('hash-badge').textContent = g.hash ? '#'+g.hash : '';
+  const cmd = meta?.cmd || '';
+  document.getElementById('gen-badge').textContent = (meta?.label||'') + (cmd ? ' · '+cmd : '');
+  calcAnnualSaving();
+};
 
+// ══════════════════════════════════════════════
+// PHYSICS
+// ══════════════════════════════════════════════
 function tick() {
-  const nlist = Object.values(nodes);
+  const nl = Object.values(nodes);
   const W = canvas.width, H = canvas.height;
-  for (let i=0;i<nlist.length;i++) {
-    for (let j=i+1;j<nlist.length;j++) {
-      const a=nlist[i], b=nlist[j];
-      const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||1;
-      const f=Math.min(2800/(d*d),6);
-      const fx=(dx/d)*f, fy=(dy/d)*f;
-      a.vx-=fx; a.vy-=fy; b.vx+=fx; b.vy+=fy;
-    }
+  for(let i=0;i<nl.length;i++) for(let j=i+1;j<nl.length;j++) {
+    const a=nl[i],b=nl[j];
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+    const f=Math.min(2600/(d*d),6);
+    const fx=(dx/d)*f,fy=(dy/d)*f;
+    a.vx-=fx;a.vy-=fy;b.vx+=fx;b.vy+=fy;
   }
-  edges.forEach(e => {
-    const a=nodes[e.source], b=nodes[e.target];
-    if(!a||!b) return;
-    const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||1;
-    const len=130, f=(d-len)*0.025;
-    const fx=(dx/d)*f, fy=(dy/d)*f;
-    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+  edges.forEach(e=>{
+    const a=nodes[e.source],b=nodes[e.target];
+    if(!a||!b)return;
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+    const f=(d-120)*.022;
+    const fx=(dx/d)*f,fy=(dy/d)*f;
+    a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;
   });
-  nlist.forEach(n => {
-    n.vx += (W/2-n.x)*0.002; n.vy += (H/2-n.y)*0.002;
+  nl.forEach(n=>{
+    n.vx+=(W/2-n.x)*.0018;n.vy+=(H/2-n.y)*.0018;
   });
-  nlist.forEach(n => {
-    if(n===dragging) return;
-    n.vx*=0.82; n.vy*=0.82;
-    n.x+=n.vx; n.y+=n.vy;
-    n.x=Math.max(30,Math.min(W-30,n.x));
-    n.y=Math.max(30,Math.min(H-30,n.y));
+  nl.forEach(n=>{
+    if(n===drag)return;
+    n.vx*=.83;n.vy*=.83;n.x+=n.vx;n.y+=n.vy;
+    n.x=Math.max(28,Math.min(W-28,n.x));
+    n.y=Math.max(28,Math.min(H-28,n.y));
   });
 }
 
-// ═══════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════════
+// DRAW
+// ══════════════════════════════════════════════
 function draw() {
-  if(!ctx) return;
-  const W=canvas.width, H=canvas.height;
+  if(!ctx)return;
+  const W=canvas.width,H=canvas.height;
   ctx.clearRect(0,0,W,H);
-
-  if(!GRAPH || !Object.keys(nodes).length) {
-    ctx.save();
-    ctx.fillStyle='rgba(85,90,106,0.3)';
-    ctx.font='13px JetBrains Mono, monospace';
-    ctx.textAlign='center';
-    ctx.fillText('Load a codebase-graph.json to begin', W/2, H/2);
-    ctx.restore();
+  if(!GRAPH||!Object.keys(nodes).length){
+    ctx.fillStyle='rgba(85,90,106,.3)';ctx.font='12px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.fillText('Select a language tab above',W/2,H/2);
     return;
   }
-
-  ctx.save();
-  ctx.translate(viewX, viewY);
-  ctx.scale(viewScale, viewScale);
-
-  // Edges
-  edges.forEach(e => {
-    const a=nodes[e.source], b=nodes[e.target];
-    if(!a||!b) return;
-    const hl = queryHighlight.size>0 && queryHighlight.has(e.source) && queryHighlight.has(e.target);
-    const color = e.kind==='injects' ? 'rgba(124,106,247,' : 'rgba(78,205,196,';
+  ctx.save();ctx.translate(vx,vy);ctx.scale(vs,vs);
+  edges.forEach(e=>{
+    const a=nodes[e.source],b=nodes[e.target];
+    if(!a||!b)return;
+    const ec = e.kind==='injects'||e.kind==='depends_on'?'rgba(124,106,247,':'rgba(78,205,196,';
     ctx.beginPath();
-    const mx=(a.x+b.x)/2+(b.y-a.y)*0.1, my=(a.y+b.y)/2+(a.x-b.x)*0.1;
-    ctx.moveTo(a.x,a.y); ctx.quadraticCurveTo(mx,my,b.x,b.y);
-    ctx.strokeStyle = hl ? color+'0.9)' : color+'0.18)';
-    ctx.lineWidth = hl ? 2 : 0.8;
-    ctx.stroke();
-    // Arrow tip
-    const t=0.85;
-    const ax=(1-t)*(1-t)*a.x+2*(1-t)*t*mx+t*t*b.x;
-    const ay=(1-t)*(1-t)*a.y+2*(1-t)*t*my+t*t*b.y;
-    const ang=Math.atan2(b.y-ay, b.x-ax);
-    const r=b.radius;
+    const mx=(a.x+b.x)/2+(b.y-a.y)*.09,my=(a.y+b.y)/2+(a.x-b.x)*.09;
+    ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(mx,my,b.x,b.y);
+    ctx.strokeStyle=ec+'.18)';ctx.lineWidth=.8;ctx.stroke();
+    const t=.85,ax2=(1-t)*(1-t)*a.x+2*(1-t)*t*mx+t*t*b.x,ay2=(1-t)*(1-t)*a.y+2*(1-t)*t*my+t*t*b.y;
+    const ang=Math.atan2(b.y-ay2,b.x-ax2),r=b.radius;
     ctx.beginPath();
-    ctx.moveTo(b.x-Math.cos(ang)*r, b.y-Math.sin(ang)*r);
-    ctx.lineTo(b.x-Math.cos(ang)*r-Math.cos(ang-.4)*7, b.y-Math.sin(ang)*r-Math.sin(ang-.4)*7);
-    ctx.moveTo(b.x-Math.cos(ang)*r, b.y-Math.sin(ang)*r);
-    ctx.lineTo(b.x-Math.cos(ang)*r-Math.cos(ang+.4)*7, b.y-Math.sin(ang)*r-Math.sin(ang+.4)*7);
-    ctx.strokeStyle = hl ? color+'0.8)' : 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = hl ? 1.5 : 0.5;
-    ctx.stroke();
+    ctx.moveTo(b.x-Math.cos(ang)*r,b.y-Math.sin(ang)*r);
+    ctx.lineTo(b.x-Math.cos(ang)*r-Math.cos(ang-.4)*6,b.y-Math.sin(ang)*r-Math.sin(ang-.4)*6);
+    ctx.moveTo(b.x-Math.cos(ang)*r,b.y-Math.sin(ang)*r);
+    ctx.lineTo(b.x-Math.cos(ang)*r-Math.cos(ang+.4)*6,b.y-Math.sin(ang)*r-Math.sin(ang+.4)*6);
+    ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=.5;ctx.stroke();
   });
-
-  // Nodes
-  Object.values(nodes).forEach(n => {
-    const isSel = n.id===selectedId;
-    const isHL = queryHighlight.size>0 && queryHighlight.has(n.id);
-    const isDim = queryHighlight.size>0 && !queryHighlight.has(n.id);
-    const col = KIND_COLOR[n.kind] || '#666';
-    const r = n.radius;
-
-    if(isSel) {
-      ctx.beginPath(); ctx.arc(n.x,n.y,r+9,0,Math.PI*2);
-      ctx.strokeStyle=col+'55'; ctx.lineWidth=1.5; ctx.stroke();
-    }
-    if(isHL) { ctx.shadowBlur=16; ctx.shadowColor=col; }
-
-    ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
-    ctx.fillStyle = col + (isDim?'18':'bb');
-    ctx.fill();
-    ctx.strokeStyle = isSel||isHL ? col : col+'55';
-    ctx.lineWidth = isSel ? 2.5 : isHL ? 1.5 : 0.8;
-    ctx.stroke();
+  Object.values(nodes).forEach(n=>{
+    const isSel=n.id===selId;
+    const col=KC[n.kind]||'#666',r=n.radius;
+    if(isSel){ctx.beginPath();ctx.arc(n.x,n.y,r+8,0,Math.PI*2);ctx.strokeStyle=col+'44';ctx.lineWidth=1.5;ctx.stroke();}
+    if(isSel){ctx.shadowBlur=14;ctx.shadowColor=col;}
+    ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);
+    ctx.fillStyle=col+'bb';ctx.fill();
+    ctx.strokeStyle=isSel?col:col+'55';ctx.lineWidth=isSel?2.5:.8;ctx.stroke();
     ctx.shadowBlur=0;
-
-    const lbl = n.name.length>14 ? n.name.slice(0,13)+'…' : n.name;
-    ctx.fillStyle = isDim ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.88)';
-    ctx.font = `${isSel?'600 ':'400 '}9px JetBrains Mono,monospace`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(lbl, n.x, n.y+r+11);
+    const lbl=n.name.length>13?n.name.slice(0,12)+'…':n.name;
+    ctx.fillStyle='rgba(255,255,255,.88)';
+    ctx.font=(isSel?'600 ':'400 ')+'9px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(lbl,n.x,n.y+r+10);
   });
-
   ctx.restore();
 }
 
-function loop() { tick(); draw(); raf=requestAnimationFrame(loop); }
+function loop(){ tick();draw();requestAnimationFrame(loop); }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════════
 // CANVAS INTERACTION
-// ═══════════════════════════════════════════
-function toWorld(cx,cy) { return {x:(cx-viewX)/viewScale, y:(cy-viewY)/viewScale}; }
-
-function nodeAt(cx,cy) {
-  const {x,y}=toWorld(cx,cy);
-  return Object.values(nodes).find(n=>{const dx=n.x-x,dy=n.y-y; return Math.sqrt(dx*dx+dy*dy)<=n.radius+6;});
+// ══════════════════════════════════════════════
+function tw(cx,cy){return{x:(cx-vx)/vs,y:(cy-vy)/vs};}
+function nat(cx,cy){
+  const {x,y}=tw(cx,cy);
+  return Object.values(nodes).find(n=>{const dx=n.x-x,dy=n.y-y;return Math.sqrt(dx*dx+dy*dy)<=n.radius+6;});
 }
-
-function onMouseDown(e) {
-  const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
-  const n=nodeAt(cx,cy);
-  if(n && mode==='select') {
-    dragging=n; const w=toWorld(cx,cy); dragOX=n.x-w.x; dragOY=n.y-w.y;
-  } else {
-    isPanning=true; panSX=cx-viewX; panSY=cy-viewY;
-  }
+function mdown(e){
+  const r=canvas.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top;
+  const n=nat(cx,cy);
+  if(n&&mode==='select'){drag=n;const w=tw(cx,cy);dox=n.x-w.x;doy=n.y-w.y;}
+  else{panning=true;psx=cx-vx;psy=cy-vy;}
 }
-function onMouseMove(e) {
-  const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
-  if(dragging) { const w=toWorld(cx,cy); dragging.x=w.x+dragOX; dragging.y=w.y+dragOY; dragging.vx=0; dragging.vy=0; }
-  else if(isPanning) { viewX=cx-panSX; viewY=cy-panSY; }
-  canvas.style.cursor=nodeAt(cx,cy)?'pointer':(isPanning?'grabbing':'grab');
+function mmove(e){
+  const r=canvas.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top;
+  if(drag){const w=tw(cx,cy);drag.x=w.x+dox;drag.y=w.y+doy;drag.vx=0;drag.vy=0;}
+  else if(panning){vx=cx-psx;vy=cy-psy;}
+  canvas.style.cursor=nat(cx,cy)?'pointer':(panning?'grabbing':'grab');
 }
-function onMouseUp(e) {
-  const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
-  if(dragging) { const n=nodeAt(cx,cy); if(n) selectNode(n.id); dragging=null; }
-  isPanning=false;
+function mup(e){
+  const r=canvas.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top;
+  if(drag){const n=nat(cx,cy);if(n)selectNode(n.id);drag=null;}
+  panning=false;
 }
-function onWheel(e) {
+function mwheel(e){
   e.preventDefault();
-  const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
-  const d=e.deltaY>0?0.88:1.12;
-  viewX=cx-(cx-viewX)*d; viewY=cy-(cy-viewY)*d;
-  viewScale=Math.max(0.2,Math.min(4,viewScale*d));
+  const r=canvas.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top;
+  const d=e.deltaY>0?.88:1.12;
+  vx=cx-(cx-vx)*d;vy=cy-(cy-vy)*d;vs=Math.max(.2,Math.min(4,vs*d));
 }
-
-function setMode(m) {
-  mode=m;
-  document.getElementById('btn-select').classList.toggle('on',m==='select');
-  document.getElementById('btn-pan').classList.toggle('on',m==='pan');
-}
-function resetView() { viewX=0;viewY=0;viewScale=1; }
-function reLayout() {
-  const ids=Object.keys(nodes), W=canvas.width, H=canvas.height;
-  ids.forEach((id,i)=>{ const a=(i/ids.length)*Math.PI*2,r=Math.min(W,H)*.32;
-    nodes[id].x=W/2+Math.cos(a)*r; nodes[id].y=H/2+Math.sin(a)*r; nodes[id].vx=0; nodes[id].vy=0; });
+function setMode(m){mode=m;document.getElementById('bsel').classList.toggle('on',m==='select');document.getElementById('bpan').classList.toggle('on',m==='pan');}
+function resetView(){vx=0;vy=0;vs=1;}
+function reLayout(){
+  const ids=Object.keys(nodes),W=canvas.width,H=canvas.height;
+  ids.forEach((id,i)=>{const a=(i/ids.length)*Math.PI*2,r=Math.min(W,H)*.32;
+    nodes[id].x=W/2+Math.cos(a)*r;nodes[id].y=H/2+Math.sin(a)*r;nodes[id].vx=0;nodes[id].vy=0;});
   resetView();
 }
 
-function resizeCanvas() { canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight; }
-
-// ═══════════════════════════════════════════
-// NODE SELECTION + INSPECT
-// ═══════════════════════════════════════════
-function selectNode(id) {
-  selectedId=id;
-  renderSidebar();
-  showInspect(id);
-  switchTab('inspect');
-  queryHighlight=new Set();
+// ══════════════════════════════════════════════
+// SELECT + INSPECT
+// ══════════════════════════════════════════════
+function selectNode(id){
+  selId=id;renderSidebar();showInspect(id);switchTab('inspect');
 }
-
-function showInspect(id) {
-  if(!GRAPH) return;
-  const n=GRAPH.nodes.find(x=>x.id===id);
-  if(!n) return;
-  document.getElementById('inspect-empty').style.display='none';
-  const det=document.getElementById('inspect-detail');
-  det.style.display='flex';
-
-  const outgoing=edges.filter(e=>e.source===id);
-  const incoming=edges.filter(e=>e.target===id);
-
+function showInspect(id){
+  if(!GRAPH)return;
+  const n=GRAPH.nodes.find(x=>x.id===id);if(!n)return;
+  document.getElementById('ie').style.display='none';
+  const det=document.getElementById('id2');det.style.display='flex';
+  const out=edges.filter(e=>e.source===id);
+  const inc=edges.filter(e=>e.target===id);
   det.innerHTML=`
     <div class="ds"><div class="dl">Symbol</div><div class="dv ac" style="font-size:13px;font-weight:700">${n.name}</div></div>
-    <div class="ds"><div class="dl">Kind</div><div class="dv"><span class="kbadge kb-${n.kind}">${(n.kind||'').toUpperCase()}</span></div></div>
-    <div class="ds"><div class="dl">File</div><div class="dv tl">${n.file}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Lines ${n.lines?n.lines[0]+' – '+n.lines[1]:''}</div></div>
+    <div class="ds"><div class="dl">Kind</div><span class="kb" style="background:${KC[n.kind]||'#666'}22;color:${KC[n.kind]||'#666'};border:1px solid ${KC[n.kind]||'#666'}44;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700">${(n.kind||'').toUpperCase()}</span></div>
+    <div class="ds"><div class="dl">File</div><div class="dv tl" style="word-break:break-all">${n.file}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Lines ${n.lines?n.lines[0]+' – '+n.lines[1]:''}</div></div>
     ${n.summary?`<div class="ds"><div class="dl">Summary</div><div class="dv" style="font-size:11px;line-height:1.6;color:var(--text2)">${n.summary}</div></div>`:''}
-    ${n.tags?.length?`<div class="ds"><div class="dl">Tags</div><div style="display:flex;flex-wrap:wrap;gap:4px">${n.tags.map(t=>`<span style="font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid var(--border2);color:var(--text2)">${t}</span>`).join('')}</div></div>`:''}
-    ${n.annotations?.length?`<div class="ds"><div class="dl">Annotations</div><div style="display:flex;flex-wrap:wrap;gap:4px">${n.annotations.map(a=>`<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(124,106,247,.12);border:1px solid rgba(124,106,247,.3);color:var(--accent)">@${a}</span>`).join('')}</div></div>`:''}
-    <div style="padding:10px 14px 4px"><div class="dl">Connections</div></div>
-    <div style="padding:0 10px 10px">
-      ${outgoing.map(e=>`<div class="conn-item" onclick="selectNode('${e.target}')"><span style="color:var(--accent)">→</span><span>${e.target.split('.').pop()}</span><span class="conn-kind">${e.kind}</span></div>`).join('')}
-      ${incoming.map(e=>`<div class="conn-item" onclick="selectNode('${e.source}')"><span style="color:var(--teal)">←</span><span>${e.source.split('.').pop()}</span><span class="conn-kind">${e.kind}</span></div>`).join('')}
-      ${!outgoing.length&&!incoming.length?'<div style="font-size:11px;color:var(--text3);padding:4px 0">No connections</div>':''}
+    ${n.tags?.length?`<div class="ds"><div class="dl">Tags</div><div style="display:flex;flex-wrap:wrap;gap:3px">${n.tags.map(t=>`<span style="font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid var(--b2);color:var(--text2)">${t}</span>`).join('')}</div></div>`:''}
+    ${(n.decorators||n.annotations||[]).length?`<div class="ds"><div class="dl">Decorators/Annotations</div><div style="display:flex;flex-wrap:wrap;gap:3px">${(n.decorators||n.annotations).map(a=>`<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.3);color:var(--accent)">@${a}</span>`).join('')}</div></div>`:''}
+    <div style="padding:9px 13px 3px"><div class="dl">Connections (${out.length+inc.length})</div></div>
+    <div style="padding:0 9px 9px">
+      ${out.map(e=>`<div class="ci" onclick="selectNode('${e.target}')" title="${e.target}"><span style="color:var(--accent)">→</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.target.split('.').pop()}</span><span class="ck">${e.kind}</span></div>`).join('')}
+      ${inc.map(e=>`<div class="ci" onclick="selectNode('${e.source}')" title="${e.source}"><span style="color:var(--teal)">←</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.source.split('.').pop()}</span><span class="ck">${e.kind}</span></div>`).join('')}
+      ${!out.length&&!inc.length?'<div style="font-size:11px;color:var(--text3);padding:3px 0">No connections</div>':''}
     </div>`;
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════════
 // SIDEBAR
-// ═══════════════════════════════════════════
-function buildKindFilters() {
-  if(!GRAPH) return;
+// ══════════════════════════════════════════════
+function buildKindFilters(){
+  if(!GRAPH)return;
   const kinds=[...new Set(GRAPH.nodes.map(n=>n.kind))].sort();
-  const el=document.getElementById('kind-filters');
-  el.innerHTML='<button class="kf active" onclick="filterKind(null,this)">All</button>'+
+  const el=document.getElementById('kfw');
+  el.innerHTML='<button class="kf on" onclick="filterKind(null,this)">All</button>'+
     kinds.map(k=>`<button class="kf" onclick="filterKind('${k}',this)">${k}</button>`).join('');
 }
-
-function filterKind(k,btn) {
-  activeKindFilter=k;
-  document.querySelectorAll('.kf').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+function filterKind(k,btn){
+  kindFilter=k;
+  document.querySelectorAll('.kf').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
   renderSidebar();
 }
-
-function buildLegend() {
-  if(!GRAPH) return;
+function buildLegend(){
+  if(!GRAPH)return;
   const kinds=[...new Set(GRAPH.nodes.map(n=>n.kind))];
-  document.getElementById('legend').innerHTML=kinds.slice(0,8).map(k=>
-    `<div class="leg"><div class="leg-dot" style="background:${KIND_COLOR[k]||'#666'}"></div>${k}</div>`
-  ).join('');
+  document.getElementById('leg').innerHTML=kinds.slice(0,8).map(k=>
+    `<div class="li"><div class="ld" style="background:${KC[k]||'#666'}"></div>${k}</div>`).join('');
 }
-
-function filterNodes() { renderSidebar(); }
-
-function renderSidebar() {
-  if(!GRAPH) return;
-  const q=(document.getElementById('search').value||'').toLowerCase();
+function filterNodes(){renderSidebar();}
+function renderSidebar(){
+  if(!GRAPH)return;
+  const q=(document.getElementById('srch').value||'').toLowerCase();
   let list=GRAPH.nodes;
-  if(activeKindFilter) list=list.filter(n=>n.kind===activeKindFilter);
-  if(q) list=list.filter(n=>(n.id+n.file+(n.summary||'')+((n.tags||[]).join(' '))).toLowerCase().includes(q));
-  document.getElementById('node-count').textContent=list.length;
-  document.getElementById('node-list').innerHTML= list.length===0
-    ? '<div class="empty"><div class="empty-icon">◌</div><div>No nodes match</div></div>'
-    : list.map(n=>`
-      <div class="node-item ${n.id===selectedId?'active':''} ${queryHighlight.has(n.id)?'hl':''}" onclick="selectNode('${n.id}')">
-        <div class="ni-top">
-          <span class="ni-name">${n.name}</span>
-          <span class="kbadge kb-${n.kind}">${(n.kind||'').slice(0,3).toUpperCase()}</span>
-        </div>
-        <div class="ni-file">${n.file}</div>
-        ${n.summary?`<div class="ni-sum">${n.summary.slice(0,55)}</div>`:''}
-      </div>`).join('');
+  if(kindFilter)list=list.filter(n=>n.kind===kindFilter);
+  if(q)list=list.filter(n=>(n.id+n.file+(n.summary||'')+((n.tags||[]).join(' '))).toLowerCase().includes(q));
+  document.getElementById('nc').textContent=list.length;
+  document.getElementById('nl').innerHTML=list.length===0
+    ?'<div class="empty"><div class="ei">◌</div><div>No matches</div></div>'
+    :list.map(n=>`<div class="ni ${n.id===selId?'on':''}" onclick="selectNode('${n.id}')">
+      <div class="ni-top"><span class="ni-name">${n.name}</span>
+        <span class="kb" style="background:${KC[n.kind]||'#666'}22;color:${KC[n.kind]||'#666'}">${(n.kind||'').slice(0,4).toUpperCase()}</span></div>
+      <div class="ni-file">${n.file}</div>
+      ${n.summary?`<div class="ni-sum">${n.summary.slice(0,54)}</div>`:''}
+    </div>`).join('');
 }
 
-// ═══════════════════════════════════════════
-// STATS TAB
-// ═══════════════════════════════════════════
-function renderStats() {
-  if(!GRAPH) return;
+// ══════════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════════
+function renderStats(){
+  if(!GRAPH)return;
   const s=GRAPH.stats||{};
-  document.getElementById('stats-empty').style.display='none';
-  const det=document.getElementById('stats-detail');
-  det.style.display='block';
-  const cards=[
-    {v:s.total_files||0,l:'Files scanned',c:'var(--teal)'},
-    {v:s.total_nodes||0,l:'Nodes',c:'var(--accent)'},
-    {v:s.total_edges||0,l:'Edges',c:'var(--amber)'},
-    {v:s.controllers||0,l:'Controllers',c:'var(--red)'},
-    {v:s.services||0,l:'Services',c:'var(--accent)'},
-    {v:(s.repositories||0),l:'Repositories',c:'var(--teal)'},
-    {v:s.interfaces||0,l:'Interfaces',c:'var(--green)'},
-    {v:(s.models||0)+(s.entities||0),l:'Models/Entities',c:'var(--text2)'},
-    {v:s.middlewares||s.filters||0,l:'Middleware/Filters',c:'var(--amber)'},
-    {v:s.dbcontexts||s.configs||0,l:'DbContext/Config',c:'var(--teal)'},
-  ];
-  det.innerHTML=`<div class="stat-grid">${cards.map(c=>`
-    <div class="stat-card">
-      <div class="stat-val" style="color:${c.c}">${c.v}</div>
-      <div class="stat-lbl">${c.l}</div>
-    </div>`).join('')}</div>
-    <div style="padding:0 12px 12px;font-size:10px;color:var(--text3)">
-      Language: ${GRAPH.language||'?'} · Generator: ${GRAPH.generator||'?'}<br/>
-      Generated: ${(GRAPH.generated||'').slice(0,19).replace('T',' ')} UTC
-    </div>`;
+  document.getElementById('se').style.display='none';
+  const det=document.getElementById('sd');det.style.display='block';
+  const meta=PROJ_META[LANG]||{};
+  const cards=Object.entries(s).filter(([k])=>k!=='total_files').map(([k,v])=>
+    `<div class="sc"><div class="sv" style="color:${meta.color||'var(--accent)'}">${v}</div><div class="sl">${k.replace(/_/g,' ')}</div></div>`).join('');
+  det.innerHTML=`<div class="sg">${cards}</div>
+    <div style="padding:0 11px 10px;font-size:10px;color:var(--text3);line-height:1.7">
+      Language: ${GRAPH.language||'?'}<br/>
+      Generator: ${GRAPH.generator||'?'}<br/>
+      Generated: ${(GRAPH.generated||'').slice(0,10)}
+    </div>
+    ${meta.cmd?`<div class="cmd-box">$ ${meta.cmd}</div>`:''}`;
 }
 
-// ═══════════════════════════════════════════
-// TOKEN SAVINGS TAB
-// ═══════════════════════════════════════════
-function renderTokens() {
-  if(!GRAPH) return;
-  document.getElementById('tok-empty').style.display='none';
-  const det=document.getElementById('tok-detail');
-  det.style.display='block';
-
-  const totalNodes=GRAPH.nodes.length;
-  const avgTokensPerFile=420;
-  const rawTokens=totalNodes*avgTokensPerFile;
-  const graphIndex=Math.round(JSON.stringify(GRAPH).length/4);
-  const avgSlice=Math.min(10,totalNodes);
-  const withGraph=graphIndex+avgSlice*avgTokensPerFile;
-  const saved=rawTokens-withGraph;
-  const pct=Math.round(saved/rawTokens*100);
-  const dailySaved=saved*30;
-
-  det.innerHTML=`
-    <div class="tok-section">
-      <div class="tok-compare">
-        <div class="tok-card good"><div class="tok-lbl">With Graph</div><div class="tok-num">${fmtN(withGraph)}</div><div class="tok-unit">tokens / query</div></div>
-        <div class="tok-card bad"><div class="tok-lbl">Without</div><div class="tok-num">${fmtN(rawTokens)}</div><div class="tok-unit">tokens / query</div></div>
-      </div>
-      <div class="bar-wrap">
-        <div class="bar-row"><span>Token savings per query</span><span style="color:var(--green);font-weight:700">${pct}%</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-      </div>
-      <div style="background:rgba(108,247,160,.08);border:1px solid rgba(108,247,160,.2);border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.8;color:var(--text2)">
-        <div>Saved per query: <strong style="color:var(--green)">${fmtN(saved)} tokens</strong></div>
-        <div>30 queries/day × 1 dev: <strong style="color:var(--green)">${fmtN(dailySaved)} tokens/day</strong></div>
-        <div>Graph index size: <strong style="color:var(--teal)">${fmtN(graphIndex)} tokens</strong></div>
-        <div>Avg slice loaded: <strong style="color:var(--accent)">${avgSlice} of ${totalNodes} nodes</strong></div>
-      </div>
-      <div style="margin-top:10px;font-size:10px;color:var(--text3);line-height:1.6">
-        Estimates assume ~420 tokens/file avg, 10-node slice per query.<br/>
-        Actual savings vary by query type and codebase structure.
-      </div>
-    </div>`;
+// ══════════════════════════════════════════════
+// TOKEN SAVINGS
+// ══════════════════════════════════════════════
+function renderTokens(){
+  if(!GRAPH)return;
+  document.getElementById('te').style.display='none';
+  const det=document.getElementById('td');det.style.display='block';
+  const total=GRAPH.nodes.length;
+  const avgTok=420;
+  const raw=total*avgTok;
+  const idx=Math.round(JSON.stringify(GRAPH).length/4);
+  const slice=Math.min(10,total);
+  const withG=idx+slice*avgTok;
+  const saved=raw-withG;
+  const pct=Math.round(saved/raw*100);
+  det.innerHTML=`<div class="ts">
+    <div class="tc2">
+      <div class="tk good"><div class="tkl">With Graph</div><div class="tkn">${fmtN(withG)}</div><div class="tku">tokens/query</div></div>
+      <div class="tk bad"><div class="tkl">Without</div><div class="tkn">${fmtN(raw)}</div><div class="tku">tokens/query</div></div>
+    </div>
+    <div class="bw"><div class="br"><span>Savings per query</span><span style="color:var(--green);font-weight:700">${pct}%</span></div>
+    <div class="bt"><div class="bf" style="width:${pct}%"></div></div></div>
+    <div style="background:rgba(108,247,160,.07);border:1px solid rgba(108,247,160,.18);border-radius:7px;padding:9px 11px;font-size:11px;line-height:1.85;color:var(--text2)">
+      <div>Saved / query: <strong style="color:var(--green)">${fmtN(saved)} tokens</strong></div>
+      <div>30 queries/day × 1 dev: <strong style="color:var(--green)">${fmtN(saved*30)}/day</strong></div>
+      <div>Graph index: <strong style="color:var(--teal)">${fmtN(idx)} tokens</strong></div>
+      <div>Nodes: ${total} total · ${slice} loaded/query</div>
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.6">~420 tokens/file avg · 10-node slice · savings vary by query.</div>
+  </div>`;
 }
 
-function fmtN(n) { return n.toLocaleString(); }
+function calcAnnualSaving(){
+  // Cross-language total
+  let totalSaved=0;
+  Object.values(ALL_GRAPHS).forEach(g=>{
+    const total=(g.nodes||[]).length;
+    if(!total)return;
+    const raw=total*420;
+    const idx=Math.round(JSON.stringify(g).length/4);
+    const withG=idx+Math.min(10,total)*420;
+    totalSaved+=raw-withG;
+  });
+  // 10 devs, 30 queries/day, 250 workdays
+  const annual=totalSaved*10*30*250;
+  const el=document.getElementById('annual-saving');
+  if(el) el.textContent=fmtN(Math.round(annual/1000000*10)/10)+'M tokens/year saved across 10 devs';
+}
 
-// ═══════════════════════════════════════════
+function fmtN(n){return Math.round(n).toLocaleString();}
+
+// ══════════════════════════════════════════════
 // JSON TAB
-// ═══════════════════════════════════════════
-function renderJSON() {
-  if(!GRAPH) return;
+// ══════════════════════════════════════════════
+function renderJSON(){
+  if(!GRAPH)return;
   const raw=JSON.stringify(GRAPH,null,2);
   const colored=raw
     .replace(/"([^"]+)":/g,'<span class="jk">"$1"</span>:')
     .replace(/: "([^"]+)"/g,': <span class="jv">"$1"</span>')
-    .replace(/: (\d+)/g,': <span class="jn">$1</span>');
-  document.getElementById('json-out').innerHTML=colored.slice(0,40000)+(raw.length>40000?'\n\n// ... truncated for display':'');
+    .replace(/: (-?\d+)/g,': <span class="jn">$1</span>');
+  document.getElementById('jo').innerHTML=colored.slice(0,50000)+(raw.length>50000?'\n// …truncated':'');
+  document.getElementById('jmeta').textContent=
+    `${GRAPH.stats?.total_nodes||0} nodes · ${GRAPH.stats?.total_edges||0} edges · ${GRAPH.language||'?'}`;
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════════
 // TABS
-// ═══════════════════════════════════════════
-function switchTab(name) {
-  const names=['inspect','tokens','stats','json'];
+// ══════════════════════════════════════════════
+function switchTab(name){
+  const names=['inspect','tokens','stats','benefit','json'];
   document.querySelectorAll('.itab').forEach((b,i)=>b.classList.toggle('on',names[i]===name));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('on'));
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
   document.getElementById('tab-'+name).classList.add('on');
 }
-
-// ═══════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════
-window.addEventListener('load',()=>{
-  canvas=document.getElementById('canvas');
-  ctx=canvas.getContext('2d');
-  resizeCanvas();
-  window.addEventListener('resize',()=>{ resizeCanvas(); if(GRAPH) reLayout(); });
-  canvas.addEventListener('mousedown',onMouseDown);
-  canvas.addEventListener('mousemove',onMouseMove);
-  canvas.addEventListener('mouseup',onMouseUp);
-  canvas.addEventListener('wheel',onWheel,{passive:false});
-  loop();
-  // Try auto-load on startup
-  autoLoad();
-});
 </script>
 </body>
 </html>
