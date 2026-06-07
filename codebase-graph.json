@@ -1,13 +1,13 @@
 {
   "version": "1.0",
-  "generated": "2026-06-06T10:12:37.672294+00:00",
+  "generated": "2026-06-07T15:07:12.752357+00:00",
   "generator": "gen_graph_python.py",
   "language": "python",
-  "hash": "dc9d9b0845d2c3e3",
+  "hash": "f48a009db020bf7c",
   "stats": {
-    "total_files": 15,
-    "total_nodes": 40,
-    "total_edges": 191,
+    "total_files": 22,
+    "total_nodes": 45,
+    "total_edges": 282,
     "routers": 0,
     "services": 0,
     "repositories": 0,
@@ -432,8 +432,8 @@
       "name": "Card",
       "file": "hermes_agent/gui.py",
       "lines": [
-        109,
-        118
+        93,
+        96
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -452,8 +452,8 @@
       "name": "__init__",
       "file": "hermes_agent/gui.py",
       "lines": [
-        110,
-        118
+        94,
+        96
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -475,8 +475,8 @@
       "name": "HermesButton",
       "file": "hermes_agent/gui.py",
       "lines": [
-        121,
-        138
+        98,
+        109
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -495,8 +495,8 @@
       "name": "__init__",
       "file": "hermes_agent/gui.py",
       "lines": [
-        122,
-        134
+        99,
+        105
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -530,8 +530,8 @@
       "name": "set_busy",
       "file": "hermes_agent/gui.py",
       "lines": [
-        136,
-        138
+        107,
+        109
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -553,8 +553,8 @@
       "name": "HermesGUI",
       "file": "hermes_agent/gui.py",
       "lines": [
-        145,
-        1201
+        114,
+        1738
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -570,8 +570,8 @@
       "name": "__init__",
       "file": "hermes_agent/gui.py",
       "lines": [
-        146,
-        172
+        115,
+        136
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -593,11 +593,11 @@
       "name": "QueueLogHandler",
       "file": "hermes_agent/gui.py",
       "lines": [
-        69,
-        73
+        67,
+        69
       ],
       "module": "hermes_agent.gui",
-      "summary": "Sends log records into the GUI log queue.",
+      "summary": "",
       "tags": [
         "class",
         "hermes_agent",
@@ -613,8 +613,8 @@
       "name": "emit",
       "file": "hermes_agent/gui.py",
       "lines": [
-        71,
-        73
+        68,
+        69
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -636,8 +636,8 @@
       "name": "SectionLabel",
       "file": "hermes_agent/gui.py",
       "lines": [
-        99,
-        106
+        88,
+        91
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -656,8 +656,8 @@
       "name": "__init__",
       "file": "hermes_agent/gui.py",
       "lines": [
-        100,
-        106
+        89,
+        91
       ],
       "module": "hermes_agent.gui",
       "summary": "",
@@ -674,6 +674,116 @@
         {
           "name": "text",
           "type": ""
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.risk.TrailingStopTracker",
+      "kind": "class",
+      "name": "TrailingStopTracker",
+      "file": "hermes_agent/risk.py",
+      "lines": [
+        144,
+        200
+      ],
+      "module": "hermes_agent.risk",
+      "summary": "Tracks highest price seen since entry and updates trailing stop.",
+      "tags": [
+        "class",
+        "hermes_agent",
+        "risk"
+      ]
+    },
+    {
+      "id": "hermes_agent.risk.TrailingStopTracker.__init__",
+      "kind": "function",
+      "name": "__init__",
+      "file": "hermes_agent/risk.py",
+      "lines": [
+        149,
+        150
+      ],
+      "module": "hermes_agent.risk",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "risk"
+      ]
+    },
+    {
+      "id": "hermes_agent.risk.TrailingStopTracker.add",
+      "kind": "function",
+      "name": "add",
+      "file": "hermes_agent/risk.py",
+      "lines": [
+        152,
+        157
+      ],
+      "module": "hermes_agent.risk",
+      "summary": "",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "risk"
+      ],
+      "parameters": [
+        {
+          "name": "symbol",
+          "type": "str"
+        },
+        {
+          "name": "entry",
+          "type": "float"
+        },
+        {
+          "name": "trail_pct",
+          "type": "float"
+        }
+      ]
+    },
+    {
+      "id": "hermes_agent.risk.TrailingStopTracker.get_all",
+      "kind": "query",
+      "name": "get_all",
+      "file": "hermes_agent/risk.py",
+      "lines": [
+        190,
+        200
+      ],
+      "module": "hermes_agent.risk",
+      "summary": "",
+      "tags": [
+        "query",
+        "hermes_agent",
+        "risk"
+      ],
+      "return_type": "list"
+    },
+    {
+      "id": "hermes_agent.risk.TrailingStopTracker.update",
+      "kind": "function",
+      "name": "update",
+      "file": "hermes_agent/risk.py",
+      "lines": [
+        159,
+        188
+      ],
+      "module": "hermes_agent.risk",
+      "summary": "Call this every price poll. Returns alert dict if stop is hit.",
+      "tags": [
+        "function",
+        "hermes_agent",
+        "risk"
+      ],
+      "parameters": [
+        {
+          "name": "symbol",
+          "type": "str"
+        },
+        {
+          "name": "current_price",
+          "type": "float"
         }
       ]
     },
@@ -1296,6 +1406,11 @@
       "kind": "imports"
     },
     {
+      "source": "hermes_agent.formatter",
+      "target": "formatter.format_morning_brief",
+      "kind": "imports"
+    },
+    {
       "source": "hermes_agent.gui.QueueLogHandler",
       "target": "logging.Handler",
       "kind": "inherits"
@@ -1418,7 +1533,22 @@
     },
     {
       "source": "hermes_agent.gui",
+      "target": "re",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
       "target": "config",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "store.load",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "store.save",
       "kind": "imports"
     },
     {
@@ -1453,17 +1583,37 @@
     },
     {
       "source": "hermes_agent.gui",
-      "target": "formatter.format_morning_brief",
-      "kind": "imports"
-    },
-    {
-      "source": "hermes_agent.gui",
       "target": "formatter.format_52w_report",
       "kind": "imports"
     },
     {
       "source": "hermes_agent.gui",
       "target": "formatter.format_earnings_reminder",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_signal_digest",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_corporate_action_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_macro_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_deal_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_morning_brief_extended",
       "kind": "imports"
     },
     {
@@ -1478,12 +1628,122 @@
     },
     {
       "source": "hermes_agent.gui",
+      "target": "signals.collect_all_signals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "signals.filter_by_timeframe",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.nse.get_bulk_deals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.nse.get_block_deals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.nse.get_circuit_stocks",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.nse.get_fii_dii_trend",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.bse.get_corporate_actions",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.macro.get_upcoming_macro_events",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.macro.get_high_impact_news",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.macro.get_crude_price",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.macro.get_inr_usd",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.macro.get_global_markets",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.technicals.analyze_watchlist",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "sources.technicals.analyze",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "risk.pre_trade_checklist",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "risk.portfolio_risk_analysis",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "risk.get_stop_loss",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "risk.get_position_size",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "risk.TrailingStopTracker",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
       "target": "datetime.time",
       "kind": "imports"
     },
     {
       "source": "hermes_agent.gui",
-      "target": "store.save",
+      "target": "formatter.format_ta_watchlist_summary",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_pre_trade_checklist",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_ta_snapshot",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_risk_summary",
       "kind": "imports"
     },
     {
@@ -1494,6 +1754,11 @@
     {
       "source": "hermes_agent.gui",
       "target": "formatter.format_price_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.gui",
+      "target": "formatter.format_trailing_stop_alert",
       "kind": "imports"
     },
     {
@@ -1528,6 +1793,11 @@
     },
     {
       "source": "hermes_agent.main",
+      "target": "datetime.date",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
       "target": "config",
       "kind": "imports"
     },
@@ -1563,17 +1833,42 @@
     },
     {
       "source": "hermes_agent.main",
-      "target": "formatter.format_morning_brief",
-      "kind": "imports"
-    },
-    {
-      "source": "hermes_agent.main",
       "target": "formatter.format_52w_report",
       "kind": "imports"
     },
     {
       "source": "hermes_agent.main",
       "target": "formatter.format_earnings_reminder",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_signal_digest",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_corporate_action_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_macro_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_deal_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_fii_trend_alert",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "formatter.format_morning_brief_extended",
       "kind": "imports"
     },
     {
@@ -1588,7 +1883,277 @@
     },
     {
       "source": "hermes_agent.main",
+      "target": "signals.collect_all_signals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "signals.filter_by_timeframe",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.nse.get_bulk_deals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.nse.get_block_deals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.nse.get_circuit_stocks",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.nse.get_fii_dii_trend",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.bse.get_corporate_actions",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.macro.get_upcoming_macro_events",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.macro.get_high_impact_news",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.macro.get_crude_price",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.macro.get_inr_usd",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "sources.macro.get_global_markets",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
       "target": "datetime.time",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "signals.signals_from_fii_trend",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.main",
+      "target": "signals.signals_from_circuit",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.risk.TrailingStopTracker",
+      "target": "hermes_agent.risk.TrailingStopTracker.__init__",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.risk.TrailingStopTracker",
+      "target": "hermes_agent.risk.TrailingStopTracker.add",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.risk.TrailingStopTracker",
+      "target": "hermes_agent.risk.TrailingStopTracker.update",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.risk.TrailingStopTracker",
+      "target": "hermes_agent.risk.TrailingStopTracker.get_all",
+      "kind": "has_method"
+    },
+    {
+      "source": "hermes_agent.risk",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.risk",
+      "target": "pandas",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.risk",
+      "target": "yfinance",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.risk",
+      "target": "datetime.date",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "datetime.date",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.nse.get_bulk_deals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.nse.get_block_deals",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.nse.get_oi_analysis",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.nse.get_circuit_stocks",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.nse.get_fii_dii_trend",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.nse.get_promoter_activity",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.bse.get_corporate_actions",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.macro.get_upcoming_macro_events",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.macro.get_high_impact_news",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.signals",
+      "target": "sources.technicals.analyze_watchlist",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.bse",
+      "target": "requests",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.bse",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.bse",
+      "target": "datetime.date",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.bse",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.bse",
+      "target": "datetime.timedelta",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.macro",
+      "target": "requests",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.macro",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.macro",
+      "target": "xml.etree.ElementTree",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.macro",
+      "target": "datetime.date",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.macro",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.macro",
+      "target": "datetime.timedelta",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.macro",
+      "target": "yfinance",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.nse",
+      "target": "requests",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.nse",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.nse",
+      "target": "datetime.datetime",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.nse",
+      "target": "datetime.date",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.technicals",
+      "target": "logging",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.technicals",
+      "target": "pandas",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.technicals",
+      "target": "yfinance",
+      "kind": "imports"
+    },
+    {
+      "source": "hermes_agent.sources.technicals",
+      "target": "pandas_ta",
       "kind": "imports"
     },
     {

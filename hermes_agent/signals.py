@@ -288,6 +288,14 @@ def collect_all_signals(watchlist: list) -> list:
     except Exception as e:
         log.warning(f"FII trend signals failed: {e}")
 
+    log.info("Collecting signals — technical analysis…")
+    try:
+        from sources.technicals import analyze_watchlist
+        ta_results = analyze_watchlist(watchlist)
+        all_signals += signals_from_ta(ta_results)
+    except Exception as e:
+        log.warning(f"TA signals failed: {e}")
+
     # Sort: severity first, then timeframe
     tf_order = {"TODAY": 0, "1W": 1, "1M": 2}
     all_signals.sort(key=lambda s: (
@@ -297,6 +305,68 @@ def collect_all_signals(watchlist: list) -> list:
 
     log.info(f"Signal collection complete — {len(all_signals)} signals.")
     return all_signals
+
+
+def signals_from_ta(ta_results: list) -> list:
+    sigs = []
+    for r in ta_results:
+        sym   = r["symbol"]
+        score = r.get("ta_score", 0)
+        sig   = r.get("ta_signal", "NEUTRAL")
+        rsi   = r.get("rsi")
+        macd_cross = r.get("macd_cross", "NONE")
+        ma_cross   = r.get("ma_cross",   "NONE")
+        vol_sig    = r.get("volume_signal", "NORMAL")
+        bb_sig     = r.get("bb_signal",   "INSIDE")
+
+        # Strong buy/sell
+        if sig in ("STRONG BUY", "BUY"):
+            sev = "HIGH" if sig == "STRONG BUY" else "MEDIUM"
+            details = []
+            if rsi and rsi < 35:          details.append(f"RSI {rsi:.0f} oversold")
+            if macd_cross == "BULLISH":   details.append("MACD bullish cross")
+            if ma_cross   == "GOLDEN":    details.append("Golden cross ✨")
+            if vol_sig    == "SPIKE":     details.append("Volume spike")
+            if bb_sig     == "NEAR_LOWER":details.append("Near BB lower")
+            detail_str = " · ".join(details) if details else f"TA score {score}"
+            sigs.append(_sig(sym, "TA_BUY", sev,
+                f"📈 {sig} — {detail_str}", "TODAY", r))
+
+        elif sig in ("STRONG SELL", "SELL"):
+            sev = "HIGH" if sig == "STRONG SELL" else "MEDIUM"
+            details = []
+            if rsi and rsi > 68:          details.append(f"RSI {rsi:.0f} overbought")
+            if macd_cross == "BEARISH":   details.append("MACD bearish cross")
+            if ma_cross   == "DEATH":     details.append("Death cross ☠️")
+            if bb_sig     == "NEAR_UPPER":details.append("Near BB upper")
+            detail_str = " · ".join(details) if details else f"TA score {score}"
+            sigs.append(_sig(sym, "TA_SELL", sev,
+                f"📉 {sig} — {detail_str}", "TODAY", r))
+
+        # Specific events regardless of overall signal
+        if ma_cross == "GOLDEN":
+            sigs.append(_sig(sym, "GOLDEN_CROSS", "HIGH",
+                f"✨ Golden Cross — 50MA crossed above 200MA (strong uptrend signal)", "1W", r))
+        elif ma_cross == "DEATH":
+            sigs.append(_sig(sym, "DEATH_CROSS", "HIGH",
+                f"☠️ Death Cross — 50MA crossed below 200MA (bearish trend change)", "1W", r))
+
+        if macd_cross in ("BULLISH", "BEARISH"):
+            emoji = "📈" if macd_cross == "BULLISH" else "📉"
+            sigs.append(_sig(sym, f"MACD_{macd_cross}", "MEDIUM",
+                f"{emoji} MACD {macd_cross} crossover — momentum shift", "TODAY", r))
+
+        if bb_sig == "SQUEEZE":
+            sigs.append(_sig(sym, "BB_SQUEEZE", "MEDIUM",
+                f"🔔 Bollinger Band SQUEEZE — low volatility, big move imminent (width {r.get('bb_width',0):.1f}%)",
+                "1W", r))
+
+        if vol_sig == "SPIKE":
+            sigs.append(_sig(sym, "VOLUME_SPIKE", "MEDIUM",
+                f"📊 Volume SPIKE — {r.get('volume_ratio',0):.1f}x avg volume · something is moving",
+                "TODAY", r))
+
+    return sigs
 
 
 def filter_by_timeframe(signals: list, timeframe: str) -> list:

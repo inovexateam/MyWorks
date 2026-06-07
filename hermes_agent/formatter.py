@@ -421,3 +421,184 @@ def format_morning_brief_extended(
     # Insert extra block before the footer
     footer = "_— Hermes Agent · Free · Open Source_"
     return base.replace(footer, "\n".join(extra) + "\n" + footer)
+
+
+# ── 11. Technical Snapshot ───────────────────────────────────────────────────
+
+def format_ta_snapshot(ta_result: dict) -> str:
+    sym   = _esc(ta_result["symbol"].replace(".NS", ""))
+    price = ta_result.get("price", 0)
+    sig   = ta_result.get("ta_signal", "NEUTRAL")
+    score = ta_result.get("ta_score",  0)
+
+    sig_emoji = {"STRONG BUY": "🚀", "BUY": "📈", "STRONG SELL": "🔻",
+                 "SELL": "📉", "NEUTRAL": "➡️"}.get(sig, "➡️")
+
+    rsi  = ta_result.get("rsi")
+    ma50 = ta_result.get("ma50")
+    ma200= ta_result.get("ma200")
+    macd_cross = ta_result.get("macd_cross", "NONE")
+    ma_cross   = ta_result.get("ma_cross",   "NONE")
+    vol_sig    = ta_result.get("volume_signal", "N/A")
+    bb_sig     = ta_result.get("bb_signal",    "N/A")
+    support    = ta_result.get("support")
+    resistance = ta_result.get("resistance")
+
+    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
+    lines = [
+        f"📊 *HERMES TECHNICAL SNAPSHOT — {sym}*",
+        f"_{_esc(now)}_",
+        "",
+        f"{sig_emoji} *{_esc(sig)}* \\(score: {_esc(str(score))}\\)",
+        f"💹 Price: `₹{price:,.2f}`",
+        "",
+        "*INDICATORS*",
+    ]
+
+    if rsi is not None:
+        rsi_emoji = "🔴" if rsi > 70 else ("🟢" if rsi < 30 else "🟡")
+        lines.append(f"{rsi_emoji} RSI: `{rsi:.1f}` — {_esc(ta_result.get('rsi_signal',''))}")
+
+    if ma50:
+        a50 = "above ✅" if ta_result.get("above_ma50") else "below ❌"
+        lines.append(f"📏 MA50: `₹{ma50:,.2f}` — {_esc(a50)}")
+    if ma200:
+        a200 = "above ✅" if ta_result.get("above_ma200") else "below ❌"
+        lines.append(f"📏 MA200: `₹{ma200:,.2f}` — {_esc(a200)}")
+
+    if ma_cross != "NONE" and ma_cross != "N/A":
+        emoji = "✨" if ma_cross == "GOLDEN" else "☠️"
+        lines.append(f"{emoji} MA Cross: *{_esc(ma_cross)} CROSS*")
+
+    if macd_cross != "NONE" and macd_cross != "N/A":
+        emoji = "📈" if macd_cross == "BULLISH" else "📉"
+        lines.append(f"{emoji} MACD: *{_esc(macd_cross)} crossover*")
+
+    lines.append(f"📊 Volume: {_esc(vol_sig)} \\(ratio {ta_result.get('volume_ratio',1):.1f}x\\)")
+    lines.append(f"〰️ Bollinger: {_esc(bb_sig)}")
+
+    if support or resistance:
+        lines.append("")
+        lines.append("*KEY LEVELS*")
+        if support:    lines.append(f"🟢 Support:    `₹{support:,.2f}`")
+        if resistance: lines.append(f"🔴 Resistance: `₹{resistance:,.2f}`")
+
+    lines.append("\n_— Hermes Agent_")
+    return "\n".join(lines)
+
+
+def format_ta_watchlist_summary(ta_results: list) -> str:
+    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
+    lines = [
+        "📊 *HERMES TECHNICAL SUMMARY — WATCHLIST*",
+        f"_{_esc(now)}_",
+        "",
+    ]
+    sig_map = {"STRONG BUY":"🚀","BUY":"📈","NEUTRAL":"➡️","SELL":"📉","STRONG SELL":"🔻"}
+    for r in ta_results:
+        sym   = r["symbol"].replace(".NS","")
+        sig   = r.get("ta_signal","NEUTRAL")
+        emoji = sig_map.get(sig, "➡️")
+        rsi   = r.get("rsi")
+        rsi_s = f"RSI {rsi:.0f}" if rsi else "—"
+        vol   = r.get("volume_signal","—")
+        mc    = r.get("macd_cross","—")
+        lines.append(
+            f"{emoji} *{_esc(sym)}* `₹{r['price']:,.2f}` — "
+            f"{_esc(sig)} \\| {_esc(rsi_s)} \\| Vol:{_esc(vol)} \\| MACD:{_esc(mc)}"
+        )
+    lines.append("\n_— Hermes Agent_")
+    return "\n".join(lines)
+
+
+# ── 12. Pre-Trade Checklist ──────────────────────────────────────────────────
+
+def format_pre_trade_checklist(result: dict) -> str:
+    sym     = _esc(result["symbol"].replace(".NS",""))
+    verdict = result["verdict"]
+    passed  = result["passed"]
+    total   = result["total"]
+    entry   = result["entry"]
+    stop    = result.get("stop_loss", 0)
+    pos     = result.get("position", {})
+
+    v_emoji = {"STRONG BUY":"🚀","BUY":"📈","WATCH":"👀","AVOID":"🚫"}.get(verdict,"❓")
+
+    lines = [
+        f"✅ *PRE\\-TRADE CHECKLIST — {sym}*",
+        "",
+        f"{v_emoji} *VERDICT: {_esc(verdict)}* \\({passed}/{total} checks passed\\)",
+        "",
+        f"💰 Entry: `₹{entry:,.2f}`",
+        f"🛑 Stop\\-Loss: `₹{stop:,.2f}`",
+    ]
+
+    if pos:
+        lines.append(f"📦 Suggested Qty: `{pos.get('qty',0)}` shares "
+                     f"\\(₹{pos.get('position_value',0):,.0f} · {pos.get('position_pct',0):.1f}% of portfolio\\)")
+
+    lines += ["", "*CHECKS*"]
+    for c in result.get("checks", []):
+        icon = "✅" if c["pass"] else "❌"
+        lines.append(f"{icon} *{_esc(c['name'])}*")
+        lines.append(f"    {_esc(c['detail'])}")
+
+    lines.append("\n_— Hermes Agent_")
+    return "\n".join(lines)
+
+
+# ── 13. Trailing Stop Alert ──────────────────────────────────────────────────
+
+def format_trailing_stop_alert(result: dict) -> str:
+    sym    = _esc(result["symbol"].replace(".NS",""))
+    profit = result["profit"]
+    pct    = result["pct"]
+    emoji  = "🟢" if profit >= 0 else "🔴"
+    now    = datetime.now().strftime("%H:%M:%S IST")
+    return (
+        f"🛑 *HERMES TRAILING STOP HIT*\n\n"
+        f"*{sym}* — SELL TRIGGERED\n\n"
+        f"📍 Entry:   `₹{result['entry']:,.2f}`\n"
+        f"🛑 Stop:    `₹{result['stop_hit']:,.2f}`\n"
+        f"💹 Current: `₹{result['current_price']:,.2f}`\n"
+        f"{emoji} P&L:    `{'+'if profit>=0 else ''}₹{profit:,.2f}` \\({_esc(f'{pct:+.2f}')}%\\)\n\n"
+        f"_{_esc(now)}_\n_— Hermes Agent_"
+    )
+
+
+# ── 14. Risk Summary ─────────────────────────────────────────────────────────
+
+def format_risk_summary(risk: dict) -> str:
+    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
+    total = risk.get("total_value", 0)
+    top5  = risk.get("top5_conc_pct", 0)
+    it    = risk.get("it_exposure_pct",   0)
+    bank  = risk.get("bank_exposure_pct", 0)
+    divs  = "✅ Diversified" if risk.get("diversified") else "⚠️ Concentrated"
+    warns = risk.get("warnings", [])
+
+    lines = [
+        "🛡️ *HERMES RISK SUMMARY*",
+        f"_{_esc(now)}_",
+        "",
+        f"Portfolio Value: `₹{total:,.0f}`",
+        f"Diversification: {_esc(divs)}",
+        f"Top 5 concentration: `{top5:.1f}%`",
+        f"IT exposure: `{it:.1f}%`  \\|  Banking: `{bank:.1f}%`",
+        "",
+    ]
+
+    if warns:
+        lines.append("*⚠️ WARNINGS*")
+        for w in warns:
+            lines.append(f"• {_esc(w)}")
+        lines.append("")
+
+    lines.append("*POSITIONS*")
+    for p in sorted(risk.get("positions",[]), key=lambda x: x["pct"], reverse=True):
+        sym   = p["symbol"].replace(".NS","")
+        flag  = "⚠️ " if p["overweight"] else ""
+        lines.append(f"{flag}*{_esc(sym)}* `{p['pct']:.1f}%` \\(₹{p['value']:,.0f}\\)")
+
+    lines.append("\n_— Hermes Agent_")
+    return "\n".join(lines)

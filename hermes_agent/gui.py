@@ -44,6 +44,11 @@ from sources.macro import (
     get_upcoming_macro_events, get_high_impact_news,
     get_crude_price, get_inr_usd, get_global_markets,
 )
+from sources.technicals import analyze_watchlist, analyze
+from risk import (
+    pre_trade_checklist, portfolio_risk_analysis,
+    get_stop_loss, get_position_size, TrailingStopTracker,
+)
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 C = {
@@ -121,6 +126,8 @@ class HermesGUI:
             alerts=config.PRICE_ALERTS, sender=sender,
             poll_seconds=config.ALERT_POLL_SECONDS,
         )
+        self.trail_tracker = TrailingStopTracker()
+        self.ta_cache: list = []
 
         self._build_ui()
         self._start_background_threads()
@@ -180,6 +187,8 @@ class HermesGUI:
         self._build_tab_indices()
         self._build_tab_alerts()
         self._build_tab_signals()
+        self._build_tab_technicals()
+        self._build_tab_risk()
         self._build_tab_52w()
         self._build_tab_earnings()
         self._build_tab_corporate()
@@ -394,7 +403,392 @@ class HermesGUI:
         self.sig_status_lbl = tk.Label(btn_row, text="", bg=C["bg"], fg=C["muted"], font=("Courier", 8))
         self.sig_status_lbl.pack(side="left", padx=10)
 
-    # ── Tab: 52W Range ────────────────────────────────────────────────────────
+    # ── Tab: Technicals ───────────────────────────────────────────────────────
+
+    def _build_tab_technicals(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Technicals  ")
+
+        SectionLabel(f, "Technical Analysis — Full Watchlist").pack(anchor="w", pady=(10, 4))
+
+        cols = ("Symbol","Price","TA Signal","RSI","RSI Signal",
+                "MA50","Above MA50","MACD Cross","MA Cross","Volume","BB Signal","Support","Resistance")
+        self.ta_tree = self._make_tree(f, cols, heights=12)
+        self.ta_tree.pack(fill="both", expand=True, pady=(0, 8))
+        widths = [90,80,90,55,80,80,80,90,90,70,90,80,80]
+        for col, w in zip(cols, widths):
+            self.ta_tree.heading(col, text=col)
+            self.ta_tree.column(col, anchor="center", width=w, minwidth=55)
+        self.ta_tree.column("Symbol", anchor="w")
+        self.ta_tree.tag_configure("STRONG BUY",  foreground=C["green"])
+        self.ta_tree.tag_configure("BUY",         foreground=C["teal"])
+        self.ta_tree.tag_configure("NEUTRAL",     foreground=C["muted"])
+        self.ta_tree.tag_configure("SELL",        foreground=C["amber"])
+        self.ta_tree.tag_configure("STRONG SELL", foreground=C["red"])
+
+        btn_row = tk.Frame(f, bg=C["bg"])
+        btn_row.pack(fill="x")
+        self.ta_refresh_btn = HermesButton(btn_row, "↻  RUN TA SCAN", self._refresh_ta, accent=True)
+        self.ta_refresh_btn.pack(side="left")
+        self.ta_send_btn = HermesButton(btn_row, "📨  SEND SUMMARY", self._send_ta_summary)
+        self.ta_send_btn.pack(side="left", padx=(6, 0))
+        self.ta_status_lbl = tk.Label(btn_row, text="", bg=C["bg"], fg=C["muted"], font=("Courier", 8))
+        self.ta_status_lbl.pack(side="left", padx=10)
+
+        # Single stock deep dive
+        SectionLabel(f, "Deep Dive — Single Stock").pack(anchor="w", pady=(10, 4))
+        dd_row = tk.Frame(f, bg=C["bg"])
+        dd_row.pack(fill="x")
+        self.ta_sym_var = tk.StringVar()
+        tk.Entry(dd_row, textvariable=self.ta_sym_var, bg=C["bg3"], fg=C["text"],
+                 insertbackground=C["text"], relief="flat", font=("Courier", 10), width=18,
+                 highlightbackground=C["border"], highlightthickness=1).pack(side="left", padx=(0,8))
+        HermesButton(dd_row, "ANALYSE + SEND", self._deep_dive_ta, accent=True).pack(side="left")
+
+    # ── Tab: Risk Manager ─────────────────────────────────────────────────────
+
+    def _build_tab_risk(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Risk Manager  ")
+
+        left_col = tk.Frame(f, bg=C["bg"])
+        left_col.pack(side="left", fill="both", expand=True, padx=(0, 8), pady=10)
+        right_col = tk.Frame(f, bg=C["bg"])
+        right_col.pack(side="left", fill="both", expand=True, pady=10)
+
+        # Portfolio risk
+        SectionLabel(left_col, "Portfolio Risk Analysis").pack(anchor="w", pady=(0, 4))
+        self.risk_summary_text = scrolledtext.ScrolledText(
+            left_col, height=8, bg=C["bg2"], fg=C["text"],
+            font=("Courier", 9), relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.risk_summary_text.pack(fill="x", pady=(0, 8))
+
+        HermesButton(left_col, "↻  ANALYSE PORTFOLIO RISK",
+                     self._refresh_risk, accent=True).pack(anchor="w", pady=(0, 8))
+        HermesButton(left_col, "📨  SEND RISK REPORT",
+                     self._send_risk_report).pack(anchor="w")
+
+        # Trailing stops
+        SectionLabel(left_col, "Trailing Stop Tracker").pack(anchor="w", pady=(12, 4))
+        trail_form = Card(left_col)
+        trail_form.pack(fill="x", pady=(0, 6))
+        tr = tk.Frame(trail_form, bg=C["bg2"])
+        tr.pack(fill="x")
+        self.trail_sym_var  = tk.StringVar()
+        self.trail_entry_var = tk.StringVar()
+        for lbl, var, w in [("Symbol", self.trail_sym_var, 14), ("Entry ₹", self.trail_entry_var, 10)]:
+            tk.Label(tr, text=lbl, bg=C["bg2"], fg=C["muted"],
+                     font=("Courier", 8), width=9, anchor="w").pack(side="left")
+            tk.Entry(tr, textvariable=var, bg=C["bg3"], fg=C["text"],
+                     insertbackground=C["text"], relief="flat", font=("Courier", 10), width=w,
+                     highlightbackground=C["border"], highlightthickness=1).pack(side="left", padx=(0,8))
+        HermesButton(trail_form, "＋ TRACK", self._add_trailing_stop, accent=True).pack(anchor="w", pady=(6,0))
+
+        cols = ("Symbol","Entry","Current High","Stop","Trail%")
+        self.trail_tree = self._make_tree(left_col, cols, heights=5)
+        self.trail_tree.pack(fill="x")
+        for col in cols:
+            self.trail_tree.heading(col, text=col)
+            self.trail_tree.column(col, anchor="center", width=90, minwidth=70)
+        self.trail_tree.column("Symbol", anchor="w")
+
+        # Pre-trade checklist (right col)
+        SectionLabel(right_col, "Pre-Trade Checklist").pack(anchor="w", pady=(0, 4))
+        ptc_card = Card(right_col)
+        ptc_card.pack(fill="x", pady=(0, 8))
+        ptc_form = tk.Frame(ptc_card, bg=C["bg2"])
+        ptc_form.pack(fill="x", pady=(0, 6))
+        self.ptc_sym_var   = tk.StringVar()
+        self.ptc_entry_var = tk.StringVar()
+        self.ptc_target_var= tk.StringVar()
+        for lbl, var, w, ph in [
+            ("Symbol",   self.ptc_sym_var,    14, "RELIANCE.NS"),
+            ("Entry ₹",  self.ptc_entry_var,  10, "2920"),
+            ("Target ₹", self.ptc_target_var, 10, "3200"),
+        ]:
+            row = tk.Frame(ptc_card, bg=C["bg2"])
+            row.pack(fill="x", pady=2)
+            tk.Label(row, text=lbl, bg=C["bg2"], fg=C["muted"],
+                     font=("Courier", 8), width=10, anchor="w").pack(side="left")
+            tk.Entry(row, textvariable=var, bg=C["bg3"], fg=C["text"],
+                     insertbackground=C["text"], relief="flat", font=("Courier", 10), width=w,
+                     highlightbackground=C["border"], highlightthickness=1).pack(side="left")
+
+        HermesButton(ptc_card, "🔍  RUN CHECKLIST", self._run_checklist, accent=True).pack(anchor="w", pady=(6,0))
+
+        self.ptc_result_text = scrolledtext.ScrolledText(
+            right_col, height=16, bg=C["bg2"], fg=C["text"],
+            font=("Courier", 9), relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.ptc_result_text.pack(fill="both", expand=True, pady=(8, 0))
+
+        # Stop-loss calculator
+        SectionLabel(right_col, "Quick Stop-Loss Calculator").pack(anchor="w", pady=(10, 4))
+        sl_row = tk.Frame(right_col, bg=C["bg"])
+        sl_row.pack(fill="x")
+        self.sl_sym_var   = tk.StringVar()
+        self.sl_entry_var = tk.StringVar()
+        tk.Entry(sl_row, textvariable=self.sl_sym_var, bg=C["bg3"], fg=C["text"],
+                 insertbackground=C["text"], relief="flat", font=("Courier", 10), width=14,
+                 highlightbackground=C["border"], highlightthickness=1).pack(side="left", padx=(0,6))
+        tk.Entry(sl_row, textvariable=self.sl_entry_var, bg=C["bg3"], fg=C["text"],
+                 insertbackground=C["text"], relief="flat", font=("Courier", 10), width=10,
+                 highlightbackground=C["border"], highlightthickness=1).pack(side="left", padx=(0,6))
+        HermesButton(sl_row, "CALC", self._calc_stop_loss).pack(side="left")
+        self.sl_result_lbl = tk.Label(right_col, text="", bg=C["bg"], fg=C["teal"],
+                                       font=("Courier", 9, "bold"))
+        self.sl_result_lbl.pack(anchor="w", pady=(4,0))
+
+    # ── Technicals data methods ───────────────────────────────────────────────
+
+    def _refresh_ta(self):
+        self.ta_refresh_btn.set_busy(True)
+        self.ta_status_lbl.config(text="Scanning…", fg=C["muted"])
+        self._log_gui("Running TA scan…")
+        threading.Thread(target=self._fetch_ta, daemon=True).start()
+
+    def _fetch_ta(self):
+        try:
+            results = analyze_watchlist(config.WATCHLIST)
+            log_queue.put(("ta", results))
+        except Exception as e:
+            log.error(f"TA scan: {e}")
+            log_queue.put(("ta", []))
+
+    def _update_ta_ui(self, results: list):
+        self.ta_cache = results
+        for i in self.ta_tree.get_children(): self.ta_tree.delete(i)
+        for r in results:
+            sym  = r["symbol"].replace(".NS","")
+            sig  = r.get("ta_signal","NEUTRAL")
+            rsi  = r.get("rsi")
+            rsi_s = f"{rsi:.1f}" if rsi else "—"
+            ma50 = r.get("ma50")
+            ma50_s = f"₹{ma50:,.2f}" if ma50 else "—"
+            abv  = "✅" if r.get("above_ma50") else "❌"
+            mc   = r.get("macd_cross","—")
+            mac  = r.get("ma_cross","—")
+            vol  = r.get("volume_signal","—")
+            bb   = r.get("bb_signal","—")
+            sup  = f"₹{r['support']:,.2f}" if r.get("support") else "—"
+            res  = f"₹{r['resistance']:,.2f}" if r.get("resistance") else "—"
+            self.ta_tree.insert("", "end", tags=(sig,), values=(
+                sym, f"₹{r['price']:,.2f}", sig, rsi_s, r.get("rsi_signal","—"),
+                ma50_s, abv, mc, mac, vol, bb, sup, res))
+
+        self.ta_refresh_btn.set_busy(False)
+        self.ta_status_lbl.config(text=f"{len(results)} stocks scanned.", fg=C["green"])
+        self._log_gui(f"TA scan complete — {len(results)} stocks.")
+
+    def _send_ta_summary(self):
+        self.ta_send_btn.set_busy(True)
+        threading.Thread(target=self._do_send_ta, daemon=True).start()
+
+    def _do_send_ta(self):
+        try:
+            from formatter import format_ta_watchlist_summary
+            results = self.ta_cache or analyze_watchlist(config.WATCHLIST)
+            ok = sender.send_long(format_ta_watchlist_summary(results))
+            log_queue.put(("ta_send_done", ok))
+        except Exception as e:
+            log.error(f"TA send: {e}")
+            log_queue.put(("ta_send_done", False))
+
+    def _deep_dive_ta(self):
+        sym = self.ta_sym_var.get().strip().upper()
+        if not sym: return
+        if not sym.endswith(".NS") and sym not in ("NIFTY50","BANKNIFTY"):
+            sym += ".NS"
+        self._log_gui(f"Deep dive TA: {sym}…")
+        def _run():
+            try:
+                from formatter import format_ta_snapshot
+                r  = analyze(sym)
+                if r:
+                    ok = sender.send_long(format_ta_snapshot(r))
+                    log_queue.put(("log", f"TA snapshot for {sym} {'sent ✅' if ok else 'failed ❌'}"))
+            except Exception as e:
+                log.error(f"Deep dive TA {sym}: {e}")
+        threading.Thread(target=_run, daemon=True).start()
+
+    # ── Risk Manager data methods ─────────────────────────────────────────────
+
+    def _refresh_risk(self):
+        self._log_gui("Analysing portfolio risk…")
+        threading.Thread(target=self._fetch_risk, daemon=True).start()
+
+    def _fetch_risk(self):
+        try:
+            from data_fetcher import get_portfolio_pnl
+            pnl  = get_portfolio_pnl(config.PORTFOLIO)
+            risk = portfolio_risk_analysis(config.PORTFOLIO, pnl)
+            log_queue.put(("risk", risk))
+        except Exception as e:
+            log.error(f"Risk analysis: {e}")
+            log_queue.put(("risk", {}))
+
+    def _update_risk_ui(self, risk: dict):
+        self.risk_summary_text.config(state="normal")
+        self.risk_summary_text.delete("1.0","end")
+        if not risk:
+            self.risk_summary_text.insert("end","No data available.")
+            self.risk_summary_text.config(state="disabled")
+            return
+        total = risk.get("total_value",0)
+        top5  = risk.get("top5_conc_pct",0)
+        divs  = "✅ Diversified" if risk.get("diversified") else "⚠️ Concentrated"
+        it    = risk.get("it_exposure_pct",0)
+        bank  = risk.get("bank_exposure_pct",0)
+        lines = [
+            f"Portfolio: ₹{total:,.0f}",
+            f"Status: {divs}",
+            f"Top-5 Concentration: {top5:.1f}%",
+            f"IT Exposure: {it:.1f}%  |  Banking: {bank:.1f}%",
+            "",
+        ]
+        warns = risk.get("warnings",[])
+        if warns:
+            lines.append("WARNINGS:")
+            lines += [f"  {w}" for w in warns]
+            lines.append("")
+        lines.append("POSITIONS:")
+        for p in sorted(risk.get("positions",[]), key=lambda x: x["pct"], reverse=True):
+            sym = p["symbol"].replace(".NS","")
+            flag = "⚠ " if p["overweight"] else "  "
+            lines.append(f"{flag}{sym:<14} {p['pct']:>5.1f}%   ₹{p['value']:>12,.0f}")
+        self.risk_summary_text.insert("end", "\n".join(lines))
+        self.risk_summary_text.config(state="disabled")
+        self._log_gui("Portfolio risk analysis done.")
+
+    def _send_risk_report(self):
+        self._log_gui("Sending risk report…")
+        def _run():
+            try:
+                from data_fetcher import get_portfolio_pnl
+                from formatter import format_risk_summary
+                pnl  = get_portfolio_pnl(config.PORTFOLIO)
+                risk = portfolio_risk_analysis(config.PORTFOLIO, pnl)
+                ok   = sender.send_long(format_risk_summary(risk))
+                log_queue.put(("log", f"Risk report {'sent ✅' if ok else 'failed ❌'}"))
+            except Exception as e:
+                log.error(f"Risk report send: {e}")
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _run_checklist(self):
+        sym    = self.ptc_sym_var.get().strip().upper()
+        entry_s = self.ptc_entry_var.get().strip()
+        if not sym or not entry_s: return
+        if not sym.endswith(".NS") and sym not in ("NIFTY50","BANKNIFTY"):
+            sym += ".NS"
+        try:
+            entry = float(entry_s.replace(",",""))
+        except ValueError:
+            return
+        self._log_gui(f"Running pre-trade checklist for {sym}…")
+        def _run():
+            try:
+                from sources.technicals import analyze as ta_analyze
+                from sources.nse import get_fii_dii_trend as _fii_trend
+                from data_fetcher import get_earnings_calendar, get_portfolio_pnl
+                from formatter import format_pre_trade_checklist
+
+                ta_r      = ta_analyze(sym) or {}
+                fii_trend = _fii_trend()
+                earnings  = get_earnings_calendar([sym])
+                earn_days = earnings[0]["days_out"] if earnings else 999
+                pnl       = get_portfolio_pnl(config.PORTFOLIO)
+                port_val  = sum(r.get("market_value",0) for r in pnl)
+
+                result = pre_trade_checklist(
+                    sym, entry, port_val, config.PORTFOLIO,
+                    ta_r, fii_trend, earn_days)
+                log_queue.put(("checklist", result))
+            except Exception as e:
+                log.error(f"Checklist: {e}")
+                log_queue.put(("checklist", None))
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _update_checklist_ui(self, result: dict | None):
+        self.ptc_result_text.config(state="normal")
+        self.ptc_result_text.delete("1.0","end")
+        if not result:
+            self.ptc_result_text.insert("end","Error running checklist.")
+            self.ptc_result_text.config(state="disabled")
+            return
+        verdict = result["verdict"]
+        passed  = result["passed"]
+        total   = result["total"]
+        stop    = result.get("stop_loss",0)
+        pos     = result.get("position",{})
+        lines   = [
+            f"VERDICT: {verdict}  ({passed}/{total} passed)",
+            f"Entry:   ₹{result['entry']:,.2f}",
+            f"Stop:    ₹{stop:,.2f}",
+        ]
+        if pos:
+            lines.append(f"Qty:     {pos.get('qty',0)} shares  "
+                         f"(₹{pos.get('position_value',0):,.0f}  {pos.get('position_pct',0):.1f}%)")
+        lines.append("")
+        for c in result.get("checks",[]):
+            icon = "✅" if c["pass"] else "❌"
+            lines.append(f"{icon} {c['name']}")
+            lines.append(f"   {c['detail']}")
+
+        col_map = {"STRONG BUY":C["green"],"BUY":C["teal"],
+                   "WATCH":C["amber"],"AVOID":C["red"]}
+        self.ptc_result_text.tag_config("verdict", foreground=col_map.get(verdict, C["text"]),
+                                         font=("Courier",10,"bold"))
+        self.ptc_result_text.insert("end", lines[0]+"\n", "verdict")
+        self.ptc_result_text.insert("end", "\n".join(lines[1:]))
+        self.ptc_result_text.config(state="disabled")
+
+        # Also send to Telegram
+        try:
+            from formatter import format_pre_trade_checklist
+            sender.send_long(format_pre_trade_checklist(result))
+        except Exception:
+            pass
+
+    def _calc_stop_loss(self):
+        sym   = self.sl_sym_var.get().strip().upper()
+        entry_s = self.sl_entry_var.get().strip()
+        if not sym or not entry_s: return
+        if not sym.endswith(".NS"): sym += ".NS"
+        try: entry = float(entry_s.replace(",",""))
+        except ValueError: return
+        def _run():
+            try:
+                sl = get_stop_loss(sym, entry)
+                msg = (f"Stop: ₹{sl['stop']:,.2f}  |  "
+                       f"Risk: ₹{sl['risk_per_share']:,.2f} ({sl['risk_pct']:.1f}%)  |  "
+                       f"ATR: {sl['atr'] or 'N/A'}  |  Method: {sl['method']}")
+                log_queue.put(("sl_result", msg))
+            except Exception as e:
+                log_queue.put(("sl_result", f"Error: {e}"))
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _add_trailing_stop(self):
+        sym    = self.trail_sym_var.get().strip().upper()
+        entry_s = self.trail_entry_var.get().strip()
+        if not sym or not entry_s: return
+        if not sym.endswith(".NS"): sym += ".NS"
+        try: entry = float(entry_s.replace(",",""))
+        except ValueError: return
+        self.trail_tracker.add(sym, entry)
+        self._populate_trail_tree()
+        self._log_gui(f"Trailing stop added: {sym} @ ₹{entry:,.2f}")
+
+    def _populate_trail_tree(self):
+        for i in self.trail_tree.get_children(): self.trail_tree.delete(i)
+        for t in self.trail_tracker.get_all():
+            self.trail_tree.insert("", "end", values=(
+                t["symbol"].replace(".NS",""),
+                f"₹{t['entry']:,.2f}",
+                f"₹{t['current_high']:,.2f}",
+                f"₹{t['stop']:,.2f}",
+                f"{t['trail_pct']:.0f}%",
+            ))
 
     def _build_tab_52w(self):
         f = tk.Frame(self.notebook, bg=C["bg"])
@@ -543,12 +937,13 @@ class HermesGUI:
         SectionLabel(inner, "Manual Triggers").pack(anchor="w", pady=(6, 4))
         self.brief_btn  = HermesButton(inner, "📨  SEND BRIEF",    self._trigger_brief, accent=True)
         self.sig_btn2   = HermesButton(inner, "🧠  SEND SIGNALS",  self._send_signals)
+        self.ta_btn2    = HermesButton(inner, "📊  SEND TA SUMMARY",self._send_ta_summary)
         self.w52_btn    = HermesButton(inner, "📐  SEND 52W",      self._trigger_52w)
         self.corp_btn   = HermesButton(inner, "💰  SEND CORP ACT", self._trigger_corporate)
         self.earn_btn   = HermesButton(inner, "🗓  SEND EARNINGS", self._trigger_earnings)
         self.macro_btn  = HermesButton(inner, "🌐  SEND MACRO",    self._trigger_macro)
         self.test_btn   = HermesButton(inner, "🔌  TEST TELEGRAM", self._test_telegram)
-        for btn in (self.brief_btn, self.sig_btn2, self.w52_btn, self.corp_btn,
+        for btn in (self.brief_btn, self.sig_btn2, self.ta_btn2, self.w52_btn, self.corp_btn,
                     self.earn_btn, self.macro_btn, self.test_btn):
             btn.pack(fill="x", pady=2)
 
@@ -1224,6 +1619,14 @@ class HermesGUI:
                 elif kind == "earnings":      self._update_earnings_ui(data)
                 elif kind == "signals":       self._update_signals_ui(data)
                 elif kind == "corporate":     self._update_corporate_ui(data)
+                elif kind == "ta":            self._update_ta_ui(data)
+                elif kind == "risk":          self._update_risk_ui(data)
+                elif kind == "checklist":     self._update_checklist_ui(data)
+                elif kind == "sl_result":
+                    self.sl_result_lbl.config(text=data)
+                elif kind == "ta_send_done":
+                    self.ta_send_btn.set_busy(False)
+                    self._log_gui("✅ TA summary sent!" if data else "❌ TA send failed.")
                 elif kind == "brief_done":
                     self.brief_btn.set_busy(False)
                     self._log_gui("✅ Brief sent!" if data else "❌ Brief failed.")
@@ -1316,6 +1719,17 @@ class HermesGUI:
                 try:
                     rows = get_portfolio_pnl(config.PORTFOLIO)
                     log_queue.put(("portfolio", rows))
+                    # Check trailing stops
+                    for r in rows:
+                        sym   = r["symbol"]
+                        price = r.get("price")
+                        if price:
+                            alert = self.trail_tracker.update(sym, price)
+                            if alert:
+                                from formatter import format_trailing_stop_alert
+                                sender.send(format_trailing_stop_alert(alert))
+                                log_queue.put(("log", f"🛑 Trailing stop hit: {sym} @ ₹{price}"))
+                    self._populate_trail_tree()
                 except Exception as e:
                     log.error(f"Auto-refresh: {e}")
 
