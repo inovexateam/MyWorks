@@ -296,6 +296,73 @@ def collect_all_signals(watchlist: list) -> list:
     except Exception as e:
         log.warning(f"TA signals failed: {e}")
 
+    log.info("Collecting signals — sector rotation…")
+    try:
+        from sources.sector import get_sector_performance, get_rotation_signals
+        sector_data = get_sector_performance()
+        for sig in get_rotation_signals(sector_data, watchlist):
+            sev = "HIGH" if abs(sig["pct"]) > 2 else "MEDIUM"
+            all_signals.append(_sig(
+                sig.get("symbol","MARKET"), "SECTOR_ROTATION", sev,
+                sig["message"], "TODAY", sig))
+    except Exception as e:
+        log.warning(f"Sector signals failed: {e}")
+
+    log.info("Collecting signals — VIX/sentiment…")
+    try:
+        from sources.vix import get_full_sentiment
+        sent = get_full_sentiment()
+        vix  = sent.get("vix",{})
+        v    = vix.get("vix",0)
+        if v > 20:
+            sev = "CRITICAL" if v > 25 else "HIGH"
+            all_signals.append(_sig(
+                "MARKET","VIX_ALERT", sev,
+                f"🌡️ India VIX at {v:.1f} — {vix.get('level','')} — {vix.get('meaning','')}",
+                "TODAY", sent))
+        pcr = sent.get("pcr",{})
+        p   = pcr.get("pcr",1.0)
+        if p > 1.3 or p < 0.7:
+            sev = "HIGH" if (p > 1.5 or p < 0.6) else "MEDIUM"
+            all_signals.append(_sig(
+                "MARKET","PCR_EXTREME", sev,
+                f"📊 Market PCR at {p:.2f} — {pcr.get('level','')} — {pcr.get('meaning','')}",
+                "TODAY", sent))
+    except Exception as e:
+        log.warning(f"VIX signals failed: {e}")
+
+    log.info("Collecting signals — promoter/shareholding…")
+    try:
+        from sources.promoter import get_watchlist_shareholding, get_pledge_alerts
+        sh_data = get_watchlist_shareholding(watchlist)
+        for a in get_pledge_alerts(sh_data):
+            sev = a.get("severity","MEDIUM")
+            all_signals.append(_sig(
+                a["symbol"], a["type"], sev,
+                f"🏛️ {a['message']} — {a['action']}", "1M", a))
+    except Exception as e:
+        log.warning(f"Promoter signals failed: {e}")
+
+    log.info("Collecting signals — unusual options…")
+    try:
+        from sources.options import scan_unusual_activity
+        options_data = scan_unusual_activity(watchlist)
+        for r in options_data:
+            sym = r["symbol"]
+            for u in r.get("unusual",[]):
+                bet = "RISE above" if u["type"]=="CALL_BUILDUP" else "FALL below"
+                all_signals.append(_sig(
+                    sym, "UNUSUAL_OPTIONS", "HIGH",
+                    f"🎯 Large options bet: {sym} will {bet} ₹{u['strike']:,} — {u['meaning']}",
+                    "1W", u))
+            if r.get("iv_spike"):
+                all_signals.append(_sig(
+                    sym, "IV_SPIKE", "MEDIUM",
+                    f"📈 IV spike on {sym} — big move expected before {r['expiry']}",
+                    "TODAY", r))
+    except Exception as e:
+        log.warning(f"Options signals failed: {e}")
+
     # Sort: severity first, then timeframe
     tf_order = {"TODAY": 0, "1W": 1, "1M": 2}
     all_signals.sort(key=lambda s: (

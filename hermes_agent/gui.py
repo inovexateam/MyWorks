@@ -189,6 +189,7 @@ class HermesGUI:
         self._build_tab_signals()
         self._build_tab_technicals()
         self._build_tab_risk()
+        self._build_tab_market_pulse()
         self._build_tab_52w()
         self._build_tab_earnings()
         self._build_tab_corporate()
@@ -790,6 +791,219 @@ class HermesGUI:
                 f"{t['trail_pct']:.0f}%",
             ))
 
+    def _build_tab_market_pulse(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Market Pulse  ")
+
+        left  = tk.Frame(f, bg=C["bg"]); left.pack(side="left",  fill="both", expand=True, padx=(0,6), pady=10)
+        right = tk.Frame(f, bg=C["bg"]); right.pack(side="left", fill="both", expand=True, pady=10)
+
+        # VIX
+        SectionLabel(left, "India VIX — Fear Index").pack(anchor="w", pady=(0,4))
+        self.vix_card = Card(left); self.vix_card.pack(fill="x", pady=(0,8))
+        self.vix_val_lbl   = tk.Label(self.vix_card, text="—", bg=C["bg2"], fg=C["text"],  font=("Courier",22,"bold")); self.vix_val_lbl.pack(anchor="w")
+        self.vix_level_lbl = tk.Label(self.vix_card, text="—", bg=C["bg2"], fg=C["muted"], font=("Courier",9));         self.vix_level_lbl.pack(anchor="w")
+        self.vix_mean_lbl  = tk.Label(self.vix_card, text="—", bg=C["bg2"], fg=C["muted"], font=("Courier",8), wraplength=260, justify="left"); self.vix_mean_lbl.pack(anchor="w")
+        self.vix_act_lbl   = tk.Label(self.vix_card, text="—", bg=C["bg2"], fg=C["amber"], font=("Courier",8), wraplength=260, justify="left"); self.vix_act_lbl.pack(anchor="w")
+
+        SectionLabel(left, "Put/Call Ratio — Sentiment").pack(anchor="w", pady=(8,4))
+        self.pcr_card = Card(left); self.pcr_card.pack(fill="x", pady=(0,8))
+        self.pcr_val_lbl   = tk.Label(self.pcr_card, text="—", bg=C["bg2"], fg=C["text"],  font=("Courier",18,"bold")); self.pcr_val_lbl.pack(anchor="w")
+        self.pcr_level_lbl = tk.Label(self.pcr_card, text="—", bg=C["bg2"], fg=C["muted"], font=("Courier",9));         self.pcr_level_lbl.pack(anchor="w")
+        self.pcr_mean_lbl  = tk.Label(self.pcr_card, text="—", bg=C["bg2"], fg=C["muted"], font=("Courier",8), wraplength=260, justify="left"); self.pcr_mean_lbl.pack(anchor="w")
+
+        SectionLabel(left, "Advance / Decline").pack(anchor="w", pady=(8,4))
+        self.ad_card = Card(left); self.ad_card.pack(fill="x", pady=(0,8))
+        self.ad_val_lbl  = tk.Label(self.ad_card, text="—", bg=C["bg2"], fg=C["text"],  font=("Courier",13,"bold")); self.ad_val_lbl.pack(anchor="w")
+        self.ad_mean_lbl = tk.Label(self.ad_card, text="—", bg=C["bg2"], fg=C["muted"], font=("Courier",8), wraplength=260, justify="left"); self.ad_mean_lbl.pack(anchor="w")
+
+        HermesButton(left, "↻  REFRESH SENTIMENT",   self._refresh_sentiment, accent=True).pack(anchor="w", pady=(4,2))
+        HermesButton(left, "📨  SEND SENTIMENT REPORT", self._send_sentiment).pack(anchor="w")
+
+        # Sector rotation
+        SectionLabel(right, "Sector Rotation Today").pack(anchor="w", pady=(0,4))
+        cols = ("Sector","Today %","This Week %","Flow")
+        self.sector_tree = self._make_tree(right, cols, heights=10)
+        self.sector_tree.pack(fill="x", pady=(0,8))
+        for col in cols:
+            self.sector_tree.heading(col, text=col)
+            self.sector_tree.column(col, anchor="center", width=110, minwidth=70)
+        self.sector_tree.column("Sector", anchor="w", width=100)
+        self.sector_tree.column("Flow",   anchor="w", width=130)
+        self.sector_tree.tag_configure("up",   foreground=C["green"])
+        self.sector_tree.tag_configure("dn",   foreground=C["red"])
+        self.sector_tree.tag_configure("flat", foreground=C["muted"])
+
+        # Options unusual
+        SectionLabel(right, "Unusual Options Activity").pack(anchor="w", pady=(8,4))
+        cols2 = ("Symbol","Spot","PCR","Sentiment","Resistance","Support","IV","Unusual")
+        self.opt_tree = self._make_tree(right, cols2, heights=6)
+        self.opt_tree.pack(fill="x", pady=(0,6))
+        widths2 = [80,80,55,80,85,80,60,100]
+        for col,w in zip(cols2,widths2):
+            self.opt_tree.heading(col, text=col)
+            self.opt_tree.column(col, anchor="center", width=w, minwidth=50)
+        self.opt_tree.column("Symbol", anchor="w")
+        self.opt_tree.tag_configure("BULLISH", foreground=C["green"])
+        self.opt_tree.tag_configure("BEARISH", foreground=C["red"])
+        self.opt_tree.tag_configure("NEUTRAL", foreground=C["muted"])
+        HermesButton(right, "↻  SCAN OPTIONS",       self._refresh_options, accent=True).pack(anchor="w", pady=(0,4))
+        HermesButton(right, "📨  SEND OPTIONS REPORT", self._send_options).pack(anchor="w", pady=(0,8))
+
+        # Promoter
+        SectionLabel(right, "Promoter & Institutional Holdings").pack(anchor="w", pady=(4,4))
+        cols3 = ("Symbol","Promoter%","Pledge%","FII%","MF%","Risk")
+        self.promo_tree = self._make_tree(right, cols3, heights=5)
+        self.promo_tree.pack(fill="x")
+        for col in cols3:
+            self.promo_tree.heading(col, text=col)
+            self.promo_tree.column(col, anchor="center", width=82, minwidth=55)
+        self.promo_tree.column("Symbol", anchor="w")
+        self.promo_tree.tag_configure("high",   foreground=C["red"])
+        self.promo_tree.tag_configure("medium", foreground=C["amber"])
+        self.promo_tree.tag_configure("safe",   foreground=C["green"])
+        btn_row2 = tk.Frame(right, bg=C["bg"]); btn_row2.pack(fill="x", pady=(4,0))
+        HermesButton(btn_row2, "↻  FETCH", self._refresh_promoter, accent=True).pack(side="left")
+        HermesButton(btn_row2, "📨  SEND",  self._send_promoter).pack(side="left", padx=(6,0))
+
+    # ── Market Pulse methods ──────────────────────────────────────────────────
+
+    def _refresh_sentiment(self):
+        self._log_gui("Fetching VIX + sentiment…")
+        threading.Thread(target=self._fetch_sentiment, daemon=True).start()
+
+    def _fetch_sentiment(self):
+        try:
+            from sources.vix import get_full_sentiment
+            from sources.sector import get_sector_performance, get_rotation_signals
+            sent   = get_full_sentiment()
+            sector = get_sector_performance()
+            rsigs  = get_rotation_signals(sector, config.WATCHLIST)
+            log_queue.put(("sentiment", (sent, sector, rsigs)))
+        except Exception as e:
+            log.error(f"Sentiment fetch: {e}")
+
+    def _update_sentiment_ui(self, data):
+        sent, sector_data, rsigs = data
+        vix  = sent.get("vix", {}); pcr = sent.get("pcr", {}); ad = sent.get("ad", {})
+        mood = sent.get("mood", "NEUTRAL")
+        v    = vix.get("vix", 0)
+        vix_col = C["red"] if v > 20 else (C["amber"] if v > 15 else C["green"])
+        self.vix_val_lbl.config(text=f"{v:.2f}", fg=vix_col)
+        self.vix_level_lbl.config(text=vix.get("level","—"))
+        self.vix_mean_lbl.config(text=vix.get("meaning","—"))
+        self.vix_act_lbl.config(text=f"→ {vix.get('action','—')}")
+        p = pcr.get("pcr", 0)
+        pcr_col = C["green"] if p > 1.2 else (C["red"] if p < 0.8 else C["muted"])
+        self.pcr_val_lbl.config(text=f"{p:.2f}", fg=pcr_col)
+        self.pcr_level_lbl.config(text=pcr.get("level","—"))
+        self.pcr_mean_lbl.config(text=pcr.get("meaning","—"))
+        adv = ad.get("advances",0); dec = ad.get("declines",0)
+        self.ad_val_lbl.config(text=f"▲ {adv}  ▼ {dec}  Ratio {ad.get('ratio',0):.2f}")
+        self.ad_mean_lbl.config(text=ad.get("meaning","—"))
+        for i in self.sector_tree.get_children(): self.sector_tree.delete(i)
+        for s in sector_data:
+            tag  = "up" if s["pct"]>0 else ("dn" if s["pct"]<0 else "flat")
+            flow = "🟢 Flowing IN" if s["pct"]>0 else "🔴 Flowing OUT"
+            self.sector_tree.insert("","end", tags=(tag,), values=(
+                s["sector"], f"{s['pct']:+.2f}%", f"{s['week_pct']:+.2f}%", flow))
+        self._log_gui(f"Sentiment refreshed. Market mood: {mood}")
+
+    def _send_sentiment(self):
+        threading.Thread(target=self._do_send_sentiment, daemon=True).start()
+
+    def _do_send_sentiment(self):
+        try:
+            from sources.vix import get_full_sentiment
+            from sources.sector import get_sector_performance, get_rotation_signals
+            from formatter import format_sentiment_report, format_sector_rotation
+            sent   = get_full_sentiment()
+            sector = get_sector_performance()
+            rsigs  = get_rotation_signals(sector, config.WATCHLIST)
+            ok1 = sender.send_long(format_sentiment_report(sent))
+            ok2 = sender.send_long(format_sector_rotation(sector, rsigs))
+            log_queue.put(("log", f"Sentiment {'sent ✅' if ok1 and ok2 else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Sentiment send: {e}")
+
+    def _refresh_options(self):
+        self._log_gui("Scanning unusual options…")
+        threading.Thread(target=self._fetch_options, daemon=True).start()
+
+    def _fetch_options(self):
+        try:
+            from sources.options import scan_unusual_activity
+            log_queue.put(("options", scan_unusual_activity(config.WATCHLIST)))
+        except Exception as e:
+            log.error(f"Options scan: {e}"); log_queue.put(("options", []))
+
+    def _update_options_ui(self, data):
+        for i in self.opt_tree.get_children(): self.opt_tree.delete(i)
+        for r in data:
+            sym  = r["symbol"]; sent = r.get("sentiment","NEUTRAL")
+            un   = len(r.get("unusual",[])); iv_flag = "⚠️ SPIKE" if r.get("iv_spike") else f"{r.get('avg_iv',0):.0f}%"
+            self.opt_tree.insert("","end", tags=(sent,), values=(
+                sym, f"₹{r.get('spot',0):,.0f}", f"{r.get('pcr',0):.2f}", sent,
+                f"₹{r.get('resistance',0):,}" if r.get("resistance") else "—",
+                f"₹{r.get('support',0):,}"    if r.get("support")    else "—",
+                iv_flag, f"{un} bets" if un else "—"))
+        self._log_gui(f"Options scan done — {len(data)} symbols.")
+
+    def _send_options(self):
+        threading.Thread(target=self._do_send_options, daemon=True).start()
+
+    def _do_send_options(self):
+        try:
+            from sources.options import scan_unusual_activity
+            from formatter import format_options_activity
+            ok = sender.send_long(format_options_activity(scan_unusual_activity(config.WATCHLIST)))
+            log_queue.put(("log", f"Options report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Options send: {e}")
+
+    def _refresh_promoter(self):
+        self._log_gui("Fetching shareholding…")
+        threading.Thread(target=self._fetch_promoter, daemon=True).start()
+
+    def _fetch_promoter(self):
+        try:
+            from sources.promoter import get_watchlist_shareholding, get_pledge_alerts
+            data   = get_watchlist_shareholding(config.WATCHLIST)
+            alerts = get_pledge_alerts(data)
+            log_queue.put(("promoter", (data, alerts)))
+        except Exception as e:
+            log.error(f"Promoter fetch: {e}"); log_queue.put(("promoter", ([],[])))
+
+    def _update_promoter_ui(self, data):
+        sh_data, alerts = data
+        for i in self.promo_tree.get_children(): self.promo_tree.delete(i)
+        for s in sh_data:
+            risk_tag = {"HIGH":"high","MEDIUM":"medium","LOW":"safe","NONE":"safe"}.get(s["pledge_risk"],"safe")
+            risk_lbl = {"HIGH":"🔴 HIGH","MEDIUM":"🟡 MED","LOW":"🟢 LOW","NONE":"✅ OK"}.get(s["pledge_risk"],"—")
+            chg_sym  = "+" if s["pledge_chg"]>=0 else ""
+            self.promo_tree.insert("","end", tags=(risk_tag,), values=(
+                s["symbol"][:9], f"{s['promoter_pct']:.1f}%",
+                f"{s['pledge_pct']:.1f}% ({chg_sym}{s['pledge_chg']:.1f})",
+                f"{s['fii_pct']:.1f}%", f"{s['dii_pct']:.1f}%", risk_lbl))
+        if alerts:
+            for a in alerts[:3]:
+                self._log_gui(f"Pledge: {a['symbol']} — {a['message'][:55]}")
+        self._log_gui(f"Shareholding loaded — {len(sh_data)} stocks.")
+
+    def _send_promoter(self):
+        threading.Thread(target=self._do_send_promoter, daemon=True).start()
+
+    def _do_send_promoter(self):
+        try:
+            from sources.promoter import get_watchlist_shareholding, get_pledge_alerts
+            from formatter import format_shareholding_report
+            data   = get_watchlist_shareholding(config.WATCHLIST)
+            alerts = get_pledge_alerts(data)
+            ok     = sender.send_long(format_shareholding_report(data, alerts))
+            log_queue.put(("log", f"Shareholding report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Promoter send: {e}")
+
     def _build_tab_52w(self):
         f = tk.Frame(self.notebook, bg=C["bg"])
         self.notebook.add(f, text="  52W Range  ")
@@ -935,15 +1149,18 @@ class HermesGUI:
         self.market_status_lbl.pack(side="left", padx=(6, 0))
 
         SectionLabel(inner, "Manual Triggers").pack(anchor="w", pady=(6, 4))
-        self.brief_btn  = HermesButton(inner, "📨  SEND BRIEF",    self._trigger_brief, accent=True)
-        self.sig_btn2   = HermesButton(inner, "🧠  SEND SIGNALS",  self._send_signals)
-        self.ta_btn2    = HermesButton(inner, "📊  SEND TA SUMMARY",self._send_ta_summary)
-        self.w52_btn    = HermesButton(inner, "📐  SEND 52W",      self._trigger_52w)
-        self.corp_btn   = HermesButton(inner, "💰  SEND CORP ACT", self._trigger_corporate)
-        self.earn_btn   = HermesButton(inner, "🗓  SEND EARNINGS", self._trigger_earnings)
-        self.macro_btn  = HermesButton(inner, "🌐  SEND MACRO",    self._trigger_macro)
-        self.test_btn   = HermesButton(inner, "🔌  TEST TELEGRAM", self._test_telegram)
-        for btn in (self.brief_btn, self.sig_btn2, self.ta_btn2, self.w52_btn, self.corp_btn,
+        self.brief_btn  = HermesButton(inner, "📨  SEND BRIEF",      self._trigger_brief, accent=True)
+        self.sig_btn2   = HermesButton(inner, "🧠  SEND SIGNALS",    self._send_signals)
+        self.ta_btn2    = HermesButton(inner, "📊  SEND TA SUMMARY", self._send_ta_summary)
+        self.sent_btn   = HermesButton(inner, "🌡️  SEND SENTIMENT",  self._send_sentiment)
+        self.opt_btn2   = HermesButton(inner, "🎯  SEND OPTIONS",    self._send_options)
+        self.w52_btn    = HermesButton(inner, "📐  SEND 52W",        self._trigger_52w)
+        self.corp_btn   = HermesButton(inner, "💰  SEND CORP ACT",   self._trigger_corporate)
+        self.earn_btn   = HermesButton(inner, "🗓  SEND EARNINGS",   self._trigger_earnings)
+        self.macro_btn  = HermesButton(inner, "🌐  SEND MACRO",      self._trigger_macro)
+        self.test_btn   = HermesButton(inner, "🔌  TEST TELEGRAM",   self._test_telegram)
+        for btn in (self.brief_btn, self.sig_btn2, self.ta_btn2, self.sent_btn,
+                    self.opt_btn2, self.w52_btn, self.corp_btn,
                     self.earn_btn, self.macro_btn, self.test_btn):
             btn.pack(fill="x", pady=2)
 
@@ -1622,6 +1839,9 @@ class HermesGUI:
                 elif kind == "ta":            self._update_ta_ui(data)
                 elif kind == "risk":          self._update_risk_ui(data)
                 elif kind == "checklist":     self._update_checklist_ui(data)
+                elif kind == "sentiment":     self._update_sentiment_ui(data)
+                elif kind == "options":       self._update_options_ui(data)
+                elif kind == "promoter":      self._update_promoter_ui(data)
                 elif kind == "sl_result":
                     self.sl_result_lbl.config(text=data)
                 elif kind == "ta_send_done":

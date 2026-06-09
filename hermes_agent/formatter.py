@@ -1,604 +1,824 @@
 """
-Hermes Agent — Telegram Message Formatter
-Builds all four Hermes message types using Telegram MarkdownV2.
+Hermes Agent — Telegram Message Formatter (v3)
+All messages are beginner-friendly:
+  - Plain English explanations
+  - Monospace tables (readable on mobile)
+  - Every number explained
+  - Severity: 🔴 ACT NOW / 🟡 WATCH / 🟢 INFO / ⚪ FYI
 """
 
 from datetime import datetime
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _esc(text: str) -> str:
-    """Escape special chars for Telegram MarkdownV2."""
     special = r"\_*[]()~`>#+-=|{}.!"
     return "".join(f"\\{c}" if c in special else c for c in str(text))
 
-
-def _arrow(val: float) -> str:
-    return "📈" if val >= 0 else "📉"
-
-
-def _sign(val: float) -> str:
-    return f"+{val:,.2f}" if val >= 0 else f"{val:,.2f}"
-
-
 def _inr(val: float) -> str:
-    """Format as ₹ with Indian lakh/crore grouping."""
-    if abs(val) >= 1_00_00_000:
-        return f"₹{val/1_00_00_000:.2f} Cr"
-    if abs(val) >= 1_00_000:
-        return f"₹{val/1_00_000:.2f} L"
+    if abs(val) >= 1_00_00_000: return f"₹{val/1_00_00_000:.2f} Cr"
+    if abs(val) >= 1_00_000:    return f"₹{val/1_00_000:.2f} L"
     return f"₹{val:,.2f}"
 
-
-def _pct_bar(position_pct: float, width: int = 10) -> str:
-    """Visual bar: ░░░█░░░░░░ showing where price sits in 52W range."""
-    filled = round(position_pct / 100 * width)
-    filled = max(0, min(width, filled))
+def _pct_bar(pct: float, width: int = 10) -> str:
+    filled = max(0, min(width, round(pct / 100 * width)))
     return "▓" * filled + "░" * (width - filled)
 
+def _sev(severity: str) -> str:
+    return {"CRITICAL":"🔴","HIGH":"🟠","MEDIUM":"🟡","LOW":"🟢","INFO":"⚪"}.get(severity,"⚪")
 
-# ── 1. Morning Brief ─────────────────────────────────────────────────────────
+def _now() -> str:
+    from pytz import timezone
+    return datetime.now(timezone("Asia/Kolkata")).strftime("%d %b %Y  %H:%M IST")
+
+def _trend(val: float) -> str:
+    return "▲" if val > 0 else ("▼" if val < 0 else "─")
+
+def _block(lines: list) -> str:
+    """Wrap lines in a monospace code block for clean table rendering."""
+    return "```\n" + "\n".join(lines) + "\n```"
+
+
+# ── 1. Morning Brief ──────────────────────────────────────────────────────────
 
 def format_morning_brief(
-    indices: dict,
-    portfolio_rows: list,
-    fii_dii: dict,
-    news: list,
-    earnings_soon: list,
-) -> str:
-    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
-    lines = []
-
-    # Header
-    lines += [
-        "🌅 *HERMES MORNING BRIEF*",
-        f"_{_esc(now)}_",
+    indices, portfolio_rows, fii_dii, news, earnings_soon,
+):
+    lines = [
+        f"🌅 *HERMES MORNING BRIEF*",
+        f"_{_esc(_now())}_",
         "",
+        "📊 *MARKET OVERVIEW*",
     ]
 
-    # Indices
-    lines.append("*📊 MARKETS*")
+    # Indices table
+    tbl = ["Index            Price      Change"]
+    tbl.append("─" * 38)
     for name, d in indices.items():
-        arrow = "📈" if d["pct"] >= 0 else "📉"
+        arrow = _trend(d["pct"])
         sign  = "+" if d["pct"] >= 0 else ""
-        lines.append(
-            f"{arrow} *{_esc(name)}* `{d['price']:,.2f}` "
-            f"\\({_esc(sign + str(d['pct']))}%\\)"
-        )
-    lines.append("")
+        tbl.append(f"{name:<16} {d['price']:>9,.2f}  {arrow}{sign}{d['pct']:.2f}%")
+    lines.append(_block(tbl))
 
-    # FII / DII
-    fii_net = fii_dii.get("fii_net", 0)
-    dii_net = fii_dii.get("dii_net", 0)
-    fii_arrow = "🟢" if fii_net >= 0 else "🔴"
-    dii_arrow = "🟢" if dii_net >= 0 else "🟡"
+    # FII/DII
+    fn  = fii_dii.get("fii_net", 0)
+    dn  = fii_dii.get("dii_net", 0)
     lines += [
-        "*🏦 FII / DII FLOW*",
-        f"{fii_arrow} FII Net: *{_esc(_inr(fii_net))}*  "
-        f"\\(Buy {_esc(_inr(fii_dii.get('fii_buy',0)))} · Sell {_esc(_inr(fii_dii.get('fii_sell',0)))}\\)",
-        f"{dii_arrow} DII Net: *{_esc(_inr(dii_net))}*  "
-        f"\\(Buy {_esc(_inr(fii_dii.get('dii_buy',0)))} · Sell {_esc(_inr(fii_dii.get('dii_sell',0)))}\\)",
-        "",
+        "🏦 *FII / DII FLOW*",
+        "_FII = Foreign investors  \\|  DII = Indian mutual funds_",
     ]
+    fii_tbl = [
+        f"FII Net  {_inr(fn):>12}  {'🟢 Buying' if fn>=0 else '🔴 Selling'}",
+        f"DII Net  {_inr(dn):>12}  {'🟢 Buying' if dn>=0 else '🔴 Selling'}",
+    ]
+    lines.append(_block(fii_tbl))
 
-    # Portfolio P&L
-    total_day_pnl   = sum(r.get("day_pnl", 0)   for r in portfolio_rows)
-    total_total_pnl = sum(r.get("total_pnl", 0) for r in portfolio_rows)
-    total_value     = sum(r.get("market_value", 0) for r in portfolio_rows)
-
-    day_emoji   = "🟢" if total_day_pnl   >= 0 else "🔴"
-    total_emoji = "🟢" if total_total_pnl >= 0 else "🔴"
+    # Portfolio
+    total_day   = sum(r.get("day_pnl",   0) for r in portfolio_rows)
+    total_pnl   = sum(r.get("total_pnl", 0) for r in portfolio_rows)
+    total_val   = sum(r.get("market_value", 0) for r in portfolio_rows)
 
     lines += [
-        "*💼 PORTFOLIO SNAPSHOT*",
-        f"Portfolio Value: `{_esc(_inr(total_value))}`",
-        f"{day_emoji} Day P&L: *{_esc(_inr(total_day_pnl))}*",
-        f"{total_emoji} Overall P&L: *{_esc(_inr(total_total_pnl))}*",
-        "",
+        "💼 *YOUR PORTFOLIO*",
+        f"_Total Value: {_esc(_inr(total_val))}_",
     ]
+    ptbl = ["Stock       Today's P&L    Total P&L"]
+    ptbl.append("─" * 40)
     for r in portfolio_rows:
-        e  = "▲" if r.get("pct", 0) >= 0 else "▼"
-        dp = "🟢" if r.get("day_pnl", 0) >= 0 else "🔴"
-        sym_clean = r["symbol"].replace(".NS", "")
-        lines.append(
-            f"{dp} *{_esc(sym_clean)}* `{r['price']:,.2f}` {_esc(e + str(abs(r['pct'])) + '%')} "
-            f"· Day: {_esc(_inr(r['day_pnl']))} · Total: {_esc(_inr(r['total_pnl']))}"
-        )
-    lines.append("")
+        sym = r["symbol"].replace(".NS","")[:10]
+        dp  = r.get("day_pnl",   0)
+        tp  = r.get("total_pnl", 0)
+        ptbl.append(
+            f"{sym:<10}  {_inr(dp):>12}  {_inr(tp):>12}"
+            f"  {'▲' if dp>=0 else '▼'}")
+    ptbl.append("─" * 40)
+    ptbl.append(f"{'TOTAL':<10}  {_inr(total_day):>12}  {_inr(total_pnl):>12}")
+    lines.append(_block(ptbl))
 
     # News
     if news:
-        lines.append("*📰 STOCK NEWS*")
-        for n in news[:6]:
-            sym_clean = n["symbol"].replace(".NS", "")
-            age = f"{n['age_hours']:.0f}h ago"
-            lines.append(
-                f"• \\[{_esc(sym_clean)}\\] {_esc(n['title'][:80])}… "
-                f"_{_esc(age)}_"
-            )
-        lines.append("")
+        lines += ["", "📰 *STOCK NEWS*"]
+        for n in news[:5]:
+            sym = n["symbol"].replace(".NS","")
+            lines.append(f"• \\[{_esc(sym)}\\] {_esc(n['title'][:70])}…")
 
-    # Earnings reminders
+    # Earnings reminder
     if earnings_soon:
-        lines.append("*⚠️ EARNINGS THIS WEEK*")
+        lines += ["", "⚠️ *RESULTS COMING SOON*"]
         for e in earnings_soon:
-            sym_clean = e["symbol"].replace(".NS", "")
-            lines.append(
-                f"🗓 *{_esc(sym_clean)}* reports in *{e['days_out']}d* "
-                f"\\({_esc(str(e['date']))}\\)"
-            )
-        lines.append("")
+            sym = e["symbol"].replace(".NS","")
+            lines.append(f"🗓 *{_esc(sym)}* — results in *{e['days_out']}d* \\({_esc(str(e['date']))}\\)")
+            lines.append("_Tip: Avoid buying just before results — price can swing wildly_")
 
-    lines.append("_— Hermes Agent · Free · Open Source_")
+    lines.append(f"\n_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
 
 
-# ── 2. Price Alert ───────────────────────────────────────────────────────────
+def format_morning_brief_extended(
+    indices, portfolio_rows, fii_dii, news, earnings_soon,
+    signals_today, crude=None, inr=None, global_mkts=None, macro_events=None,
+):
+    base = format_morning_brief(indices, portfolio_rows, fii_dii, news, earnings_soon)
+    extra = []
 
-def format_price_alert(
-    symbol: str,
-    condition: str,
-    level: float,
-    current_price: float,
-) -> str:
-    sym_clean = symbol.replace(".NS", "")
-    direction = "CROSSED ABOVE 🚀" if condition == "above" else "DROPPED BELOW 🔻"
-    now = datetime.now().strftime("%H:%M:%S IST")
-    return (
-        f"🔔 *HERMES PRICE ALERT*\n\n"
-        f"*{_esc(sym_clean)}* has {_esc(direction)}\n\n"
-        f"📍 Alert Level: `{_esc(f'{level:,.2f}')}`\n"
-        f"💹 Current Price: `{_esc(f'{current_price:,.2f}')}`\n\n"
-        f"_{_esc(now)}_\n"
-        f"_— Hermes Agent_"
-    )
+    if global_mkts:
+        extra.append("\n🌍 *GLOBAL MARKETS*")
+        gtbl = ["Market           Price      Today"]
+        gtbl.append("─" * 38)
+        for g in global_mkts[:5]:
+            arrow = "▲" if g["pct"] >= 0 else "▼"
+            gtbl.append(f"{g['name']:<16} {g['price']:>9,.2f}  {arrow}{g['pct']:+.2f}%")
+        extra.append(_block(gtbl))
+
+    if crude or inr:
+        extra.append("🛢️ *GLOBAL INDICATORS*")
+        mac = []
+        if crude and crude.get("price"):
+            mac.append(f"Brent Crude  ${crude['price']:>7.2f}  {_trend(crude['pct'])}{crude['pct']:+.2f}%")
+        if inr and inr.get("rate"):
+            mac.append(f"INR/USD      ₹{inr['rate']:>7.2f}  {_trend(inr['pct'])}{inr['pct']:+.4f}")
+        extra.append(_block(mac))
+
+    if macro_events:
+        extra.append("📅 *KEY EVENTS THIS WEEK*")
+        for ev in macro_events[:3]:
+            urg = "🔴" if ev["impact"]=="HIGH" else "🟡"
+            extra.append(f"{urg} {_esc(ev['event'])} — in {ev['days_out']}d")
+            extra.append(f"   _Why it matters: Market moves before and after this event_")
+
+    critical = [s for s in signals_today if s["severity"] in ("CRITICAL","HIGH")]
+    if critical:
+        extra.append("\n🧠 *TODAY'S KEY ALERTS*")
+        for s in critical[:4]:
+            extra.append(f"{_sev(s['severity'])} {_esc(s['summary'])}")
+
+    footer = "_Hermes Agent"
+    return base.replace(footer, "\n".join(extra) + "\n" + footer)
 
 
-# ── 3. After-Market 52W Report ───────────────────────────────────────────────
+# ── 2. Price Alert ────────────────────────────────────────────────────────────
 
-def format_52w_report(analysis: list) -> str:
-    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
+def format_price_alert(symbol, condition, level, current_price):
+    sym       = symbol.replace(".NS","")
+    direction = "CROSSED ABOVE 🚀" if condition=="above" else "DROPPED BELOW 🔻"
+    sev       = "🔴 ACT NOW" if condition=="below" else "🟢 OPPORTUNITY"
+    diff      = abs(current_price - level)
+    diff_pct  = round((diff / level) * 100, 2)
+
+    tbl = [
+        f"Stock         {sym}",
+        f"Alert Level   ₹{level:,.2f}",
+        f"Current Price ₹{current_price:,.2f}",
+        f"Moved by      ₹{diff:,.2f}  ({diff_pct:.2f}%)",
+    ]
+
+    return "\n".join([
+        f"🔔 *PRICE ALERT — {_esc(sym)}*",
+        "",
+        f"*{_esc(direction)}*",
+        f"Severity: {sev}",
+        "",
+        _block(tbl),
+        "",
+        f"_What to do: Check your trading plan for {_esc(sym)} and act accordingly_",
+        f"_{_esc(_now())} · Hermes Agent_",
+    ])
+
+
+# ── 3. 52W Range Report ───────────────────────────────────────────────────────
+
+def format_52w_report(analysis):
     lines = [
-        "📐 *HERMES 52\\-WEEK RANGE REPORT*",
-        f"_{_esc(now)}_",
+        "📐 *52\\-WEEK RANGE REPORT*",
+        "_Where each stock sits between its yearly low and high_",
+        f"_{_esc(_now())}_",
         "",
     ]
 
-    danger_stocks = [s for s in analysis if s["danger"]]
-    safe_stocks   = [s for s in analysis if not s["danger"]]
+    danger = [s for s in analysis if s["danger"]]
+    safe   = [s for s in analysis if not s["danger"]]
 
-    if danger_stocks:
-        lines.append("*⚠️  DANGER ZONE \\(within 8% of 52W Low\\)*")
-        for s in danger_stocks:
-            sym_clean = s["symbol"].replace(".NS", "")
-            bar = _pct_bar(s["position_pct"])
-            lines += [
-                f"🔴 *{_esc(sym_clean)}*",
-                f"   Price: `{s['price']:,.2f}` · Low: `{s['week52l']:,.2f}` · High: `{s['week52h']:,.2f}`",
-                f"   `{_esc(bar)}` {_esc(str(s['position_pct']))}% in range",
-                f"   Only *{_esc(str(s['pct_from_low']))}% above 52W low* \\— review position\\!",
-                "",
-            ]
+    if danger:
+        lines.append("🔴 *DANGER ZONE — Near 52\\-Week Low*")
+        lines.append("_These stocks are close to their lowest price in a year_")
+        dtbl = ["Stock      Price      52W Low    52W High   Position"]
+        dtbl.append("─" * 58)
+        for s in danger:
+            sym = s["symbol"].replace(".NS","")[:8]
+            bar = _pct_bar(s["position_pct"], 8)
+            dtbl.append(
+                f"{sym:<8}  ₹{s['price']:>8,.2f}  ₹{s['week52l']:>8,.2f}"
+                f"  ₹{s['week52h']:>8,.2f}  [{bar}]")
+            dtbl.append(f"         Only {s['pct_from_low']:.1f}% above yearly low  ⚠️")
+        lines.append(_block(dtbl))
+        lines.append("_Tip: A stock near its yearly low CAN keep falling. Don't catch a falling knife._")
 
-    if safe_stocks:
-        lines.append("*📊 YOUR WATCHLIST*")
-        for s in safe_stocks:
-            sym_clean = s["symbol"].replace(".NS", "")
-            bar = _pct_bar(s["position_pct"])
-            emoji = "🟢" if s["pct_from_low"] > 30 else "🟡"
-            lines += [
-                f"{emoji} *{_esc(sym_clean)}* `{s['price']:,.2f}`",
-                f"   `{_esc(bar)}` {_esc(str(s['position_pct']))}% in range",
-                f"   ↑ {_esc(str(s['pct_from_high']))}% from 52W High · ↓ {_esc(str(s['pct_from_low']))}% from 52W Low",
-            ]
+    if safe:
+        lines.append("\n📊 *WATCHLIST POSITIONS*")
+        stbl = ["Stock      Price      From Low   From High  Range"]
+        stbl.append("─" * 56)
+        for s in safe:
+            sym = s["symbol"].replace(".NS","")[:8]
+            bar = _pct_bar(s["position_pct"], 8)
+            stbl.append(
+                f"{sym:<8}  ₹{s['price']:>8,.2f}"
+                f"  +{s['pct_from_low']:>5.1f}%"
+                f"  -{s['pct_from_high']:>5.1f}%"
+                f"  [{bar}]")
+        lines.append(_block(stbl))
 
-    lines.append("\n_— Hermes Agent · End of Day_")
+    lines.append(f"\n_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
 
 
-# ── 4. Earnings Calendar Update ─────────────────────────────────────────────
+# ── 4. Earnings Calendar ──────────────────────────────────────────────────────
 
-def format_earnings_reminder(earnings: list, upcoming_days: int = 14) -> str:
-    now = datetime.now().strftime("%d %b %Y")
+def format_earnings_reminder(earnings):
     lines = [
-        "🗓 *HERMES EARNINGS CALENDAR*",
-        f"_{_esc(now)}_",
+        "🗓 *UPCOMING RESULTS CALENDAR*",
+        "_These companies will announce their quarterly results soon_",
+        f"_{_esc(_now())}_",
         "",
     ]
-
     if not earnings:
-        lines.append("_No upcoming earnings found for your watchlist\\._")
+        lines.append("_No upcoming results found for your watchlist_")
     else:
+        tbl = ["Stock      Results Date  Days Left  Status"]
+        tbl.append("─" * 48)
         for e in earnings:
-            sym_clean = e["symbol"].replace(".NS", "")
-            if e["days_out"] == 0:
-                tag = "🔴 TODAY"
-            elif e["days_out"] <= 3:
-                tag = f"🟠 {e['days_out']}d \\— GET READY"
-            elif e["days_out"] <= 7:
-                tag = f"🟡 {e['days_out']}d"
-            else:
-                tag = f"🟢 {e['days_out']}d"
-            lines.append(
-                f"{tag} · *{_esc(sym_clean)}* · {_esc(str(e['date']))}"
-            )
+            sym  = e["symbol"].replace(".NS","")[:8]
+            days = e["days_out"]
+            if days == 0:    status = "🔴 TODAY"
+            elif days <= 3:  status = "🟠 VERY SOON"
+            elif days <= 7:  status = "🟡 THIS WEEK"
+            else:            status = "🟢 UPCOMING"
+            tbl.append(f"{sym:<8}  {str(e['date']):<13}  {days:>4}d      {status}")
+        lines.append(_block(tbl))
+        lines.append("_Tip: Stock prices move a lot around results. Beginners should avoid_")
+        lines.append("_trading just before or after result announcements._")
 
-    lines.append("\n_— Hermes Agent_")
+    lines.append(f"\n_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
 
 
-# ── 5. Signal Digest (TODAY / 1W / 1M) ──────────────────────────────────────
+# ── 5. Signal Digest ──────────────────────────────────────────────────────────
 
-def format_signal_digest(signals: list, timeframe: str = "TODAY") -> str:
-    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
-    tf_label = {"TODAY": "TODAY'S SIGNALS", "1W": "1\\-WEEK OUTLOOK", "1M": "1\\-MONTH OUTLOOK"}
-    tf_sigs  = [s for s in signals if s["timeframe"] == timeframe]
+def format_signal_digest(signals, timeframe="TODAY"):
+    tf_label = {"TODAY":"TODAY","1W":"NEXT 1 WEEK","1M":"NEXT 1 MONTH"}.get(timeframe, timeframe)
+    tf_sigs  = [s for s in signals if s["timeframe"]==timeframe]
 
     lines = [
-        f"🧠 *HERMES SIGNAL DIGEST — {_esc(tf_label.get(timeframe, timeframe))}*",
-        f"_{_esc(now)}_",
+        f"🧠 *HERMES SIGNAL DIGEST — {_esc(tf_label)}*",
+        f"_{_esc(_now())}_",
+        "",
+        "_What is a signal? A signal is an alert that something_",
+        "_important may be happening with a stock or the market._",
         "",
     ]
 
     if not tf_sigs:
-        lines.append("_No significant signals detected\\._")
-        lines.append("\n_— Hermes Agent_")
+        lines.append("_No significant signals detected right now_")
+        lines.append(f"\n_Hermes Agent · {_esc(_now())}_")
         return "\n".join(lines)
 
-    # Group by severity
-    for sev in ("CRITICAL", "HIGH", "MEDIUM"):
-        sev_sigs = [s for s in tf_sigs if s["severity"] == sev]
-        if not sev_sigs:
-            continue
-        emoji = {"CRITICAL": "🚨", "HIGH": "⚠️", "MEDIUM": "ℹ️"}.get(sev, "•")
-        lines.append(f"*{emoji} {_esc(sev)}*")
-        for s in sev_sigs:
-            sym = s["symbol"]
-            lines.append(f"• \\[*{_esc(sym)}*\\] {_esc(s['summary'])}")
-        lines.append("")
+    for sev in ("CRITICAL","HIGH","MEDIUM"):
+        sigs = [s for s in tf_sigs if s["severity"]==sev]
+        if not sigs: continue
+        label = {"CRITICAL":"🔴 ACT NOW","HIGH":"🟠 IMPORTANT","MEDIUM":"🟡 WATCH"}.get(sev)
+        lines.append(f"*{label}*")
+        tbl = []
+        for s in sigs:
+            sym = s["symbol"][:10]
+            tbl.append(f"{sym:<10}  {s['type']:<20}")
+            tbl.append(f"  ➜ {s['summary'][:65]}")
+        lines.append(_block(tbl))
 
-    lines.append("_— Hermes Agent_")
+    lines.append(f"\n_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
 
 
-# ── 6. Corporate Action Alert ────────────────────────────────────────────────
+# ── 6. Corporate Action Alert ─────────────────────────────────────────────────
 
-def format_corporate_action_alert(action: dict) -> str:
-    sym   = _esc(action["symbol"])
-    cat   = action["category"]
-    emoji = {"DIVIDEND": "💰", "BONUS": "🎁", "SPLIT": "✂️",
-              "RIGHTS": "📋", "MEETING": "🏛", "OTHER": "📌"}.get(cat, "📌")
-    days  = action["days_out"]
-    urgency = "TODAY" if days == 0 else f"in {days}d"
+def format_corporate_action_alert(action):
+    sym = action["symbol"]
+    cat = action["category"]
+    emoji = {"DIVIDEND":"💰","BONUS":"🎁","SPLIT":"✂️","RIGHTS":"📋","MEETING":"🏛"}.get(cat,"📌")
+    urgency = "TODAY" if action["days_out"]==0 else f"in {action['days_out']} days"
 
-    return (
-        f"{emoji} *HERMES CORPORATE ACTION ALERT*\n\n"
-        f"*{sym}* — *{_esc(cat)}*\n"
-        f"📅 Ex\\-Date: `{_esc(action['ex_date'])}` \\({_esc(urgency)}\\)\n"
-        f"📋 Details: {_esc(action['action'])}\n\n"
-        f"_{_esc(datetime.now().strftime('%H:%M IST'))}_\n"
-        f"_— Hermes Agent_"
-    )
+    explain = {
+        "DIVIDEND": "Company is paying cash to shareholders. Price usually drops by dividend amount on ex-date.",
+        "BONUS":    "Company gives free extra shares. Good sign of company confidence.",
+        "SPLIT":    "Stock splits into smaller price units. Your value stays same but you get more shares.",
+        "RIGHTS":   "Company offering new shares to existing shareholders at a discounted price.",
+    }.get(cat, "Corporate event that may affect stock price.")
 
-
-# ── 7. Macro Event Alert ─────────────────────────────────────────────────────
-
-def format_macro_alert(event: dict, crude: dict = None, inr: dict = None) -> str:
-    days = event["days_out"]
-    urgency = "🚨 TODAY" if days == 0 else f"⚠️ in {days}d"
-
-    lines = [
-        f"🌐 *HERMES MACRO ALERT*",
-        "",
-        f"*{_esc(event['event'])}*",
-        f"{_esc(urgency)} · {_esc(event['date'])}",
-        f"Impact: *{_esc(event['impact'])}*",
-        "",
+    tbl = [
+        f"Stock       {sym}",
+        f"Event       {cat}",
+        f"Ex-Date     {action['ex_date']}",
+        f"When        {urgency}",
+        f"Details     {action['action'][:40]}",
     ]
 
+    return "\n".join([
+        f"{emoji} *CORPORATE ACTION — {_esc(sym)}*",
+        "",
+        _block(tbl),
+        "",
+        f"📖 *What this means:*",
+        f"_{_esc(explain)}_",
+        "",
+        f"_{'🔴 Urgent — act before ex-date' if action['urgent'] else '🟡 Mark this date in your calendar'}_",
+        f"_{_esc(_now())} · Hermes Agent_",
+    ])
+
+
+# ── 7. Macro Alert ────────────────────────────────────────────────────────────
+
+def format_macro_alert(event, crude=None, inr=None):
+    days    = event["days_out"]
+    urgency = "🔴 TODAY" if days==0 else f"🟡 In {days} days"
+
+    explain = {
+        "RBI":    "RBI sets interest rates. Rate cut = good for stocks. Rate hike = bad for stocks.",
+        "Fed":    "US Federal Reserve rate decision affects global markets including India.",
+        "CPI":    "Inflation data. High inflation = RBI may raise rates = bad for markets.",
+        "GDP":    "India growth rate. Higher GDP = stronger economy = good for stocks.",
+        "Budget": "Government spending plan. Some sectors benefit, some suffer.",
+    }
+    exp_text = next((v for k, v in explain.items() if k.lower() in event["event"].lower()),
+                    "This economic event can cause market volatility.")
+
+    tbl = [f"Event    {event['event'][:40]}",
+           f"When     {event['date']}  ({urgency})",
+           f"Impact   {event['impact']}"]
     if crude and crude.get("price"):
-        arrow = "📈" if crude["pct"] >= 0 else "📉"
-        crude_pct = f"{crude['pct']:+.2f}"
-        lines.append(f"{arrow} Brent Crude: `${crude['price']:.2f}` "
-                     f"\\({_esc(crude_pct)}%\\)")
-
+        tbl.append(f"Crude    ${crude['price']:.2f}  ({crude['pct']:+.2f}%)")
     if inr and inr.get("rate"):
-        arrow = "📉" if inr["pct"] >= 0 else "📈"
-        inr_pct = f"{inr['pct']:+.4f}"
-        lines.append(f"{arrow} INR\\/USD: `₹{inr['rate']:.2f}` "
-                     f"\\({_esc(inr_pct)}\\)")
+        tbl.append(f"INR/USD  ₹{inr['rate']:.2f}  ({inr['pct']:+.4f})")
 
-    lines.append(f"\n_{_esc(datetime.now().strftime('%H:%M IST'))}_")
-    lines.append("_— Hermes Agent_")
-    return "\n".join(lines)
+    return "\n".join([
+        "🌐 *MACRO EVENT ALERT*",
+        "",
+        _block(tbl),
+        "",
+        "📖 *What this means for you:*",
+        f"_{_esc(exp_text)}_",
+        "",
+        "_Tip: Avoid big trades just before major economic announcements._",
+        f"_{_esc(_now())} · Hermes Agent_",
+    ])
 
 
-# ── 8. Bulk/Block Deal Alert ─────────────────────────────────────────────────
+# ── 8. Bulk/Block Deal Alert ──────────────────────────────────────────────────
 
-def format_deal_alert(deal: dict) -> str:
-    action = deal.get("buy_sell", "").upper()
+def format_deal_alert(deal):
+    action = deal.get("buy_sell","").upper()
     emoji  = "🟢" if "BUY" in action else "🔴"
-    sym    = _esc(deal["symbol"])
-    now    = datetime.now().strftime("%H:%M:%S IST")
+    sym    = deal["symbol"]
 
-    return (
-        f"{emoji} *HERMES {_esc(deal['type'])} DEAL ALERT*\n\n"
-        f"*{sym}* — {_esc(action)}\n"
-        f"👤 Client: {_esc(deal['client'])}\n"
-        f"📊 Qty: `{deal['qty']:,}` shares\n"
-        f"💰 Value: `₹{deal['value_cr']:.2f} Cr` @ `₹{deal['price']:,.2f}`\n\n"
-        f"_{_esc(now)}_\n"
-        f"_— Hermes Agent_"
+    explain = (
+        "A big investor is BUYING — could be a positive sign for the stock."
+        if "BUY" in action else
+        "A big investor is SELLING — watch if this continues over multiple days."
     )
 
-
-# ── 9. FII Trend Alert ───────────────────────────────────────────────────────
-
-def format_fii_trend_alert(signal: dict) -> str:
-    return (
-        f"🏦 *HERMES FII TREND ALERT*\n\n"
-        f"{_esc(signal['summary'])}\n\n"
-        f"_Sustained flow = smart money conviction\\. Review positions\\._\n"
-        f"_{_esc(datetime.now().strftime('%H:%M IST'))}_\n"
-        f"_— Hermes Agent_"
-    )
-
-
-# ── 10. Morning Brief — extended with signals ────────────────────────────────
-
-def format_morning_brief_extended(
-    indices: dict,
-    portfolio_rows: list,
-    fii_dii: dict,
-    news: list,
-    earnings_soon: list,
-    signals_today: list,
-    crude: dict = None,
-    inr: dict   = None,
-    global_mkts: list = None,
-    macro_events: list = None,
-) -> str:
-    """Extended morning brief that includes signals, macro, global markets."""
-    from formatter import format_morning_brief
-    # Build base brief first
-    base = format_morning_brief(indices, portfolio_rows, fii_dii, news, earnings_soon)
-
-    extra = []
-
-    # Global markets
-    if global_mkts:
-        extra.append("*🌍 GLOBAL MARKETS*")
-        for g in global_mkts[:4]:
-            arrow   = "📈" if g["pct"] >= 0 else "📉"
-            g_pct   = f"{g['pct']:+.2f}"
-            extra.append(
-                f"{arrow} *{_esc(g['name'])}* `{g['price']:,.2f}` "
-                f"\\({_esc(g_pct)}%\\)"
-            )
-        extra.append("")
-
-    # Macro
-    if crude and crude.get("price"):
-        arrow     = "📈" if crude["pct"] >= 0 else "📉"
-        crude_pct = f"{crude['pct']:+.2f}"
-        extra.append(
-            f"{arrow} *Brent Crude*: `${crude['price']:.2f}` "
-            f"\\({_esc(crude_pct)}%\\)"
-        )
-    if inr and inr.get("rate"):
-        arrow   = "📉" if inr["pct"] >= 0 else "📈"
-        inr_pct = f"{inr['pct']:+.4f}"
-        extra.append(
-            f"{arrow} *INR\\/USD*: `₹{inr['rate']:.2f}` "
-            f"\\({_esc(inr_pct)}\\)"
-        )
-    if crude or inr:
-        extra.append("")
-
-    # Macro events this week
-    if macro_events:
-        extra.append("*📅 MACRO EVENTS THIS WEEK*")
-        for ev in macro_events[:3]:
-            urgency = "🚨" if ev["urgent"] else "📌"
-            extra.append(
-                f"{urgency} {_esc(ev['event'])} — {_esc(str(ev['days_out']))}d "
-                f"\\({_esc(ev['date'])}\\)"
-            )
-        extra.append("")
-
-    # Today's top signals
-    critical = [s for s in signals_today if s["severity"] in ("CRITICAL", "HIGH")]
-    if critical:
-        extra.append("*🧠 TODAY'S KEY SIGNALS*")
-        for s in critical[:5]:
-            extra.append(f"• {_esc(s['summary'])}")
-        extra.append("")
-
-    if not extra:
-        return base
-
-    # Insert extra block before the footer
-    footer = "_— Hermes Agent · Free · Open Source_"
-    return base.replace(footer, "\n".join(extra) + "\n" + footer)
-
-
-# ── 11. Technical Snapshot ───────────────────────────────────────────────────
-
-def format_ta_snapshot(ta_result: dict) -> str:
-    sym   = _esc(ta_result["symbol"].replace(".NS", ""))
-    price = ta_result.get("price", 0)
-    sig   = ta_result.get("ta_signal", "NEUTRAL")
-    score = ta_result.get("ta_score",  0)
-
-    sig_emoji = {"STRONG BUY": "🚀", "BUY": "📈", "STRONG SELL": "🔻",
-                 "SELL": "📉", "NEUTRAL": "➡️"}.get(sig, "➡️")
-
-    rsi  = ta_result.get("rsi")
-    ma50 = ta_result.get("ma50")
-    ma200= ta_result.get("ma200")
-    macd_cross = ta_result.get("macd_cross", "NONE")
-    ma_cross   = ta_result.get("ma_cross",   "NONE")
-    vol_sig    = ta_result.get("volume_signal", "N/A")
-    bb_sig     = ta_result.get("bb_signal",    "N/A")
-    support    = ta_result.get("support")
-    resistance = ta_result.get("resistance")
-
-    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
-    lines = [
-        f"📊 *HERMES TECHNICAL SNAPSHOT — {sym}*",
-        f"_{_esc(now)}_",
-        "",
-        f"{sig_emoji} *{_esc(sig)}* \\(score: {_esc(str(score))}\\)",
-        f"💹 Price: `₹{price:,.2f}`",
-        "",
-        "*INDICATORS*",
+    tbl = [
+        f"Stock     {sym}",
+        f"Action    {action}",
+        f"Investor  {deal['client'][:30]}",
+        f"Quantity  {deal['qty']:,} shares",
+        f"Value     {_inr(deal['value_cr']*1e7)}",
+        f"Price     ₹{deal['price']:,.2f}",
+        f"Type      {deal['type']} DEAL",
     ]
+
+    return "\n".join([
+        f"{emoji} *{deal['type']} DEAL ALERT — {_esc(sym)}*",
+        "",
+        _block(tbl),
+        "",
+        "📖 *What this means:*",
+        f"_{_esc(explain)}_",
+        "",
+        "_A bulk deal = someone traded >0.5% of total shares in one go_",
+        f"_{_esc(_now())} · Hermes Agent_",
+    ])
+
+
+# ── 9. FII Trend Alert ────────────────────────────────────────────────────────
+
+def format_fii_trend_alert(signal):
+    is_buy = "buying" in signal["summary"].lower()
+    emoji  = "🟢" if is_buy else "🔴"
+    return "\n".join([
+        f"{emoji} *FII TREND ALERT*",
+        "",
+        _block([signal["summary"][:70]]),
+        "",
+        "📖 *What this means:*",
+        "_FII = big foreign funds like Morgan Stanley, Goldman Sachs_",
+        f"_When they {'buy' if is_buy else 'sell'} for 3+ days in a row, the market usually follows_",
+        "",
+        f"_Tip: {'This is a bullish sign — quality stocks may rise' if is_buy else 'Be cautious — foreign money is leaving India'}_",
+        f"_{_esc(_now())} · Hermes Agent_",
+    ])
+
+
+# ── 10. TA Snapshot ───────────────────────────────────────────────────────────
+
+def format_ta_snapshot(r):
+    sym   = r["symbol"].replace(".NS","")
+    sig   = r.get("ta_signal","NEUTRAL")
+    score = r.get("ta_score",0)
+    sig_emoji = {"STRONG BUY":"🚀","BUY":"📈","STRONG SELL":"🔻","SELL":"📉","NEUTRAL":"➡️"}.get(sig,"➡️")
+
+    rsi   = r.get("rsi")
+    ma50  = r.get("ma50")
+    ma200 = r.get("ma200")
+
+    tbl = [f"{'Indicator':<16} {'Value':<12} {'What it means':<28}"]
+    tbl.append("─" * 58)
 
     if rsi is not None:
-        rsi_emoji = "🔴" if rsi > 70 else ("🟢" if rsi < 30 else "🟡")
-        lines.append(f"{rsi_emoji} RSI: `{rsi:.1f}` — {_esc(ta_result.get('rsi_signal',''))}")
+        rsi_mean = "Oversold — may bounce" if rsi<30 else ("Overbought — may fall" if rsi>70 else "Normal range")
+        tbl.append(f"{'RSI':<16} {rsi:<12.1f} {rsi_mean}")
 
     if ma50:
-        a50 = "above ✅" if ta_result.get("above_ma50") else "below ❌"
-        lines.append(f"📏 MA50: `₹{ma50:,.2f}` — {_esc(a50)}")
+        pos = "Price ABOVE — uptrend ✅" if r.get("above_ma50") else "Price BELOW — downtrend ❌"
+        tbl.append(f"{'50-day Average':<16} ₹{ma50:<10,.2f} {pos}")
+
     if ma200:
-        a200 = "above ✅" if ta_result.get("above_ma200") else "below ❌"
-        lines.append(f"📏 MA200: `₹{ma200:,.2f}` — {_esc(a200)}")
+        pos = "Price ABOVE — long uptrend ✅" if r.get("above_ma200") else "Price BELOW — long downtrend ❌"
+        tbl.append(f"{'200-day Avg':<16} ₹{ma200:<10,.2f} {pos}")
 
-    if ma_cross != "NONE" and ma_cross != "N/A":
-        emoji = "✨" if ma_cross == "GOLDEN" else "☠️"
-        lines.append(f"{emoji} MA Cross: *{_esc(ma_cross)} CROSS*")
+    mc = r.get("macd_cross","NONE")
+    if mc not in ("NONE","N/A"):
+        mc_mean = "Momentum turning UP" if mc=="BULLISH" else "Momentum turning DOWN"
+        tbl.append(f"{'MACD Cross':<16} {mc:<12} {mc_mean}")
 
-    if macd_cross != "NONE" and macd_cross != "N/A":
-        emoji = "📈" if macd_cross == "BULLISH" else "📉"
-        lines.append(f"{emoji} MACD: *{_esc(macd_cross)} crossover*")
+    mac = r.get("ma_cross","NONE")
+    if mac not in ("NONE","N/A"):
+        mac_mean = "Very bullish long signal ✨" if mac=="GOLDEN" else "Very bearish long signal ☠️"
+        tbl.append(f"{'MA Cross':<16} {mac:<12} {mac_mean}")
 
-    lines.append(f"📊 Volume: {_esc(vol_sig)} \\(ratio {ta_result.get('volume_ratio',1):.1f}x\\)")
-    lines.append(f"〰️ Bollinger: {_esc(bb_sig)}")
+    vol = r.get("volume_signal","—")
+    tbl.append(f"{'Volume':<16} {vol:<12} {'Unusually high — watch' if vol=='SPIKE' else 'Normal'}")
 
-    if support or resistance:
-        lines.append("")
-        lines.append("*KEY LEVELS*")
-        if support:    lines.append(f"🟢 Support:    `₹{support:,.2f}`")
-        if resistance: lines.append(f"🔴 Resistance: `₹{resistance:,.2f}`")
+    bb  = r.get("bb_signal","—")
+    bb_mean = {"SQUEEZE":"Big move coming soon!","NEAR_LOWER":"Near support","NEAR_UPPER":"Near resistance"}.get(bb,"Normal range")
+    tbl.append(f"{'Bollinger Band':<16} {bb:<12} {bb_mean}")
 
-    lines.append("\n_— Hermes Agent_")
+    lines = [
+        f"📊 *TECHNICAL ANALYSIS — {_esc(sym)}*",
+        f"_{_esc(_now())}_",
+        "",
+        f"{sig_emoji} *Overall Signal: {_esc(sig)}* \\(score: {score}\\)",
+        f"💹 Current Price: ₹{r.get('price',0):,.2f}",
+        "",
+        _block(tbl),
+    ]
+
+    sup = r.get("support")
+    res = r.get("resistance")
+    if sup or res:
+        kl = []
+        if sup: kl.append(f"Support Level   ₹{sup:,.2f}  ← Price likely bounces here")
+        if res: kl.append(f"Resistance      ₹{res:,.2f}  ← Price may struggle to cross this")
+        lines.append(_block(kl))
+
+    lines += [
+        "📖 *Beginner Guide:*",
+        "_RSI < 30 = oversold = possibly good time to buy_",
+        "_RSI > 70 = overbought = possibly good time to sell_",
+        "_Price above 50-day average = stock is in an uptrend_",
+        f"_{_esc(_now())} · Hermes Agent_",
+    ]
     return "\n".join(lines)
 
 
-def format_ta_watchlist_summary(ta_results: list) -> str:
-    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
+def format_ta_watchlist_summary(ta_results):
     lines = [
-        "📊 *HERMES TECHNICAL SUMMARY — WATCHLIST*",
-        f"_{_esc(now)}_",
+        "📊 *TECHNICAL SUMMARY — ALL YOUR STOCKS*",
+        f"_{_esc(_now())}_",
+        "",
+        "_Signal Guide: 🚀 Strong Buy  📈 Buy  ➡️ Neutral  📉 Sell  🔻 Strong Sell_",
         "",
     ]
     sig_map = {"STRONG BUY":"🚀","BUY":"📈","NEUTRAL":"➡️","SELL":"📉","STRONG SELL":"🔻"}
+    tbl = [f"{'Stock':<10} {'Price':>9} {'Signal':<13} {'RSI':>5} {'Trend'}"]
+    tbl.append("─" * 55)
     for r in ta_results:
-        sym   = r["symbol"].replace(".NS","")
-        sig   = r.get("ta_signal","NEUTRAL")
-        emoji = sig_map.get(sig, "➡️")
-        rsi   = r.get("rsi")
-        rsi_s = f"RSI {rsi:.0f}" if rsi else "—"
-        vol   = r.get("volume_signal","—")
-        mc    = r.get("macd_cross","—")
-        lines.append(
-            f"{emoji} *{_esc(sym)}* `₹{r['price']:,.2f}` — "
-            f"{_esc(sig)} \\| {_esc(rsi_s)} \\| Vol:{_esc(vol)} \\| MACD:{_esc(mc)}"
-        )
-    lines.append("\n_— Hermes Agent_")
+        sym  = r["symbol"].replace(".NS","")[:9]
+        sig  = r.get("ta_signal","NEUTRAL")
+        emoji = sig_map.get(sig,"➡️")
+        rsi  = f"{r['rsi']:.0f}" if r.get("rsi") else "—"
+        trend = "▲ Uptrend" if r.get("above_ma50") else "▼ Downtrend"
+        tbl.append(f"{sym:<10} {r['price']:>9,.2f} {emoji} {sig:<11} {rsi:>5} {trend}")
+    lines.append(_block(tbl))
+    lines.append(f"\n_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
 
 
-# ── 12. Pre-Trade Checklist ──────────────────────────────────────────────────
+# ── 11. Pre-Trade Checklist ───────────────────────────────────────────────────
 
-def format_pre_trade_checklist(result: dict) -> str:
-    sym     = _esc(result["symbol"].replace(".NS",""))
+def format_pre_trade_checklist(result):
+    sym     = result["symbol"].replace(".NS","")
     verdict = result["verdict"]
     passed  = result["passed"]
     total   = result["total"]
     entry   = result["entry"]
-    stop    = result.get("stop_loss", 0)
-    pos     = result.get("position", {})
+    stop    = result.get("stop_loss",0)
+    pos     = result.get("position",{})
 
     v_emoji = {"STRONG BUY":"🚀","BUY":"📈","WATCH":"👀","AVOID":"🚫"}.get(verdict,"❓")
+    explain = {
+        "STRONG BUY": "All conditions are met. This looks like a good setup.",
+        "BUY":        "Most conditions are met. Reasonable entry with proper stop-loss.",
+        "WATCH":      "Some conditions are not ideal. Wait for better setup.",
+        "AVOID":      "Multiple conditions failed. High risk. Skip this trade.",
+    }.get(verdict,"")
 
     lines = [
-        f"✅ *PRE\\-TRADE CHECKLIST — {sym}*",
+        f"✅ *PRE\\-TRADE CHECKLIST — {_esc(sym)}*",
+        f"_{_esc(_now())}_",
         "",
-        f"{v_emoji} *VERDICT: {_esc(verdict)}* \\({passed}/{total} checks passed\\)",
+        f"{v_emoji} *Verdict: {_esc(verdict)}* \\({passed}/{total} checks passed\\)",
+        f"_{_esc(explain)}_",
         "",
-        f"💰 Entry: `₹{entry:,.2f}`",
-        f"🛑 Stop\\-Loss: `₹{stop:,.2f}`",
     ]
 
-    if pos:
-        lines.append(f"📦 Suggested Qty: `{pos.get('qty',0)}` shares "
-                     f"\\(₹{pos.get('position_value',0):,.0f} · {pos.get('position_pct',0):.1f}% of portfolio\\)")
-
-    lines += ["", "*CHECKS*"]
-    for c in result.get("checks", []):
+    detail_tbl = [f"{'Check':<28} {'Result'}"]
+    detail_tbl.append("─" * 50)
+    for c in result.get("checks",[]):
         icon = "✅" if c["pass"] else "❌"
-        lines.append(f"{icon} *{_esc(c['name'])}*")
-        lines.append(f"    {_esc(c['detail'])}")
+        detail_tbl.append(f"{icon} {c['name']:<26} {'PASS' if c['pass'] else 'FAIL'}")
+        detail_tbl.append(f"   {c['detail'][:46]}")
+    lines.append(_block(detail_tbl))
 
-    lines.append("\n_— Hermes Agent_")
+    trade_tbl = [
+        f"Entry Price    ₹{entry:,.2f}",
+        f"Stop-Loss      ₹{stop:,.2f}  ← Sell immediately if price hits this",
+        f"Risk per share ₹{entry-stop:,.2f}",
+    ]
+    if pos:
+        trade_tbl += [
+            f"Suggested Qty  {pos.get('qty',0)} shares",
+            f"Position Value ₹{pos.get('position_value',0):,.0f}  ({pos.get('position_pct',0):.1f}% of portfolio)",
+            f"Max Risk       ₹{pos.get('risk_amount',0):,.0f}  (1% of portfolio)",
+        ]
+    lines += ["*TRADE PLAN*", _block(trade_tbl)]
+    lines.append(f"\n_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
 
 
-# ── 13. Trailing Stop Alert ──────────────────────────────────────────────────
+# ── 12. Trailing Stop Alert ───────────────────────────────────────────────────
 
-def format_trailing_stop_alert(result: dict) -> str:
-    sym    = _esc(result["symbol"].replace(".NS",""))
+def format_trailing_stop_alert(result):
+    sym    = result["symbol"].replace(".NS","")
     profit = result["profit"]
     pct    = result["pct"]
-    emoji  = "🟢" if profit >= 0 else "🔴"
-    now    = datetime.now().strftime("%H:%M:%S IST")
-    return (
-        f"🛑 *HERMES TRAILING STOP HIT*\n\n"
-        f"*{sym}* — SELL TRIGGERED\n\n"
-        f"📍 Entry:   `₹{result['entry']:,.2f}`\n"
-        f"🛑 Stop:    `₹{result['stop_hit']:,.2f}`\n"
-        f"💹 Current: `₹{result['current_price']:,.2f}`\n"
-        f"{emoji} P&L:    `{'+'if profit>=0 else ''}₹{profit:,.2f}` \\({_esc(f'{pct:+.2f}')}%\\)\n\n"
-        f"_{_esc(now)}_\n_— Hermes Agent_"
-    )
+    emoji  = "🟢" if profit>=0 else "🔴"
+
+    tbl = [
+        f"Stock          {sym}",
+        f"You bought at  ₹{result['entry']:,.2f}",
+        f"Stop hit at    ₹{result['stop_hit']:,.2f}",
+        f"Current price  ₹{result['current_price']:,.2f}",
+        f"Your P&L       {'+' if profit>=0 else ''}₹{profit:,.2f}  ({pct:+.2f}%)",
+    ]
+    return "\n".join([
+        f"🛑 *TRAILING STOP HIT — {_esc(sym)}*",
+        "",
+        _block(tbl),
+        "",
+        f"{emoji} *Action: SELL NOW*",
+        "_Your automatic stop-loss has been triggered._",
+        "_This protects you from further losses._",
+        f"_{_esc(_now())} · Hermes Agent_",
+    ])
 
 
-# ── 14. Risk Summary ─────────────────────────────────────────────────────────
+# ── 13. Risk Summary ──────────────────────────────────────────────────────────
 
-def format_risk_summary(risk: dict) -> str:
-    now = datetime.now().strftime("%d %b %Y · %H:%M IST")
-    total = risk.get("total_value", 0)
-    top5  = risk.get("top5_conc_pct", 0)
-    it    = risk.get("it_exposure_pct",   0)
-    bank  = risk.get("bank_exposure_pct", 0)
-    divs  = "✅ Diversified" if risk.get("diversified") else "⚠️ Concentrated"
-    warns = risk.get("warnings", [])
+def format_risk_summary(risk):
+    total = risk.get("total_value",0)
+    top5  = risk.get("top5_conc_pct",0)
+    divs  = "✅ Well diversified" if risk.get("diversified") else "⚠️ Too concentrated"
 
     lines = [
-        "🛡️ *HERMES RISK SUMMARY*",
-        f"_{_esc(now)}_",
+        "🛡️ *PORTFOLIO RISK REPORT*",
+        "_How safe is your portfolio?_",
+        f"_{_esc(_now())}_",
         "",
-        f"Portfolio Value: `₹{total:,.0f}`",
-        f"Diversification: {_esc(divs)}",
-        f"Top 5 concentration: `{top5:.1f}%`",
-        f"IT exposure: `{it:.1f}%`  \\|  Banking: `{bank:.1f}%`",
-        "",
+        _block([
+            f"Total Value      {_inr(total)}",
+            f"Diversification  {divs}",
+            f"Top 5 stocks     {top5:.1f}% of portfolio",
+            f"IT exposure      {risk.get('it_exposure_pct',0):.1f}%",
+            f"Banking exposure {risk.get('bank_exposure_pct',0):.1f}%",
+        ]),
     ]
 
+    warns = risk.get("warnings",[])
     if warns:
-        lines.append("*⚠️ WARNINGS*")
+        lines += ["🔴 *WARNINGS*"]
         for w in warns:
             lines.append(f"• {_esc(w)}")
         lines.append("")
 
-    lines.append("*POSITIONS*")
+    lines.append("*POSITION BREAKDOWN*")
+    ptbl = [f"{'Stock':<12} {'% of Portfolio':>15} {'Value':>14}  {'Status'}"]
+    ptbl.append("─" * 55)
     for p in sorted(risk.get("positions",[]), key=lambda x: x["pct"], reverse=True):
-        sym   = p["symbol"].replace(".NS","")
-        flag  = "⚠️ " if p["overweight"] else ""
-        lines.append(f"{flag}*{_esc(sym)}* `{p['pct']:.1f}%` \\(₹{p['value']:,.0f}\\)")
+        sym  = p["symbol"].replace(".NS","")[:11]
+        flag = "⚠️ TOO LARGE" if p["overweight"] else "OK"
+        ptbl.append(f"{sym:<12} {p['pct']:>14.1f}%  {_inr(p['value']):>14}  {flag}")
+    lines.append(_block(ptbl))
 
-    lines.append("\n_— Hermes Agent_")
+    lines += [
+        "📖 *Tip:*",
+        "_No single stock should be more than 20% of your portfolio._",
+        "_Spreading across sectors reduces risk if one sector falls._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 14. Sector Rotation ───────────────────────────────────────────────────────
+
+def format_sector_rotation(sector_data, signals):
+    lines = [
+        "🔄 *SECTOR ROTATION REPORT*",
+        "_Which parts of the market are gaining or losing money today_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    tbl = [f"{'Sector':<12} {'Today':>8} {'This Week':>10} {'Money Flow'}"]
+    tbl.append("─" * 48)
+    for s in sector_data:
+        flow  = "🟢 Flowing IN" if s["pct"]>0 else "🔴 Flowing OUT"
+        tbl.append(
+            f"{s['sector']:<12} {s['pct']:>+7.2f}%  {s['week_pct']:>+8.2f}%   {flow}")
+    lines.append(_block(tbl))
+
+    if signals:
+        lines.append("*SIGNALS FOR YOUR STOCKS*")
+        for sig in signals:
+            emoji = "🟢" if "UP" in sig["type"] else "🔴"
+            lines.append(f"{emoji} {_esc(sig['message'])}")
+
+    lines += [
+        "",
+        "📖 *What is sector rotation?*",
+        "_Big investors move money between sectors depending on the economy._",
+        "_When IT stocks are rising but Banking is falling, money is rotating._",
+        "_If your stock's sector is getting money = positive for your stock._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 15. VIX + Sentiment ───────────────────────────────────────────────────────
+
+def format_sentiment_report(sentiment):
+    vix = sentiment.get("vix",{})
+    pcr = sentiment.get("pcr",{})
+    ad  = sentiment.get("ad",{})
+    mood= sentiment.get("mood","NEUTRAL")
+
+    mood_emoji = "🟢" if mood=="BULLISH" else ("🔴" if mood=="BEARISH" else "🟡")
+
+    lines = [
+        "🌡️ *MARKET SENTIMENT REPORT*",
+        "_How is the market feeling right now?_",
+        f"_{_esc(_now())}_",
+        "",
+        f"{mood_emoji} *Overall Market Mood: {_esc(mood)}*",
+        "",
+    ]
+
+    tbl = [f"{'Indicator':<20} {'Value':<10} {'Reading'}"]
+    tbl.append("─" * 55)
+
+    v = vix.get("vix",0)
+    tbl.append(f"{'India VIX':<20} {v:<10.2f} {vix.get('level','—')}")
+    tbl.append(f"  ↳ {vix.get('meaning','')[:45]}")
+
+    p = pcr.get("pcr",0)
+    tbl.append(f"{'Put/Call Ratio':<20} {p:<10.2f} {pcr.get('level','—')}")
+    tbl.append(f"  ↳ {pcr.get('meaning','')[:45]}")
+
+    a = ad.get("ratio",0)
+    adv = ad.get("advances",0); dec = ad.get("declines",0)
+    tbl.append(f"{'Adv/Dec Ratio':<20} {a:<10.2f} {ad.get('breadth','—')}")
+    tbl.append(f"  ↳ {adv} stocks rising, {dec} falling today")
+
+    lines.append(_block(tbl))
+
+    lines += [
+        "📖 *Beginner Guide:*",
+        "_VIX = Fear Index. Above 20 = high fear. Above 25 = extreme fear._",
+        "_High fear can mean BUYING OPPORTUNITY for strong stocks._",
+        "_PCR above 1.2 = most people are scared = market may actually rise._",
+        "",
+        f"*What to do now:* _{_esc(vix.get('action','Monitor the market'))}_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 16. Promoter Pledge + Shareholding ───────────────────────────────────────
+
+def format_shareholding_report(shareholding_data, alerts):
+    lines = [
+        "🏛️ *PROMOTER & INSTITUTIONAL HOLDINGS*",
+        "_Who owns your stocks and are they buying or selling?_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    tbl = [f"{'Stock':<10} {'Promoter':>9} {'Pledge':>7} {'FII':>6} {'MF/DII':>7} {'Risk'}"]
+    tbl.append("─" * 58)
+    for s in shareholding_data:
+        sym  = s["symbol"][:9]
+        risk = {"HIGH":"🔴 HIGH","MEDIUM":"🟡 MED","LOW":"🟢 LOW","NONE":"✅ NONE"}.get(
+            s["pledge_risk"],"—")
+        tbl.append(
+            f"{sym:<10} {s['promoter_pct']:>8.1f}%"
+            f"  {s['pledge_pct']:>6.1f}%"
+            f"  {s['fii_pct']:>5.1f}%"
+            f"  {s['dii_pct']:>6.1f}%"
+            f"  {risk}")
+    lines.append(_block(tbl))
+
+    if alerts:
+        lines.append("*ALERTS*")
+        for a in alerts:
+            sev_e = "🔴" if a["severity"]=="HIGH" else "🟡"
+            lines.append(f"{sev_e} *{_esc(a['symbol'])}* — {_esc(a['message'])}")
+            lines.append(f"   _Action: {_esc(a['action'])}_")
+            lines.append("")
+
+    lines += [
+        "📖 *Beginner Guide:*",
+        "_Promoter = company founders/owners. High pledge % = danger sign._",
+        "_FII = foreign funds. DII/MF = Indian mutual funds._",
+        "_If MF is quietly buying = smart Indian money is confident._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 17. Unusual Options Activity ─────────────────────────────────────────────
+
+def format_options_activity(options_data):
+    lines = [
+        "🎯 *UNUSUAL OPTIONS ACTIVITY*",
+        "_Big investors are placing large bets — here's what they expect_",
+        f"_{_esc(_now())}_",
+        "",
+        "📖 *Quick Guide:*",
+        "_CALL option = bet that price will RISE_",
+        "_PUT option  = bet that price will FALL_",
+        "_Unusual activity = someone placed a very large bet_",
+        "",
+    ]
+
+    for r in options_data:
+        sym = r["symbol"]
+        pcr = r.get("pcr",1.0)
+        sent= r.get("sentiment","NEUTRAL")
+        mp  = r.get("max_pain",0)
+        sup = r.get("support")
+        res = r.get("resistance")
+        iv  = r.get("avg_iv",0)
+        spot= r.get("spot",0)
+
+        sent_emoji = "🟢" if sent=="BULLISH" else ("🔴" if sent=="BEARISH" else "🟡")
+        lines.append(f"{sent_emoji} *{_esc(sym)}* — Sentiment: {_esc(sent)}")
+
+        tbl = [
+            f"Current Price   ₹{spot:,.2f}",
+            f"Put/Call Ratio  {pcr:.2f}  ({'More puts=bearish bets' if pcr>1 else 'More calls=bullish bets'})",
+            f"Max Pain Level  ₹{mp:,}  (Market tends to close near this on expiry)",
+        ]
+        if sup: tbl.append(f"Options Support ₹{sup:,}  (Big put bets defending this level)")
+        if res: tbl.append(f"Options Resist  ₹{res:,}  (Big call bets capping upside)")
+        if iv:  tbl.append(f"Implied Volat.  {iv:.1f}%  ({'⚠️ HIGH — big move expected' if iv>40 else 'Normal'})")
+        lines.append(_block(tbl))
+
+        unusual = r.get("unusual",[])
+        if unusual:
+            lines.append(f"*🚨 UNUSUAL BETS DETECTED:*")
+            for u in unusual:
+                bet_type = "RISE above" if u["type"]=="CALL_BUILDUP" else "FALL below"
+                lines.append(f"• Large bet placed that {sym} will {bet_type} ₹{u['strike']:,}")
+                lines.append(f"  _OI change: {u['oi_change']:,} contracts · IV: {u['iv']:.1f}%_")
+
+        lines.append("")
+
+    lines.append(f"_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
