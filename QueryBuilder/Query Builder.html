@@ -1,0 +1,2765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OraQuery — Oracle SQL Query Builder</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1117;--bg1:#161b22;--bg2:#1f2731;--bg3:#252d38;--bg4:#2d3748;
+  --border:#30363d;--border2:#3d4a5c;
+  --text1:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --blue:#58a6ff;--blue-dark:#1f6feb;--blue-bg:#0d2137;
+  --green:#3fb950;--green-bg:#0a2518;
+  --amber:#d29922;--amber-bg:#271c00;
+  --red:#f85149;--red-bg:#2d1117;
+  --purple:#bc8cff;--purple-bg:#1a1035;
+  --teal:#39d353;--cyan:#79c0ff;
+  --accent:#58a6ff;
+  --r:6px;--r2:10px;
+  --shadow:0 8px 24px rgba(0,0,0,.4);
+}
+body{font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;background:var(--bg0);color:var(--text1);font-size:12px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ===== TOPBAR ===== */
+#topbar{height:44px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 14px;flex-shrink:0;z-index:50}
+.logo{font-size:15px;font-weight:700;color:var(--text1);letter-spacing:-0.5px}
+.logo span{color:var(--blue)}
+.logo-sub{font-size:10px;color:var(--text3);margin-left:2px}
+.topbar-badge{font-size:9px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-dark);padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:.5px}
+.topbar-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.topbar-info{font-size:10px;color:var(--text3)}
+.topbar-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.btn{background:transparent;border:1px solid var(--border);border-radius:var(--r);padding:4px 10px;font-size:11px;cursor:pointer;color:var(--text2);font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.btn:hover{border-color:var(--border2);color:var(--text1);background:var(--bg3)}
+.btn-primary{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff}
+.btn-primary:hover{background:#1a7de6;border-color:#1a7de6;color:#fff}
+.btn-success{background:#196c2e;border-color:#2ea043;color:var(--green)}
+.btn-success:hover{background:#1d7d36}
+.btn-ghost{border-color:transparent}
+.btn-ghost:hover{border-color:var(--border)}
+.btn-sm{padding:3px 8px;font-size:10px}
+.btn-icon{padding:4px 6px;width:28px;justify-content:center}
+
+/* ===== LAYOUT ===== */
+#layout{flex:1;display:grid;grid-template-columns:230px 1fr;overflow:hidden}
+
+/* ===== SIDEBAR ===== */
+#sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border)}
+.stab{flex:1;padding:8px;text-align:center;font-size:10px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-weight:500;letter-spacing:.3px}
+.stab:hover{color:var(--text2)}
+.stab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.sidebar-search{padding:8px;border-bottom:1px solid var(--border)}
+.sidebar-search input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:5px 8px;color:var(--text1);font-family:inherit;font-size:11px;outline:none;transition:border-color .15s}
+.sidebar-search input:focus{border-color:var(--blue-dark)}
+.sidebar-search input::placeholder{color:var(--text3)}
+.sidebar-content{flex:1;overflow-y:auto}
+
+/* Table items in sidebar */
+.tbl-group{border-bottom:1px solid var(--border)}
+.tbl-header{padding:7px 10px;display:flex;align-items:center;gap:6px;cursor:grab;transition:background .1s;user-select:none}
+.tbl-header:hover{background:var(--bg2)}
+.tbl-header:active{cursor:grabbing}
+.tbl-header.on-canvas{opacity:.5;cursor:default}
+.tbl-icon{width:14px;height:14px;border-radius:2px;background:var(--blue-dark);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:8px;color:#fff;font-weight:700}
+.tbl-name{flex:1;font-size:11px;font-weight:600;color:var(--text1);letter-spacing:.3px}
+.tbl-count{font-size:9px;color:var(--text3)}
+.tbl-expand{font-size:10px;color:var(--text3);cursor:pointer;padding:2px}
+.col-list{padding:0 10px 6px 30px}
+.col-row{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:10px;color:var(--text3)}
+.col-row:hover{color:var(--text2)}
+.col-pk{color:var(--amber);font-size:9px}
+.col-fk{color:var(--purple);font-size:9px}
+.type-hint{margin-left:auto;color:var(--text3);font-size:9px}
+.badge-pk{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(210,153,34,.3);font-size:8px;padding:0 4px;border-radius:3px;font-weight:700}
+.badge-fk{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(188,140,255,.3);font-size:8px;padding:0 4px;border-radius:3px;font-weight:700}
+
+/* ===== MAIN ===== */
+#main{display:grid;grid-template-rows:1fr 200px;overflow:hidden}
+
+/* ===== CANVAS + RIGHT PANEL ===== */
+#canvas-area{display:grid;grid-template-columns:1fr 250px;overflow:hidden}
+
+/* ===== CANVAS ===== */
+#canvas{background:var(--bg0);position:relative;overflow:auto;background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);background-size:24px 24px}
+#canvas-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
+.canvas-empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--text3);pointer-events:none;user-select:none}
+.canvas-empty-icon{font-size:48px;margin-bottom:12px;opacity:.3}
+.canvas-empty h3{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.canvas-empty p{font-size:11px;line-height:1.6}
+
+/* Canvas table cards */
+.cv-card{position:absolute;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r2);min-width:200px;box-shadow:var(--shadow);user-select:none;overflow:hidden;transition:border-color .15s}
+.cv-card:hover{border-color:var(--border2)}
+.cv-card.active{border-color:var(--blue-dark);box-shadow:0 0 0 1px var(--blue-dark),var(--shadow)}
+.cv-card.dragging-card{opacity:.8;box-shadow:0 16px 40px rgba(0,0,0,.6);z-index:100}
+.cv-head{padding:8px 10px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;cursor:move}
+.cv-head-icon{width:18px;height:18px;border-radius:3px;background:var(--blue-dark);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;flex-shrink:0}
+.cv-head-name{flex:1;font-size:11px;font-weight:700;color:var(--text1);letter-spacing:.4px}
+.cv-head-alias{font-size:9px;color:var(--text3)}
+.cv-head-close{width:18px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--text3);cursor:pointer;font-size:12px;transition:all .1s}
+.cv-head-close:hover{background:var(--red-bg);color:var(--red)}
+.cv-col{display:flex;align-items:center;gap:5px;padding:4px 10px;cursor:pointer;border-top:1px solid var(--border);transition:background .1s;font-size:10.5px;color:var(--text2)}
+.cv-col:hover{background:var(--bg3)}
+.cv-col.sel{background:rgba(31,111,235,.15);color:var(--blue)}
+.cv-col-check{width:12px;height:12px;border-radius:2px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;transition:all .1s}
+.cv-col.sel .cv-col-check{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff}
+.cv-col-name{flex:1}
+.cv-col-type{font-size:9px;color:var(--text3)}
+
+/* Join line SVG */
+.jline{stroke-width:1.5;fill:none;stroke-dasharray:5,3;opacity:.7}
+
+/* CTE panel */
+.cte-item{background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:6px;overflow:hidden}
+.cte-head{padding:5px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--cyan)}
+.cte-head:hover{background:var(--bg3)}
+.cte-body{padding:6px 8px;border-top:1px solid var(--border)}
+.cte-body textarea{width:100%;background:var(--bg0);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:monospace;font-size:10px;padding:6px;resize:vertical;min-height:60px;outline:none}
+.cte-body textarea:focus{border-color:var(--blue-dark)}
+.cte-body input{width:100%;background:var(--bg0);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:monospace;font-size:10px;padding:4px 6px;outline:none;margin-bottom:4px}
+.cte-body input:focus{border-color:var(--blue-dark)}
+
+/* Aggregation panel */
+.agg-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
+.agg-row select,.agg-row input{background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:inherit;font-size:10px;padding:3px 5px;outline:none}
+.agg-row select:focus,.agg-row input:focus{border-color:var(--blue-dark)}
+.agg-fn-badge{font-size:8px;background:var(--teal-light,rgba(57,211,83,.1));color:var(--teal,#39d353);border:1px solid rgba(57,211,83,.25);border-radius:3px;padding:1px 4px;font-weight:700}
+.agg-section-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;padding:4px 0 3px;margin-top:4px;border-top:1px solid var(--border)}
+.window-badge{font-size:8px;background:rgba(188,140,255,.12);color:var(--purple);border:1px solid rgba(188,140,255,.3);border-radius:3px;padding:1px 4px;font-weight:700}
+
+/* Validation item extended */
+.val-item .val-fix{font-size:9px;opacity:.75;margin-top:2px;font-style:italic}
+
+/* Subquery badge on canvas */
+.subq-indicator{position:absolute;top:-8px;right:6px;font-size:8px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(188,140,255,.4);border-radius:3px;padding:1px 5px;font-weight:700}
+
+/* Per-join row controls */
+.join-row{padding:5px 6px;margin-bottom:4px;background:rgba(31,111,235,.07);border:1px solid rgba(31,111,235,.18);border-radius:5px;font-size:10px}
+.join-row-head{display:flex;align-items:center;gap:4px;margin-bottom:3px;color:var(--cyan)}
+.join-row-head .jpath{flex:1;font-size:9px;color:var(--text3)}
+.join-type-sel{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text1);font-family:inherit;font-size:9px;padding:1px 4px;cursor:pointer}
+.join-type-sel:focus{outline:none;border-color:var(--blue-dark)}
+.join-cond-row{display:flex;gap:3px;align-items:center;margin-top:2px}
+.join-cond-row select,.join-cond-row input{background:var(--bg0);border:1px solid var(--border);border-radius:3px;color:var(--text1);font-family:inherit;font-size:9px;padding:2px 4px}
+.join-cond-row select:focus,.join-cond-row input:focus{outline:none;border-color:var(--blue-dark)}
+.join-no-path{padding:4px 6px;margin-bottom:4px;background:var(--red-bg);border:1px solid rgba(248,81,73,.2);border-radius:4px;font-size:10px;color:var(--red)}
+.self-join-badge{font-size:8px;background:rgba(188,140,255,.15);color:var(--purple);border:1px solid rgba(188,140,255,.3);border-radius:3px;padding:1px 5px;margin-left:4px}
+.jline-inner{stroke:var(--blue-dark)}
+.jline-left{stroke:var(--teal,#39d353)}
+.jline-right{stroke:var(--amber)}
+.jline-full{stroke:var(--purple)}
+.jline-cross{stroke:var(--red);stroke-dasharray:3,3}
+.jline-self{stroke:var(--purple);stroke-dasharray:4,2}
+
+.jdot{fill:var(--blue)}
+
+/* ===== RIGHT PANEL ===== */
+#right-panel{background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;font-size:11px}
+.rp-section{border-bottom:1px solid var(--border)}
+.rp-head{padding:8px 10px;display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase}
+.rp-body{padding:8px 10px;overflow-y:auto}
+.sel-col-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);color:var(--text2)}
+.sel-tbl-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:4px 0 2px;margin-top:4px}
+.sel-col-item .remove{margin-left:auto;color:var(--text3);cursor:pointer;font-size:11px;transition:color .1s}
+.sel-col-item .remove:hover{color:var(--red)}
+.join-entry{padding:4px 6px;margin-bottom:4px;background:rgba(31,111,235,.1);border:1px solid rgba(31,111,235,.2);border-radius:4px;font-size:10px;color:var(--cyan);line-height:1.5}
+.join-type-row{display:flex;gap:4px;flex-wrap:wrap;padding:8px 10px}
+.jtype-btn{flex:1;min-width:60px;padding:4px 6px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;font-size:9px;cursor:pointer;text-align:center;transition:all .15s;font-weight:600}
+.jtype-btn:hover{border-color:var(--border2);color:var(--text1)}
+.jtype-btn.active{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff}
+.empty-hint{font-size:10px;color:var(--text3);line-height:1.6;padding:4px 0}
+
+/* ===== BOTTOM: SQL + VALIDATION ===== */
+#bottom{display:grid;grid-template-columns:1fr 260px;border-top:1px solid var(--border);overflow:hidden;background:var(--bg1)}
+#sql-panel{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+#sql-toolbar{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+#sql-toolbar .label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
+#sql-output{flex:1;overflow-y:auto;padding:10px 14px;line-height:1.8;font-size:11.5px;white-space:pre-wrap;word-break:break-word}
+/* SQL coloring */
+.sql-kw{color:var(--blue);font-weight:700}
+.sql-tbl{color:var(--green)}
+.sql-col{color:var(--cyan)}
+.sql-alias{color:var(--amber)}
+.sql-op{color:var(--text2)}
+.sql-comment{color:var(--text3);font-style:italic}
+.sql-string{color:#a5d6ff}
+
+/* Validation panel */
+#val-panel{overflow-y:auto;padding:8px}
+.val-head{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:2px 4px 6px;display:flex;align-items:center;gap:5px}
+.val-item{padding:6px 8px;margin-bottom:4px;border-radius:4px;font-size:10px;line-height:1.5;display:flex;gap:6px;align-items:flex-start}
+.val-error{background:var(--red-bg);border:1px solid rgba(248,81,73,.2);color:#ff7b72}
+.val-warn{background:var(--amber-bg);border:1px solid rgba(210,153,34,.2);color:var(--amber)}
+.val-ok{background:var(--green-bg);border:1px solid rgba(63,185,80,.2);color:var(--green)}
+.val-info{background:var(--blue-bg);border:1px solid rgba(31,111,235,.2);color:var(--cyan)}
+.val-icon{flex-shrink:0;font-size:12px;margin-top:0}
+.val-count{font-size:9px;background:var(--bg3);padding:1px 5px;border-radius:8px;color:var(--text2);margin-left:4px}
+
+/* ===== MODAL ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r2);padding:20px;width:640px;max-height:85vh;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.modal h2{font-size:14px;font-weight:700;color:var(--text1);display:flex;align-items:center;gap:8px}
+.modal-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin:0 -0px}
+.mtab{padding:7px 14px;font-size:11px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-weight:500}
+.mtab:hover{color:var(--text2)}
+.mtab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.modal-section{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:8px;min-height:0}
+.modal-section textarea{flex:1;min-height:200px;background:var(--bg0);border:1px solid var(--border);border-radius:var(--r);padding:10px;color:var(--text1);font-family:inherit;font-size:11px;line-height:1.6;resize:none;outline:none;transition:border-color .15s}
+.modal-section textarea:focus{border-color:var(--blue-dark)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid var(--border)}
+.schema-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow-y:auto;flex:1}
+.schema-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer;transition:all .15s}
+.schema-card:hover{border-color:var(--blue-dark);background:var(--bg3)}
+.schema-card h3{font-size:11px;font-weight:700;color:var(--text1);margin-bottom:4px}
+.schema-card p{font-size:10px;color:var(--text3);line-height:1.5;margin-bottom:6px}
+.schema-card .sc-tags{display:flex;gap:4px;flex-wrap:wrap}
+.sc-tag{font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:3px;padding:1px 5px;border:1px solid rgba(88,166,255,.2)}
+.readme-body{flex:1;overflow-y:auto;font-size:11px;color:var(--text2);line-height:1.7;background:var(--bg0);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.readme-body h3{color:var(--blue);font-size:12px;margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.readme-body h3:first-child{margin-top:0}
+.readme-body ul{padding-left:14px;margin-bottom:8px}
+.readme-body li{margin-bottom:3px}
+.readme-body code{background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--cyan);font-size:10px}
+.readme-body .step{display:flex;gap:8px;margin-bottom:6px}
+.readme-body .step-num{width:18px;height:18px;border-radius:50%;background:var(--blue-dark);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.readme-body kbd{background:var(--bg3);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-size:9px;color:var(--text1)}
+.diff-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:0}
+.diff-section h4{color:var(--amber);font-size:11px;font-weight:700;margin-bottom:6px}
+.diff-row{display:flex;gap:8px;margin-bottom:4px;font-size:10px}
+.diff-tool{color:var(--text3)}
+.diff-vs{color:var(--text3);flex-shrink:0}
+.diff-this{color:var(--green);font-weight:500}
+
+/* Toast */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:8px 14px;border-radius:var(--r);font-size:11px;z-index:999;pointer-events:none;display:none;align-items:center;gap:6px;box-shadow:var(--shadow)}
+#toast.show{display:flex;animation:toastIn .2s ease}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* WHERE builder */
+.where-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
+.where-row select,.where-row input{background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:inherit;font-size:10px;padding:3px 6px;outline:none}
+.where-row select:focus,.where-row input:focus{border-color:var(--blue-dark)}
+.where-row input{flex:1;min-width:0}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <span class="logo">Ora<span>Query</span></span>
+  <span class="logo-sub">SQL Builder</span>
+  <div class="topbar-sep"></div>
+  <span class="topbar-badge" id="oracle-ver">Oracle 19c+</span>
+  <span class="topbar-info" id="schema-info">No schema loaded</span>
+  <div class="topbar-actions">
+    <button class="btn btn-sm btn-ghost" onclick="showModal('readme')">📖 README</button>
+    <button class="btn btn-sm" onclick="showModal('schema')">📦 Sample Schemas</button>
+    <button class="btn btn-sm" onclick="loadJSONSchema()">📂 Load JSON Schema</button>
+    <button class="btn btn-sm btn-primary" onclick="showModal('import')">⬆ Import DDL</button>
+    <button class="btn btn-sm btn-success" onclick="copySQL()" id="copy-btn">⎘ Copy SQL</button>
+    <button class="btn btn-sm" onclick="exportSQL()">↓ Export .sql</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div id="layout">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-tabs" style="flex-wrap:wrap">
+      <div class="stab active" onclick="setTab('tables',this)" style="flex:1;min-width:60px">TABLES</div>
+      <div class="stab" onclick="setTab('where',this)" style="flex:1;min-width:60px">WHERE</div>
+      <div class="stab" onclick="setTab('orderby',this)" style="flex:1;min-width:60px">ORDER</div>
+      <div class="stab" onclick="setTab('agg',this)" style="flex:1;min-width:60px">AGG</div>
+      <div class="stab" onclick="setTab('cte',this)" style="flex:1;min-width:60px">CTE</div>
+      <div class="stab" onclick="setTab('expr',this)" style="flex:1;min-width:60px">EXPR</div>
+      <div class="stab" onclick="setTab('set',this)" style="flex:1;min-width:60px">SET</div>
+      <div class="stab" onclick="setTab('hier',this)" style="flex:1;min-width:60px">HIER</div>
+    </div>
+    <div class="sidebar-search" id="tab-tables">
+      <input id="tbl-search" placeholder="Search tables / columns…" oninput="renderSidebar()"/>
+    </div>
+    <div class="sidebar-content" id="sidebar-content"></div>
+
+    <div id="tab-where" style="display:none;flex:1;overflow:hidden;display:none;flex-direction:column">
+      <div style="padding:8px;flex:1;overflow-y:auto" id="where-content">
+        <div class="empty-hint" style="padding:10px">Add tables to canvas first, then build WHERE conditions here.</div>
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid var(--border)">
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" style="flex:1" onclick="addWhereRow()">+ Add Condition</button>
+          <button class="btn btn-sm" id="where-logic-btn" onclick="toggleWhereLogic()" title="Toggle AND/OR between conditions" style="width:44px;font-weight:700">AND</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-orderby" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+      <div style="padding:8px;flex:1;overflow-y:auto" id="order-content">
+        <div class="empty-hint" style="padding:10px">Select columns on the canvas, then add ORDER BY here.</div>
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid var(--border)">
+        <button class="btn btn-sm" style="width:100%" onclick="addOrderRow()">+ Add ORDER BY</button>
+      </div>
+    </div>
+
+    <!-- AGG TAB -->
+    <div id="tab-agg" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+      <div style="padding:8px;flex:1;overflow-y:auto" id="agg-content">
+        <div class="empty-hint" style="padding:10px">Add tables to canvas first.</div>
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px">
+        <button class="btn btn-sm" style="width:100%" onclick="addAggRow()">+ Aggregate (SUM/COUNT…)</button>
+        <button class="btn btn-sm" style="width:100%" onclick="addGroupByRow()">+ GROUP BY column</button>
+        <button class="btn btn-sm" style="width:100%" onclick="addHavingRow()">+ HAVING condition</button>
+        <button class="btn btn-sm" style="width:100%" onclick="addWindowFn()">+ Window Function</button>
+      </div>
+    </div>
+
+    <!-- CTE TAB -->
+    <div id="tab-cte" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+      <div style="padding:8px;flex:1;overflow-y:auto" id="cte-content">
+        <div class="empty-hint" style="padding:10px">CTEs (WITH clauses) and subqueries let you build modular, readable SQL. Click below to add one.</div>
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px">
+        <button class="btn btn-sm" style="width:100%;margin-bottom:3px" onclick="addCTE()">+ Add CTE (WITH clause)</button>
+        <button class="btn btn-sm" style="width:100%;margin-bottom:3px" onclick="addSubquery()">+ Inline Subquery (FROM)</button>
+        <button class="btn btn-sm" style="width:100%" onclick="addExistsSQ()">+ EXISTS / IN Subquery (WHERE)</button>
+        <button class="btn btn-sm" style="width:100%" onclick="addSubquery()">+ Add Subquery (inline view)</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- EXPR TAB: CASE WHEN + scalar subqueries -->
+    <div id="tab-expr" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+      <div style="padding:8px;flex:1;overflow-y:auto" id="expr-content">
+        <div class="empty-hint" style="padding:10px">Build CASE WHEN expressions and scalar subqueries for the SELECT list.</div>
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px">
+        <button class="btn btn-sm" style="width:100%" onclick="addCaseExpr()">+ CASE WHEN expression</button>
+        <button class="btn btn-sm" style="width:100%" onclick="addScalarSubq()">+ Scalar Subquery (SELECT)</button>
+      </div>
+    </div>
+
+    <!-- SET TAB: UNION / INTERSECT / MINUS -->
+    <div id="tab-set" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+      <div style="padding:8px;flex:1;overflow-y:auto" id="set-content">
+        <div class="empty-hint" style="padding:10px">Add UNION, UNION ALL, INTERSECT, or MINUS to combine this query with another.</div>
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid var(--border)">
+        <button class="btn btn-sm" style="width:100%" onclick="addSetOp()">+ Add UNION / INTERSECT / MINUS</button>
+      </div>
+    </div>
+
+    <!-- HIER TAB: CONNECT BY -->
+    <div id="tab-hier" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+      <div style="padding:8px;flex:1;overflow-y:auto" id="hier-content">
+        <div class="empty-hint" style="padding:10px">Oracle hierarchical queries using CONNECT BY PRIOR — for org charts, BOMs, category trees.</div>
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid var(--border)">
+        <button class="btn btn-sm" style="width:100%" onclick="enableConnectBy()">+ Enable CONNECT BY</button>
+      </div>
+    </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="canvas-area">
+      <!-- CANVAS -->
+      <div id="canvas" ondrop="onCanvasDrop(event)" ondragover="e=>e.preventDefault()">
+        <svg id="canvas-svg"></svg>
+        <div class="canvas-empty" id="canvas-empty">
+          <div class="canvas-empty-icon">⎘</div>
+          <h3>Drag tables onto the canvas</h3>
+          <p>Tables snap to grid · FK relationships<br>auto-detected · Click columns to SELECT</p>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div id="right-panel">
+        <div class="rp-section">
+          <div class="rp-head">⚡ Selected Columns<span class="val-count" id="sel-col-count">0</span></div>
+          <div class="rp-body" id="sel-cols-body" style="max-height:140px">
+            <div class="empty-hint">No columns selected yet.</div>
+          </div>
+        </div>
+        <div class="rp-section">
+          <div class="rp-head">Join Type</div>
+          <div class="join-type-row">
+            <button class="jtype-btn active" onclick="setJoinType('INNER',this)">INNER</button>
+            <button class="jtype-btn" onclick="setJoinType('LEFT',this)">LEFT</button>
+            <button class="jtype-btn" onclick="setJoinType('RIGHT',this)">RIGHT</button>
+            <button class="jtype-btn" onclick="setJoinType('FULL OUTER',this)">FULL</button>
+          </div>
+        </div>
+        <div class="rp-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <div class="rp-head">🔗 Detected Joins</div>
+          <div class="rp-body" id="joins-body" style="flex:1;overflow-y:auto">
+            <div class="empty-hint">Add related tables to canvas.</div>
+          </div>
+        </div>
+        <div style="padding:8px;border-top:1px solid var(--border)">
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);cursor:pointer;margin-bottom:4px">
+            <input type="checkbox" id="chk-distinct" onchange="refreshSQL()" style="accent-color:var(--blue)"/> DISTINCT results
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);cursor:pointer;margin-bottom:4px">
+            <input type="checkbox" id="chk-rownum" onchange="refreshSQL()" style="accent-color:var(--blue)"/> Add FETCH FIRST
+          </label>
+          <div id="rownum-row" style="display:none;padding-top:4px">
+            <input type="number" id="rownum-val" value="100" min="1" max="100000" onchange="refreshSQL()"
+              style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:inherit;font-size:11px;padding:4px 8px;outline:none"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM -->
+    <div id="bottom">
+      <div id="sql-panel">
+        <div id="sql-toolbar">
+          <span class="label">Generated SQL</span>
+          <span style="font-size:9px;color:var(--text3)" id="sql-stats"></span>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-sm btn-ghost" onclick="toggleFormat()" id="fmt-btn">Formatted</button>
+          </div>
+        </div>
+        <div id="sql-output"></div>
+      </div>
+      <div id="val-panel">
+        <div class="val-head">🛡 Validation<span class="val-count" id="warn-count">0</span></div>
+        <div id="val-items"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast">✓ Copied to clipboard</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+<div class="modal" id="modal-inner">
+  <h2 id="modal-title">Import DDL</h2>
+  <div id="modal-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0"></div>
+  <div class="modal-footer">
+    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="modal-action-btn" onclick="modalAction()">Import</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ================================================================
+// STATE
+// ================================================================
+let schema = [];
+let canvasTables = []; // [{name,x,y}]
+let selectedCols = {}; // {TABLE: [colname,...]}
+let whereConditions = []; // [{table,col,op,val}]
+let orderByCols = []; // [{table,col,dir}]
+let joinType = 'INNER';
+
+let joinConfigs = {}; // key="FROM|TO|fromCol|toCol" → {type, conditions:[{lAlias,lCol,op,rAlias,rCol}]}
+let selfJoinCount = {}; // tableName → count of extra aliases used
+
+// CTEs: [{id, name, sql, collapsed}]
+let ctes = [];
+// Aggregations: [{id, tableId, col, fn, alias}]  fn = COUNT|SUM|AVG|MIN|MAX|COUNT DISTINCT
+let aggregations = [];
+// GROUP BY: [{tableId, alias, col}]
+let groupByCols = [];
+// HAVING: [{aggId, op, val}]
+let havingClauses = [];
+// Window functions: [{id, fn, col, tableId, partitionId, partitionCol, orderTableId, orderCol, orderDir, alias}]
+let windowFns = [];
+// Subqueries: used as virtual tables in FROM. [{id, name, sql, alias, collapsed}]
+let subqueries = [];
+// EXISTS subqueries: [{id, type:'EXISTS'|'NOT EXISTS'|'IN_SUBQ', col, tableId, sql}]
+let existsSubqs = [];
+
+// UNION / INTERSECT / MINUS sets: [{id, type, sql}]
+let setOps = [];
+// CASE WHEN expressions in SELECT: [{id, alias, whens:[{cond,result}], elseVal}]
+let caseExprs = [];
+// CONNECT BY (hierarchy): {startWith, connectBy, priorCol, childCol, levelAlias}
+let connectBy = null;
+// WHERE logic: 'AND' or 'OR' between top-level conditions
+let whereLogic = 'AND';
+// SCALAR subqueries in SELECT: [{id, alias, sql}]
+let scalarSubqs = [];
+
+let formatted = true;
+let dragOffX = 0, dragOffY = 0;
+let draggingCard = null;
+let expandedTbls = {};
+let modalMode = '';
+
+// ================================================================
+// SAMPLE SCHEMAS
+// ================================================================
+const SAMPLE_SCHEMAS = {
+  hr: {
+    name: 'Oracle HR Schema',
+    desc: 'Standard Oracle HR sample — Employees, Departments, Jobs, Locations, Countries',
+    tags: ['HR','ERP','Standard'],
+    tables: [
+      {name:'EMPLOYEES',alias:'E',columns:[
+        {name:'EMPLOYEE_ID',type:'NUMBER(6)',pk:true},
+        {name:'FIRST_NAME',type:'VARCHAR2(20)'},
+        {name:'LAST_NAME',type:'VARCHAR2(25)'},
+        {name:'EMAIL',type:'VARCHAR2(25)'},
+        {name:'PHONE_NUMBER',type:'VARCHAR2(20)'},
+        {name:'HIRE_DATE',type:'DATE'},
+        {name:'JOB_ID',type:'VARCHAR2(10)',fk:'JOBS.JOB_ID'},
+        {name:'SALARY',type:'NUMBER(8,2)'},
+        {name:'COMMISSION_PCT',type:'NUMBER(2,2)'},
+        {name:'MANAGER_ID',type:'NUMBER(6)',fk:'EMPLOYEES.EMPLOYEE_ID'},
+        {name:'DEPARTMENT_ID',type:'NUMBER(4)',fk:'DEPARTMENTS.DEPARTMENT_ID'},
+      ]},
+      {name:'DEPARTMENTS',alias:'D',columns:[
+        {name:'DEPARTMENT_ID',type:'NUMBER(4)',pk:true},
+        {name:'DEPARTMENT_NAME',type:'VARCHAR2(30)'},
+        {name:'MANAGER_ID',type:'NUMBER(6)',fk:'EMPLOYEES.EMPLOYEE_ID'},
+        {name:'LOCATION_ID',type:'NUMBER(4)',fk:'LOCATIONS.LOCATION_ID'},
+      ]},
+      {name:'JOBS',alias:'J',columns:[
+        {name:'JOB_ID',type:'VARCHAR2(10)',pk:true},
+        {name:'JOB_TITLE',type:'VARCHAR2(35)'},
+        {name:'MIN_SALARY',type:'NUMBER(6)'},
+        {name:'MAX_SALARY',type:'NUMBER(6)'},
+      ]},
+      {name:'LOCATIONS',alias:'L',columns:[
+        {name:'LOCATION_ID',type:'NUMBER(4)',pk:true},
+        {name:'STREET_ADDRESS',type:'VARCHAR2(40)'},
+        {name:'CITY',type:'VARCHAR2(30)'},
+        {name:'STATE_PROVINCE',type:'VARCHAR2(25)'},
+        {name:'POSTAL_CODE',type:'VARCHAR2(12)'},
+        {name:'COUNTRY_ID',type:'CHAR(2)',fk:'COUNTRIES.COUNTRY_ID'},
+      ]},
+      {name:'COUNTRIES',alias:'C',columns:[
+        {name:'COUNTRY_ID',type:'CHAR(2)',pk:true},
+        {name:'COUNTRY_NAME',type:'VARCHAR2(40)'},
+        {name:'REGION_ID',type:'NUMBER',fk:'REGIONS.REGION_ID'},
+      ]},
+      {name:'REGIONS',alias:'R',columns:[
+        {name:'REGION_ID',type:'NUMBER',pk:true},
+        {name:'REGION_NAME',type:'VARCHAR2(25)'},
+      ]},
+      {name:'JOB_HISTORY',alias:'JH',columns:[
+        {name:'EMPLOYEE_ID',type:'NUMBER(6)',pk:true,fk:'EMPLOYEES.EMPLOYEE_ID'},
+        {name:'START_DATE',type:'DATE',pk:true},
+        {name:'END_DATE',type:'DATE'},
+        {name:'JOB_ID',type:'VARCHAR2(10)',fk:'JOBS.JOB_ID'},
+        {name:'DEPARTMENT_ID',type:'NUMBER(4)',fk:'DEPARTMENTS.DEPARTMENT_ID'},
+      ]},
+    ]
+  },
+  sales: {
+    name: 'Sales Order Schema',
+    desc: 'B2B sales — Customers, Orders, Order Lines, Products, Inventory, Salesreps',
+    tags: ['Sales','ERP','Orders'],
+    tables: [
+      {name:'CUSTOMERS',alias:'CU',columns:[
+        {name:'CUSTOMER_ID',type:'NUMBER',pk:true},
+        {name:'CUSTOMER_NAME',type:'VARCHAR2(100)'},
+        {name:'CREDIT_LIMIT',type:'NUMBER(9,2)'},
+        {name:'ACCOUNT_MGR_ID',type:'NUMBER',fk:'SALESREPS.REP_ID'},
+      ]},
+      {name:'ORDERS',alias:'O',columns:[
+        {name:'ORDER_ID',type:'NUMBER',pk:true},
+        {name:'CUSTOMER_ID',type:'NUMBER',fk:'CUSTOMERS.CUSTOMER_ID'},
+        {name:'ORDER_DATE',type:'DATE'},
+        {name:'ORDER_STATUS',type:'VARCHAR2(20)'},
+        {name:'REP_ID',type:'NUMBER',fk:'SALESREPS.REP_ID'},
+      ]},
+      {name:'ORDER_ITEMS',alias:'OI',columns:[
+        {name:'ORDER_ID',type:'NUMBER',pk:true,fk:'ORDERS.ORDER_ID'},
+        {name:'LINE_ITEM_ID',type:'NUMBER',pk:true},
+        {name:'PRODUCT_ID',type:'NUMBER',fk:'PRODUCTS.PRODUCT_ID'},
+        {name:'UNIT_PRICE',type:'NUMBER(8,2)'},
+        {name:'QUANTITY',type:'NUMBER(8)'},
+      ]},
+      {name:'PRODUCTS',alias:'P',columns:[
+        {name:'PRODUCT_ID',type:'NUMBER',pk:true},
+        {name:'PRODUCT_NAME',type:'VARCHAR2(50)'},
+        {name:'CATEGORY_ID',type:'NUMBER',fk:'CATEGORIES.CATEGORY_ID'},
+        {name:'LIST_PRICE',type:'NUMBER(8,2)'},
+        {name:'MIN_PRICE',type:'NUMBER(8,2)'},
+      ]},
+      {name:'CATEGORIES',alias:'CAT',columns:[
+        {name:'CATEGORY_ID',type:'NUMBER',pk:true},
+        {name:'CATEGORY_NAME',type:'VARCHAR2(50)'},
+        {name:'PARENT_CATEGORY_ID',type:'NUMBER',fk:'CATEGORIES.CATEGORY_ID'},
+      ]},
+      {name:'SALESREPS',alias:'SR',columns:[
+        {name:'REP_ID',type:'NUMBER',pk:true},
+        {name:'REP_NAME',type:'VARCHAR2(60)'},
+        {name:'HIRE_DATE',type:'DATE'},
+        {name:'TARGET',type:'NUMBER(12,2)'},
+      ]},
+      {name:'INVENTORY',alias:'INV',columns:[
+        {name:'PRODUCT_ID',type:'NUMBER',pk:true,fk:'PRODUCTS.PRODUCT_ID'},
+        {name:'WAREHOUSE_ID',type:'NUMBER',pk:true,fk:'WAREHOUSES.WAREHOUSE_ID'},
+        {name:'QUANTITY_ON_HAND',type:'NUMBER(8)'},
+      ]},
+      {name:'WAREHOUSES',alias:'WH',columns:[
+        {name:'WAREHOUSE_ID',type:'NUMBER',pk:true},
+        {name:'WAREHOUSE_NAME',type:'VARCHAR2(35)'},
+        {name:'LOCATION_ID',type:'NUMBER'},
+      ]},
+    ]
+  },
+  finance: {
+    name: 'Financial Ledger Schema',
+    desc: 'GL Accounts, Journal Entries, Cost Centers, Budget vs Actuals',
+    tags: ['Finance','GL','Budget'],
+    tables: [
+      {name:'GL_ACCOUNTS',alias:'GLA',columns:[
+        {name:'ACCOUNT_ID',type:'NUMBER',pk:true},
+        {name:'ACCOUNT_CODE',type:'VARCHAR2(20)'},
+        {name:'ACCOUNT_NAME',type:'VARCHAR2(100)'},
+        {name:'ACCOUNT_TYPE',type:'VARCHAR2(20)'},
+        {name:'PARENT_ACCOUNT_ID',type:'NUMBER',fk:'GL_ACCOUNTS.ACCOUNT_ID'},
+      ]},
+      {name:'COST_CENTERS',alias:'CC',columns:[
+        {name:'COST_CENTER_ID',type:'NUMBER',pk:true},
+        {name:'COST_CENTER_CODE',type:'VARCHAR2(10)'},
+        {name:'DESCRIPTION',type:'VARCHAR2(100)'},
+        {name:'MANAGER_ID',type:'NUMBER'},
+      ]},
+      {name:'JOURNAL_HEADERS',alias:'JH',columns:[
+        {name:'JOURNAL_ID',type:'NUMBER',pk:true},
+        {name:'JOURNAL_DATE',type:'DATE'},
+        {name:'PERIOD_ID',type:'NUMBER',fk:'FISCAL_PERIODS.PERIOD_ID'},
+        {name:'DESCRIPTION',type:'VARCHAR2(200)'},
+        {name:'STATUS',type:'VARCHAR2(10)'},
+        {name:'CREATED_BY',type:'VARCHAR2(30)'},
+      ]},
+      {name:'JOURNAL_LINES',alias:'JL',columns:[
+        {name:'LINE_ID',type:'NUMBER',pk:true},
+        {name:'JOURNAL_ID',type:'NUMBER',fk:'JOURNAL_HEADERS.JOURNAL_ID'},
+        {name:'ACCOUNT_ID',type:'NUMBER',fk:'GL_ACCOUNTS.ACCOUNT_ID'},
+        {name:'COST_CENTER_ID',type:'NUMBER',fk:'COST_CENTERS.COST_CENTER_ID'},
+        {name:'DEBIT_AMOUNT',type:'NUMBER(15,2)'},
+        {name:'CREDIT_AMOUNT',type:'NUMBER(15,2)'},
+        {name:'DESCRIPTION',type:'VARCHAR2(200)'},
+      ]},
+      {name:'FISCAL_PERIODS',alias:'FP',columns:[
+        {name:'PERIOD_ID',type:'NUMBER',pk:true},
+        {name:'PERIOD_NAME',type:'VARCHAR2(20)'},
+        {name:'START_DATE',type:'DATE'},
+        {name:'END_DATE',type:'DATE'},
+        {name:'STATUS',type:'VARCHAR2(10)'},
+      ]},
+      {name:'BUDGETS',alias:'B',columns:[
+        {name:'BUDGET_ID',type:'NUMBER',pk:true},
+        {name:'ACCOUNT_ID',type:'NUMBER',fk:'GL_ACCOUNTS.ACCOUNT_ID'},
+        {name:'COST_CENTER_ID',type:'NUMBER',fk:'COST_CENTERS.COST_CENTER_ID'},
+        {name:'PERIOD_ID',type:'NUMBER',fk:'FISCAL_PERIODS.PERIOD_ID'},
+        {name:'BUDGET_AMOUNT',type:'NUMBER(15,2)'},
+      ]},
+    ]
+  },
+  inventory: {
+    name: 'Inventory & Warehouse',
+    desc: 'Items, Stock Movements, Suppliers, Purchase Orders, Bin Locations',
+    tags: ['WMS','Inventory','Supply Chain'],
+    tables: [
+      {name:'ITEMS',alias:'IT',columns:[
+        {name:'ITEM_ID',type:'NUMBER',pk:true},
+        {name:'ITEM_CODE',type:'VARCHAR2(30)'},
+        {name:'DESCRIPTION',type:'VARCHAR2(200)'},
+        {name:'UOM',type:'VARCHAR2(10)'},
+        {name:'ITEM_TYPE',type:'VARCHAR2(20)'},
+        {name:'REORDER_POINT',type:'NUMBER(10,2)'},
+      ]},
+      {name:'WAREHOUSES',alias:'WH',columns:[
+        {name:'WAREHOUSE_ID',type:'NUMBER',pk:true},
+        {name:'WAREHOUSE_CODE',type:'VARCHAR2(10)'},
+        {name:'WAREHOUSE_NAME',type:'VARCHAR2(60)'},
+        {name:'CITY',type:'VARCHAR2(40)'},
+      ]},
+      {name:'BIN_LOCATIONS',alias:'BL',columns:[
+        {name:'BIN_ID',type:'NUMBER',pk:true},
+        {name:'WAREHOUSE_ID',type:'NUMBER',fk:'WAREHOUSES.WAREHOUSE_ID'},
+        {name:'BIN_CODE',type:'VARCHAR2(20)'},
+        {name:'ZONE',type:'VARCHAR2(10)'},
+        {name:'CAPACITY',type:'NUMBER(10,2)'},
+      ]},
+      {name:'STOCK_BALANCES',alias:'SB',columns:[
+        {name:'ITEM_ID',type:'NUMBER',pk:true,fk:'ITEMS.ITEM_ID'},
+        {name:'BIN_ID',type:'NUMBER',pk:true,fk:'BIN_LOCATIONS.BIN_ID'},
+        {name:'QTY_ON_HAND',type:'NUMBER(12,3)'},
+        {name:'QTY_RESERVED',type:'NUMBER(12,3)'},
+        {name:'LAST_COUNTED',type:'DATE'},
+      ]},
+      {name:'STOCK_MOVEMENTS',alias:'SM',columns:[
+        {name:'MOVEMENT_ID',type:'NUMBER',pk:true},
+        {name:'ITEM_ID',type:'NUMBER',fk:'ITEMS.ITEM_ID'},
+        {name:'FROM_BIN_ID',type:'NUMBER',fk:'BIN_LOCATIONS.BIN_ID'},
+        {name:'TO_BIN_ID',type:'NUMBER',fk:'BIN_LOCATIONS.BIN_ID'},
+        {name:'QUANTITY',type:'NUMBER(12,3)'},
+        {name:'MOVEMENT_DATE',type:'DATE'},
+        {name:'MOVEMENT_TYPE',type:'VARCHAR2(20)'},
+        {name:'REF_DOC_ID',type:'NUMBER'},
+      ]},
+      {name:'SUPPLIERS',alias:'SUP',columns:[
+        {name:'SUPPLIER_ID',type:'NUMBER',pk:true},
+        {name:'SUPPLIER_NAME',type:'VARCHAR2(100)'},
+        {name:'PAYMENT_TERMS',type:'VARCHAR2(30)'},
+        {name:'LEAD_TIME_DAYS',type:'NUMBER(3)'},
+      ]},
+      {name:'PO_HEADERS',alias:'PO',columns:[
+        {name:'PO_ID',type:'NUMBER',pk:true},
+        {name:'SUPPLIER_ID',type:'NUMBER',fk:'SUPPLIERS.SUPPLIER_ID'},
+        {name:'PO_DATE',type:'DATE'},
+        {name:'STATUS',type:'VARCHAR2(20)'},
+        {name:'TOTAL_AMOUNT',type:'NUMBER(15,2)'},
+      ]},
+      {name:'PO_LINES',alias:'POL',columns:[
+        {name:'LINE_ID',type:'NUMBER',pk:true},
+        {name:'PO_ID',type:'NUMBER',fk:'PO_HEADERS.PO_ID'},
+        {name:'ITEM_ID',type:'NUMBER',fk:'ITEMS.ITEM_ID'},
+        {name:'QTY_ORDERED',type:'NUMBER(12,3)'},
+        {name:'QTY_RECEIVED',type:'NUMBER(12,3)'},
+        {name:'UNIT_PRICE',type:'NUMBER(10,4)'},
+      ]},
+    ]
+  }
+};
+
+// ================================================================
+// RELATIONSHIP MAP
+// ================================================================
+function buildRels() {
+  const rels = [];
+  schema.forEach(t => {
+    t.columns.forEach(c => {
+      if (c.fk) {
+        const [rt, rc] = c.fk.split('.');
+        // include self-refs too (hierarchical tables)
+        rels.push({from: t.name, fromCol: c.name, to: rt, toCol: rc, selfRef: rt === t.name});
+      }
+    });
+  });
+  return rels;
+}
+
+// BFS: find shortest FK path between two tables through intermediate tables
+function bfsPath(fromTbl, toTbl, allTbls, rels) {
+  if (fromTbl === toTbl) return null;
+  const queue = [[fromTbl, []]];
+  const visited = new Set([fromTbl]);
+  while (queue.length) {
+    const [cur, path] = queue.shift();
+    const edges = rels.filter(r =>
+      (!r.selfRef) && (
+        (r.from === cur && (allTbls.includes(r.to) || r.to === toTbl)) ||
+        (r.to === cur && (allTbls.includes(r.from) || r.from === toTbl))
+      )
+    );
+    for (const e of edges) {
+      const next = e.from === cur ? e.to : e.from;
+      const step = e.from === cur
+        ? {from: e.from, fromCol: e.fromCol, to: e.to, toCol: e.toCol}
+        : {from: e.to, fromCol: e.toCol, to: e.from, toCol: e.fromCol};
+      const newPath = [...path, step];
+      if (next === toTbl) return newPath;
+      if (!visited.has(next)) { visited.add(next); queue.push([next, newPath]); }
+    }
+  }
+  return null;
+}
+
+function getJoinKey(j) { return `${j.from}|${j.to}|${j.fromCol}|${j.toCol}`; }
+
+function findJoinPath(tables) {
+  if (tables.length < 2) return [];
+  const rels = buildRels();
+  const results = [];
+  const joined = new Set([tables[0]]);
+  const aliasMap = {}; // tableName → alias (handles self-joins with extra alias)
+
+  // Assign canvas aliases (supports self-join different aliases)
+  canvasTables.forEach(ct => {
+    // last one wins for same name — self-join handled separately below
+    aliasMap[ct.name] = ct.alias;
+  });
+
+  tables.slice(1).forEach(tbl => {
+    // Check if this is a repeated table (self-join scenario)
+    const isSelf = joined.has(tbl);
+    if (isSelf) {
+      // Find self-referencing FK on this table
+      const selfRel = rels.find(r => r.from === tbl && r.selfRef);
+      if (selfRel) {
+        // Get the two canvas instances
+        const instances = canvasTables.filter(t => t.name === tbl);
+        const alias1 = instances[0]?.alias || (schema.find(s=>s.name===tbl)?.alias||tbl.slice(0,2));
+        const alias2 = instances[1]?.alias || alias1 + '2';
+        results.push({
+          from: tbl, fromCol: selfRel.fromCol, to: tbl, toCol: selfRel.toCol,
+          fa: alias2, ta: alias1,
+          found: true, selfJoin: true
+        });
+      } else {
+        results.push({from: tables[0], to: tbl, found: false, reason: 'duplicate table — no self-referencing FK found'});
+      }
+      joined.add(tbl);
+      return;
+    }
+
+    // Try direct FK first
+    const direct = rels.find(r =>
+      (!r.selfRef) && (
+        (r.from === tbl && joined.has(r.to)) ||
+        (r.to === tbl && joined.has(r.from))
+      )
+    );
+
+    if (direct) {
+      const ft = schema.find(s => s.name === direct.from);
+      const tt = schema.find(s => s.name === direct.to);
+      results.push({
+        ...direct, found: true, direct: true,
+        fa: ft?.alias || direct.from.slice(0,2),
+        ta: tt?.alias || direct.to.slice(0,2)
+      });
+    } else {
+      // BFS multi-hop
+      let found = false;
+      for (const joinedTbl of joined) {
+        const path = bfsPath(joinedTbl, tbl, [...joined], rels);
+        if (path && path.length > 0) {
+          // Emit each hop as its own join
+          path.forEach(step => {
+            const ft = schema.find(s => s.name === step.from);
+            const tt = schema.find(s => s.name === step.to);
+            results.push({
+              ...step, found: true, direct: false, multiHop: true,
+              fa: ft?.alias || step.from.slice(0,2),
+              ta: tt?.alias || step.to.slice(0,2)
+            });
+            joined.add(step.to);
+          });
+          found = true;
+          break;
+        }
+      }
+      if (!found) results.push({from: tables[0], to: tbl, found: false, reason: 'no FK path found'});
+    }
+    joined.add(tbl);
+  });
+  return results;
+}
+
+// ================================================================
+// SQL GENERATOR (Oracle-specific)
+// ================================================================
+function generateSQL() {
+  const tables = canvasTables.map(t => t.name); // for findJoinPath
+  const regularCols = Object.entries(selectedCols).flatMap(([id, cols]) =>
+    cols.map(col => {
+      const ct = canvasTables.find(t => t.id === id);
+      return `${ct?.alias || id.slice(0,2)}.${col}`;
+    })
+  );
+
+  // Build aggregation SELECT expressions
+  const aggCols = aggregations.map(a => {
+    const ct = canvasTables.find(t => t.id === a.tableId);
+    const alias = ct?.alias || 'T';
+    const colRef = a.col === '*' ? '*' : `${alias}.${a.col}`;
+    const fnExpr = a.fn === 'COUNT DISTINCT'
+      ? `COUNT(DISTINCT ${colRef})`
+      : `${a.fn}(${colRef})`;
+    return a.alias ? `${fnExpr} AS ${a.alias}` : fnExpr;
+  });
+
+  // Window function SELECT expressions
+  const winCols = windowFns.map(w => {
+    const ct = canvasTables.find(t => t.id === w.tableId);
+    const alias = ct?.alias || 'T';
+    const pct = canvasTables.find(t => t.id === w.partitionId);
+    const pAlias = pct?.alias || alias;
+    const oct = canvasTables.find(t => t.id === w.orderTableId);
+    const oAlias = oct?.alias || alias;
+    let overClause = 'OVER (';
+    if (w.partitionCol) overClause += `PARTITION BY ${pAlias}.${w.partitionCol} `;
+    if (w.orderCol) overClause += `ORDER BY ${oAlias}.${w.orderCol} ${w.orderDir||'ASC'}`;
+    overClause += ')';
+    const colRef = w.col === '*' ? '*' : `${alias}.${w.col}`;
+    const expr = `${w.fn}(${colRef}) ${overClause}`;
+    return w.alias ? `${expr} AS ${w.alias}` : expr;
+  });
+
+  // CASE WHEN expressions
+  const caseCols = caseExprs.map(c => {
+    if (!c.whens || c.whens.length === 0) return null;
+    let expr = 'CASE';
+    c.whens.forEach(w => { if (w.cond && w.result) expr += ` WHEN ${w.cond} THEN ${w.result}`; });
+    if (c.elseVal) expr += ` ELSE ${c.elseVal}`;
+    expr += ' END';
+    return c.alias ? `${expr} AS ${c.alias}` : expr;
+  }).filter(Boolean);
+
+  // Scalar subqueries
+  const scalarCols = scalarSubqs.map(s => {
+    if (!s.sql) return null;
+    const inner = s.sql.split('\n').map(l => '    ' + l).join('\n');
+    const expr = `(\n${inner}\n  )`;
+    return s.alias ? `${expr} AS ${s.alias}` : expr;
+  }).filter(Boolean);
+
+  const allCols = [...regularCols, ...aggCols, ...winCols, ...caseCols, ...scalarCols];
+
+  if (tables.length === 0 && subqueries.length === 0 && ctes.length === 0)
+    return '-- Drag tables onto the canvas to start building your query';
+  if (allCols.length === 0 && tables.length > 0)
+    return '-- Click column names on the canvas table cards to add them to SELECT';
+
+  const distinct = document.getElementById('chk-distinct')?.checked ? 'DISTINCT ' : '';
+  let lines = [];
+
+  // ── CTEs ──
+  const activeCTEs = ctes.filter(c => c.name && c.sql);
+  const activeSubqs = subqueries.filter(s => s.name && s.sql);
+  if (activeCTEs.length > 0) {
+    lines.push('WITH');
+    activeCTEs.forEach((c, i) => {
+      lines.push(`  ${c.name} AS (`);
+      c.sql.split('\n').forEach(l => lines.push(`    ${l}`));
+      lines.push(`  )${i < activeCTEs.length - 1 ? ',' : ''}`);
+    });
+  }
+
+  if (tables.length === 0 && allCols.length === 0) {
+    lines.push('-- Add tables or CTEs to canvas to continue');
+    return lines.join('\n');
+  }
+
+  const mainCT = canvasTables[0];
+  const mainT = mainCT.name;
+  const mainAlias = mainCT.alias;
+
+  lines.push(`SELECT ${distinct}`);
+  allCols.forEach((c, i) => lines.push(`  ${c}${i < allCols.length - 1 ? ',' : ''}`));
+  lines.push(`FROM ${mainT} ${mainAlias}`);
+
+  // ── Subqueries as additional FROM sources ──
+  activeSubqs.forEach(s => {
+    lines.push(`  , (`);
+    s.sql.split('\n').forEach(l => lines.push(`    ${l}`));
+    lines.push(`  ) ${s.alias || s.name}`);
+  });
+
+  const joins = findJoinPath(tables);
+  const emittedTbls = new Set([mainT]);
+  joins.forEach(j => {
+    if (!j.found) {
+      lines.push(`-- ⚠ WARNING: No FK path — ${j.from} → ${j.to} (${j.reason||'no FK'})`);
+      const tDef2 = schema.find(s => s.name === j.to);
+      lines.push(`CROSS JOIN ${j.to} ${tDef2?.alias||j.to.slice(0,2)}`);
+      return;
+    }
+    const key = getJoinKey(j);
+    const cfg = joinConfigs[key] || {};
+    const jt = cfg.type || joinType;
+
+    if (j.selfJoin) {
+      lines.push(`${jt} JOIN ${j.to} ${j.fa}  -- self-join`);
+      lines.push(`  ON ${j.fa}.${j.fromCol} = ${j.ta}.${j.toCol}`);
+      return;
+    }
+
+    const tDef = schema.find(s => s.name === j.to);
+    const tAlias = tDef?.alias || j.to.slice(0,2);
+    if (!emittedTbls.has(j.to)) {
+      lines.push(`${jt} JOIN ${j.to} ${tAlias}${j.multiHop ? '  -- via multi-hop path' : ''}`);
+      emittedTbls.add(j.to);
+    }
+
+    // Extra conditions from joinConfigs
+    const conds = cfg.conditions || [];
+    const eqLine = `  ON ${j.fa}.${j.fromCol} = ${j.ta}.${j.toCol}`;
+    if (conds.length === 0) {
+      lines.push(eqLine);
+    } else {
+      lines.push(eqLine);
+      conds.forEach(c => {
+        if (c.lCol && c.rCol)
+          lines.push(`  AND ${c.lAlias}.${c.lCol} ${c.op} ${c.rAlias}.${c.rCol}`);
+        else if (c.lCol && c.val)
+          lines.push(`  AND ${c.lAlias}.${c.lCol} ${c.op} ${c.val}`);
+      });
+    }
+  });
+
+  // WHERE
+  const wClauses = whereConditions.filter(w => w.col && w.val);
+  if (wClauses.length > 0) {
+    lines.push(`WHERE`);
+    wClauses.forEach((w, i) => {
+      const ct = canvasTables.find(t => t.id === w.tableId);
+      const a = ct?.alias || w.alias || 'T';
+      const op = w.op;
+      let clause;
+      if (op === 'IS NULL' || op === 'IS NOT NULL') clause = `  ${a}.${w.col} ${op}`;
+      else if (op === 'LIKE') clause = `  ${a}.${w.col} LIKE '%${w.val}%'`;
+      else if (op === 'IN') clause = `  ${a}.${w.col} IN (${w.val})`;
+      else clause = `  ${a}.${w.col} ${op} '${w.val}'`;
+      lines.push(clause + (i < wClauses.length - 1 ? '' : ''));
+      if (i < wClauses.length - 1) lines[lines.length - 1] += `\n  ${whereLogic}`;
+    });
+  } else {
+    lines.push(`WHERE 1=1`);
+    lines.push(`  -- Add filter conditions here`);
+  }
+
+  // ── EXISTS / NOT EXISTS / IN subqueries ──
+  const activeExists = existsSubqs.filter(e => e.sql && e.sql.trim());
+  activeExists.forEach(e => {
+    const ct = canvasTables.find(t => t.id === e.tableId);
+    const a = ct?.alias || 'T';
+    if (e.type === 'IN_SUBQ' && e.col) {
+      lines.push(`  AND ${a}.${e.col} IN (`);
+      e.sql.split('\n').forEach(l => lines.push(`    ${l}`));
+      lines.push(`  )`);
+    } else {
+      lines.push(`  AND ${e.type} (`);
+      e.sql.split('\n').forEach(l => lines.push(`    ${l}`));
+      lines.push(`  )`);
+    }
+  });
+
+  // ── CONNECT BY (hierarchical) ──
+  if (connectBy && connectBy.enabled) {
+    if (connectBy.startWith) lines.push(`START WITH ${connectBy.startWith}`);
+    lines.push(`CONNECT BY PRIOR ${connectBy.priorCol} = ${connectBy.childCol}`);
+    if (connectBy.nocycle) lines[lines.length-1] += ' NOCYCLE';
+  }
+
+  // GROUP BY
+  if (groupByCols.length > 0) {
+    lines.push(`GROUP BY`);
+    groupByCols.forEach((g, i) => {
+      const ct = canvasTables.find(t => t.id === g.tableId);
+      const a = ct?.alias || g.alias || 'T';
+      lines.push(`  ${a}.${g.col}${i < groupByCols.length - 1 ? ',' : ''}`);
+    });
+  }
+
+  // HAVING
+  const activeHaving = havingClauses.filter(h => h.aggId && h.val);
+  if (activeHaving.length > 0) {
+    lines.push(`HAVING`);
+    activeHaving.forEach((h, i) => {
+      const agg = aggregations.find(a => a.id === h.aggId);
+      if (!agg) return;
+      const ct = canvasTables.find(t => t.id === agg.tableId);
+      const alias = ct?.alias || 'T';
+      const colRef = agg.col === '*' ? '*' : `${alias}.${agg.col}`;
+      const fnExpr = agg.fn === 'COUNT DISTINCT'
+        ? `COUNT(DISTINCT ${colRef})`
+        : `${agg.fn}(${colRef})`;
+      lines.push(`  ${fnExpr} ${h.op} ${h.val}${i < activeHaving.length - 1 ? '\n  AND' : ''}`);
+    });
+  }
+
+  // ORDER BY
+  if (orderByCols.length > 0) {
+    lines.push(`ORDER BY`);
+    orderByCols.forEach((o, i) => {
+      const ct = canvasTables.find(t => t.id === o.tableId);
+      const a = ct?.alias || o.alias || 'T';
+      lines.push(`  ${a}.${o.col} ${o.dir}${i < orderByCols.length - 1 ? ',' : ''}`);
+    });
+  }
+
+  // FETCH FIRST (Oracle 12c+)
+  if (document.getElementById('chk-rownum')?.checked) {
+    const n = document.getElementById('rownum-val')?.value || 100;
+    lines.push(`FETCH FIRST ${n} ROWS ONLY`);
+  }
+
+  lines.push(`;`);
+
+  // ── SET OPERATIONS: UNION / INTERSECT / MINUS ──
+  const activeSets = setOps.filter(s => s.sql && s.sql.trim());
+  activeSets.forEach(s => {
+    lines.push(`\n${s.type}`);
+    lines.push(`\n${s.sql.trim()}`);
+    lines.push(`;`);
+  });
+
+  return lines.join('\n');
+}
+
+// ================================================================
+// SQL COLORIZER
+// ================================================================
+const KW = /^(SELECT|DISTINCT|FROM|WHERE|AND|OR|NOT|INNER|LEFT|RIGHT|FULL|OUTER|JOIN|ON|ORDER BY|GROUP BY|HAVING|FETCH|FIRST|ROWS|ONLY|CROSS|AS|IN|LIKE|BETWEEN|IS|NULL|EXISTS|UNION|ALL|MINUS|INTERSECT)$/i;
+
+function colorSQL(sql) {
+  if (!sql) return sql;
+  return sql.split('\n').map(line => {
+    if (line.trim().startsWith('--')) return `<span class="sql-comment">${esc(line)}</span>`;
+    // keyword at line start
+    return line.split(/(\s+)/).map(tok => {
+      if (/^\s+$/.test(tok)) return tok;
+      if (KW.test(tok.trim())) return `<span class="sql-kw">${esc(tok)}</span>`;
+      if (/^[A-Z][A-Z_]+\.[A-Z_]+$/.test(tok.replace(',',''))) {
+        const parts = tok.replace(',','').split('.');
+        return `<span class="sql-alias">${esc(parts[0])}</span>.<span class="sql-col">${esc(parts[1])}</span>${tok.endsWith(',') ? ',' : ''}`;
+      }
+      if (/^[A-Z][A-Z0-9_]{2,}$/.test(tok.replace(',',''))) return `<span class="sql-tbl">${esc(tok)}</span>`;
+      return esc(tok);
+    }).join('');
+  }).join('\n');
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+
+// ================================================================
+// JOIN CONFIG HELPERS (per-join type + non-equi conditions)
+// ================================================================
+function updateJoinType(key, val) {
+  if (!joinConfigs[key]) joinConfigs[key] = {type: val, conditions: []};
+  joinConfigs[key].type = val;
+  renderJoinLines();
+  refreshSQL();
+}
+function addJoinCond(key) {
+  if (!joinConfigs[key]) joinConfigs[key] = {type: joinType, conditions: []};
+  const tables = canvasTables.map(t => t.name);
+  const firstTbl = tables[0];
+  const firstDef = schema.find(s => s.name === firstTbl);
+  joinConfigs[key].conditions.push({
+    lAlias: firstDef?.alias || firstTbl.slice(0,2), lCol: '',
+    op: '=',
+    rAlias: firstDef?.alias || firstTbl.slice(0,2), rCol: '', val: ''
+  });
+  renderRightPanel();
+}
+function updateJoinCond(key, idx, side, val) {
+  if (!joinConfigs[key]) return;
+  const cond = joinConfigs[key].conditions[idx];
+  if (side === 'op') { cond.op = val; }
+  else if (side === 'left' && val.includes('||')) {
+    const [,alias,col] = val.split('||');
+    cond.lAlias = alias; cond.lCol = col;
+  } else if (side === 'right' && val.includes('||')) {
+    const [,alias,col] = val.split('||');
+    cond.rAlias = alias; cond.rCol = col;
+  }
+  refreshSQL();
+}
+function removeJoinCond(key, idx) {
+  if (!joinConfigs[key]) return;
+  joinConfigs[key].conditions.splice(idx, 1);
+  renderRightPanel();
+  refreshSQL();
+}
+
+
+// ================================================================
+// AGGREGATION TAB
+// ================================================================
+function colOptionsHTML(selectedId, selectedCol) {
+  return canvasTables.flatMap(ct => {
+    const tdef = schema.find(s => s.name === ct.name);
+    const cols = ct.name === canvasTables[0]?.name ? [{name:'*'},...(tdef?.columns||[])] : (tdef?.columns||[]);
+    return cols.map(c =>
+      `<option value="${ct.id}||${ct.alias}||${c.name}" ${selectedId===ct.id&&selectedCol===c.name?'selected':''}>${ct.alias}.${c.name}</option>`
+    );
+  }).join('');
+}
+
+function renderAggTab() {
+  const container = document.getElementById('agg-content');
+  if (canvasTables.length === 0) {
+    container.innerHTML = '<div class="empty-hint" style="padding:10px">Add tables to canvas first.</div>';
+    return;
+  }
+  let html = '';
+
+  // Aggregation rows
+  if (aggregations.length > 0) {
+    html += '<div class="agg-section-label">Aggregate Functions</div>';
+    aggregations.forEach((a, i) => {
+      html += `<div class="agg-row">
+        <select onchange="updateAgg(${i},'fn',this.value)" style="width:90px">
+          ${['SUM','COUNT','AVG','MIN','MAX','COUNT DISTINCT'].map(f=>`<option ${a.fn===f?'selected':''}>${f}</option>`).join('')}
+        </select>
+        <select onchange="updateAgg(${i},'col',this.value)" style="flex:1;min-width:0">
+          <option value="">col…</option>${colOptionsHTML(a.tableId, a.col)}
+        </select>
+        <input placeholder="alias" value="${a.alias||''}" onchange="updateAgg(${i},'alias',this.value)" style="width:60px"/>
+        <span onclick="removeAgg(${i})" style="cursor:pointer;color:var(--red);flex-shrink:0">✕</span>
+      </div>`;
+    });
+  }
+
+  // GROUP BY rows
+  if (groupByCols.length > 0) {
+    html += '<div class="agg-section-label">GROUP BY</div>';
+    groupByCols.forEach((g, i) => {
+      html += `<div class="agg-row">
+        <select onchange="updateGroupBy(${i},this.value)" style="flex:1;min-width:0">
+          <option value="">column…</option>
+          ${canvasTables.flatMap(ct => {
+            const tdef = schema.find(s=>s.name===ct.name);
+            return (tdef?.columns||[]).map(c=>
+              `<option value="${ct.id}||${ct.alias}||${c.name}" ${g.tableId===ct.id&&g.col===c.name?'selected':''}>${ct.alias}.${c.name}</option>`
+            );
+          }).join('')}
+        </select>
+        <span onclick="removeGroupBy(${i})" style="cursor:pointer;color:var(--red);flex-shrink:0">✕</span>
+      </div>`;
+    });
+  }
+
+  // HAVING rows
+  if (havingClauses.length > 0 && aggregations.length > 0) {
+    html += '<div class="agg-section-label">HAVING</div>';
+    havingClauses.forEach((h, i) => {
+      const aggOptions = aggregations.map((a,ai) => {
+        const ct = canvasTables.find(t=>t.id===a.tableId);
+        const label = `${a.fn}(${ct?.alias||'T'}.${a.col})`;
+        return `<option value="${a.id}" ${h.aggId===a.id?'selected':''}>${label}</option>`;
+      }).join('');
+      html += `<div class="agg-row">
+        <select onchange="updateHaving(${i},'aggId',this.value)" style="flex:1.5;min-width:0">
+          <option value="">agg…</option>${aggOptions}
+        </select>
+        <select onchange="updateHaving(${i},'op',this.value)" style="width:55px">
+          ${['>','<','>=','<=','=','!='].map(o=>`<option ${h.op===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+        <input placeholder="val" value="${h.val||''}" onchange="updateHaving(${i},'val',this.value)" style="width:55px"/>
+        <span onclick="removeHaving(${i})" style="cursor:pointer;color:var(--red);flex-shrink:0">✕</span>
+      </div>`;
+    });
+  }
+
+  // Window function rows
+  if (windowFns.length > 0) {
+    html += '<div class="agg-section-label">Window Functions <span class="window-badge">OVER()</span></div>';
+    windowFns.forEach((w, i) => {
+      html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:6px;margin-bottom:4px">
+        <div class="agg-row" style="margin-bottom:3px">
+          <select onchange="updateWindow(${i},'fn',this.value)" style="width:80px">
+            ${['ROW_NUMBER','RANK','DENSE_RANK','LAG','LEAD','SUM','AVG','COUNT','MIN','MAX','NTILE'].map(f=>`<option ${w.fn===f?'selected':''}>${f}</option>`).join('')}
+          </select>
+          <select onchange="updateWindow(${i},'col',this.value)" style="flex:1;min-width:0">
+            <option value="">col…</option>${colOptionsHTML(w.tableId, w.col)}
+          </select>
+          <input placeholder="alias" value="${w.alias||''}" onchange="updateWindow(${i},'alias',this.value)" style="width:60px"/>
+          <span onclick="removeWindow(${i})" style="cursor:pointer;color:var(--red);flex-shrink:0">✕</span>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:2px">PARTITION BY</div>
+        <div class="agg-row" style="margin-bottom:3px">
+          <select onchange="updateWindow(${i},'partitionCol',this.value)" style="flex:1;min-width:0">
+            <option value="">(none)</option>${colOptionsHTML(w.partitionId, w.partitionCol)}
+          </select>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:2px">ORDER BY (in window)</div>
+        <div class="agg-row">
+          <select onchange="updateWindow(${i},'orderCol',this.value)" style="flex:1;min-width:0">
+            <option value="">(none)</option>${colOptionsHTML(w.orderTableId, w.orderCol)}
+          </select>
+          <select onchange="updateWindow(${i},'orderDir',this.value)" style="width:55px">
+            <option ${w.orderDir==='ASC'?'selected':''}>ASC</option>
+            <option ${w.orderDir==='DESC'?'selected':''}>DESC</option>
+          </select>
+        </div>
+      </div>`;
+    });
+  }
+
+  container.innerHTML = html || '<div class="empty-hint">Use buttons below to add aggregations.</div>';
+}
+
+// Agg helpers
+function addAggRow() {
+  if (!canvasTables.length) { alert('Add tables first.'); return; }
+  aggregations.push({id:'agg_'+Date.now(), tableId:canvasTables[0].id, col:'*', fn:'COUNT', alias:''});
+  renderAggTab(); refreshSQL(); runValidation();
+}
+function updateAgg(i, field, val) {
+  if (field === 'col' && val.includes('||')) {
+    const [tid,,col] = val.split('||'); aggregations[i].tableId=tid; aggregations[i].col=col;
+  } else { aggregations[i][field] = val; }
+  renderAggTab(); refreshSQL(); runValidation();
+}
+function removeAgg(i) { aggregations.splice(i,1); renderAggTab(); refreshSQL(); runValidation(); }
+
+// GroupBy helpers
+function addGroupByRow() {
+  if (!canvasTables.length) { alert('Add tables first.'); return; }
+  groupByCols.push({tableId:canvasTables[0].id, alias:canvasTables[0].alias, col:''});
+  renderAggTab(); refreshSQL();
+}
+function updateGroupBy(i, val) {
+  if (val.includes('||')) {
+    const [tid,alias,col] = val.split('||');
+    groupByCols[i] = {tableId:tid, alias, col};
+  }
+  renderAggTab(); refreshSQL(); runValidation();
+}
+function removeGroupBy(i) { groupByCols.splice(i,1); renderAggTab(); refreshSQL(); runValidation(); }
+
+// Having helpers
+function addHavingRow() {
+  if (!aggregations.length) { alert('Add an aggregate function first.'); return; }
+  havingClauses.push({aggId: aggregations[0].id, op:'>', val:''});
+  renderAggTab();
+}
+function updateHaving(i, field, val) { havingClauses[i][field]=val; refreshSQL(); }
+function removeHaving(i) { havingClauses.splice(i,1); renderAggTab(); refreshSQL(); }
+
+// Window fn helpers
+function addWindowFn() {
+  if (!canvasTables.length) { alert('Add tables first.'); return; }
+  windowFns.push({id:'win_'+Date.now(), fn:'ROW_NUMBER', col:'*', tableId:canvasTables[0].id,
+    partitionId:canvasTables[0].id, partitionCol:'', orderTableId:canvasTables[0].id, orderCol:'', orderDir:'ASC', alias:''});
+  renderAggTab(); refreshSQL();
+}
+function updateWindow(i, field, val) {
+  if (['col','partitionCol','orderCol'].includes(field) && val.includes('||')) {
+    const [tid,,col] = val.split('||');
+    if (field==='col') { windowFns[i].tableId=tid; windowFns[i].col=col; }
+    else if (field==='partitionCol') { windowFns[i].partitionId=tid; windowFns[i].partitionCol=col; }
+    else { windowFns[i].orderTableId=tid; windowFns[i].orderCol=col; }
+  } else { windowFns[i][field]=val; }
+  refreshSQL();
+}
+function removeWindow(i) { windowFns.splice(i,1); renderAggTab(); refreshSQL(); }
+
+// ================================================================
+// CTE / SUBQUERY TAB
+// ================================================================
+function renderCTETab() {
+  const container = document.getElementById('cte-content');
+  let html = '';
+
+  if (ctes.length > 0) {
+    html += '<div class="agg-section-label">WITH Clauses (CTEs)</div>';
+    ctes.forEach((c, i) => {
+      html += `<div class="cte-item">
+        <div class="cte-head" onclick="toggleCTE('cte',${i})">
+          <span style="font-size:9px;background:var(--teal-light,rgba(57,211,83,.1));color:var(--teal);border:1px solid rgba(57,211,83,.25);border-radius:3px;padding:1px 4px">CTE</span>
+          <input value="${c.name}" placeholder="cte_name" onclick="event.stopPropagation()"
+            onchange="ctes[${i}].name=this.value;refreshSQL()"
+            style="background:transparent;border:none;color:var(--cyan);font-family:monospace;font-size:11px;font-weight:600;flex:1;outline:none;padding:0"/>
+          <span onclick="removeCTE(${i});event.stopPropagation()" style="color:var(--red);cursor:pointer;font-size:12px">✕</span>
+        </div>
+        ${!c.collapsed ? `<div class="cte-body">
+          <textarea placeholder="SELECT ... FROM ..." onchange="ctes[${i}].sql=this.value;refreshSQL()">${c.sql||''}</textarea>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">Reference as: <code>${c.name||'cte_name'}</code> in main query</div>
+        </div>` : ''}
+      </div>`;
+    });
+  }
+
+  if (subqueries.length > 0) {
+    html += '<div class="agg-section-label">Inline Subqueries (FROM)</div>';
+    subqueries.forEach((s, i) => {
+      html += `<div class="cte-item">
+        <div class="cte-head" onclick="toggleCTE('sq',${i})">
+          <span style="font-size:9px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(188,140,255,.3);border-radius:3px;padding:1px 4px">SQ</span>
+          <input value="${s.name}" placeholder="subq_name" onclick="event.stopPropagation()"
+            onchange="subqueries[${i}].name=this.value;subqueries[${i}].alias=this.value;refreshSQL()"
+            style="background:transparent;border:none;color:var(--purple);font-family:monospace;font-size:11px;font-weight:600;flex:1;outline:none;padding:0"/>
+          <span onclick="removeSubquery(${i});event.stopPropagation()" style="color:var(--red);cursor:pointer;font-size:12px">✕</span>
+        </div>
+        ${!s.collapsed ? `<div class="cte-body">
+          <textarea placeholder="SELECT ... FROM ..." onchange="subqueries[${i}].sql=this.value;refreshSQL()">${s.sql||''}</textarea>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">Added as: <code>, (subquery) ${s.alias||s.name}</code> in FROM</div>
+        </div>` : ''}
+      </div>`;
+    });
+  }
+
+  if (existsSubqs.length > 0) {
+    html += '<div class="agg-section-label">EXISTS / IN Subqueries (WHERE)</div>';
+    existsSubqs.forEach((e, i) => {
+      const ct = canvasTables.find(t => t.id === e.tableId);
+      const colOptions = canvasTables.flatMap(ct2 => {
+        const tdef = schema.find(s => s.name === ct2.name);
+        return (tdef?.columns||[]).map(c =>
+          `<option value="${ct2.id}||${ct2.alias}||${c.name}" ${e.tableId===ct2.id&&e.col===c.name?'selected':''}>${ct2.alias}.${c.name}</option>`
+        );
+      }).join('');
+      html += `<div class="cte-item">
+        <div class="cte-head">
+          <select onchange="existsSubqs[${i}].type=this.value;renderCTETab();refreshSQL()" style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--cyan);font-family:monospace;font-size:10px;padding:1px 4px">
+            <option ${e.type==='EXISTS'?'selected':''}>EXISTS</option>
+            <option ${e.type==='NOT EXISTS'?'selected':''}>NOT EXISTS</option>
+            <option value="IN_SUBQ" ${e.type==='IN_SUBQ'?'selected':''}>IN (subquery)</option>
+          </select>
+          ${e.type==='IN_SUBQ'?`<select onchange="updateExistsSQ(${i},'col',this.value)" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text1);font-family:monospace;font-size:10px;padding:1px 4px;min-width:0">
+            <option value="">col…</option>${colOptions}</select>`
+          :`<span style="flex:1;font-size:9px;color:var(--text3);padding-left:4px">Correlated via inner SQL</span>`}
+          <span onclick="removeExistsSQ(${i})" style="color:var(--red);cursor:pointer;font-size:12px">✕</span>
+        </div>
+        <div class="cte-body">
+          <textarea placeholder="SELECT 1 FROM ... WHERE ..." onchange="existsSubqs[${i}].sql=this.value;refreshSQL()">${e.sql||''}</textarea>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">Tip: Use outer alias (e.g. <code>E.EMPLOYEE_ID</code>) for correlated subquery</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  container.innerHTML = html || '<div class="empty-hint" style="padding:8px">No CTEs or subqueries yet. Use buttons below.</div>';
+}
+
+function addCTE() {
+  ctes.push({id:'cte_'+Date.now(), name:'cte_'+ctes.length, sql:'', collapsed:false});
+  renderCTETab(); refreshSQL();
+}
+function addSubquery() {
+  subqueries.push({id:'sq_'+Date.now(), name:'subq_'+subqueries.length, alias:'sq_'+subqueries.length, sql:'', collapsed:false});
+  renderCTETab(); refreshSQL();
+}
+function toggleCTE(type, i) {
+  if (type==='cte') ctes[i].collapsed = !ctes[i].collapsed;
+  else subqueries[i].collapsed = !subqueries[i].collapsed;
+  renderCTETab();
+}
+function removeCTE(i) { ctes.splice(i,1); renderCTETab(); refreshSQL(); }
+function removeSubquery(i) { subqueries.splice(i,1); renderCTETab(); refreshSQL(); }
+
+function addExistsSQ() {
+  if (!canvasTables.length) { alert('Add tables to canvas first.'); return; }
+  existsSubqs.push({id:'ex_'+Date.now(), type:'EXISTS', tableId:canvasTables[0].id, col:'', sql:''});
+  renderCTETab();
+}
+function updateExistsSQ(i, field, val) {
+  if (field === 'col' && val.includes('||')) {
+    const [tid,,col] = val.split('||');
+    existsSubqs[i].tableId = tid;
+    existsSubqs[i].col = col;
+  } else {
+    existsSubqs[i][field] = val;
+  }
+  renderCTETab(); refreshSQL();
+}
+function removeExistsSQ(i) { existsSubqs.splice(i,1); renderCTETab(); refreshSQL(); }
+
+// ================================================================
+// EXPR TAB: CASE WHEN + Scalar Subqueries
+// ================================================================
+function renderExprTab() {
+  const container = document.getElementById('expr-content');
+  if (!container) return;
+  let html = '';
+
+  if (caseExprs.length > 0) {
+    html += '<div class="agg-section-label">CASE WHEN Expressions</div>';
+    caseExprs.forEach((c, ci) => {
+      html += `<div class="cte-item">
+        <div class="cte-head">
+          <span style="font-size:9px;background:rgba(57,211,83,.1);color:var(--teal,#39d353);border:1px solid rgba(57,211,83,.25);border-radius:3px;padding:1px 4px">CASE</span>
+          <input value="${c.alias||''}" placeholder="alias" onchange="caseExprs[${ci}].alias=this.value;refreshSQL()"
+            style="flex:1;background:transparent;border:none;color:var(--cyan);font-family:monospace;font-size:11px;outline:none;padding:0 4px"/>
+          <span onclick="addCaseWhen(${ci})" style="color:var(--blue);cursor:pointer;font-size:10px;margin-right:4px">+WHEN</span>
+          <span onclick="removeCaseExpr(${ci})" style="color:var(--red);cursor:pointer">✕</span>
+        </div>
+        ${c.whens.map((w,wi) => `<div class="join-cond-row" style="padding:3px 8px">
+          <span style="color:var(--text3);font-size:9px;width:30px">WHEN</span>
+          <input placeholder="condition e.g. E.SALARY > 10000" value="${w.cond||''}" onchange="caseExprs[${ci}].whens[${wi}].cond=this.value;refreshSQL()" style="flex:2"/>
+          <span style="color:var(--text3);font-size:9px;width:30px">THEN</span>
+          <input placeholder="result e.g. 'HIGH'" value="${w.result||''}" onchange="caseExprs[${ci}].whens[${wi}].result=this.value;refreshSQL()" style="flex:1"/>
+          <span onclick="caseExprs[${ci}].whens.splice(${wi},1);renderExprTab();refreshSQL()" style="color:var(--red);cursor:pointer">✕</span>
+        </div>`).join('')}
+        <div class="join-cond-row" style="padding:3px 8px">
+          <span style="color:var(--text3);font-size:9px;width:30px">ELSE</span>
+          <input placeholder="default value (optional)" value="${c.elseVal||''}" onchange="caseExprs[${ci}].elseVal=this.value;refreshSQL()" style="flex:1"/>
+        </div>
+      </div>`;
+    });
+  }
+
+  if (scalarSubqs.length > 0) {
+    html += '<div class="agg-section-label">Scalar Subqueries (SELECT)</div>';
+    scalarSubqs.forEach((s, i) => {
+      html += `<div class="cte-item">
+        <div class="cte-head">
+          <span style="font-size:9px;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(188,140,255,.3);border-radius:3px;padding:1px 4px">SCALAR</span>
+          <input value="${s.alias||''}" placeholder="alias" onchange="scalarSubqs[${i}].alias=this.value;refreshSQL()"
+            style="flex:1;background:transparent;border:none;color:var(--purple);font-family:monospace;font-size:11px;outline:none;padding:0 4px"/>
+          <span onclick="removeScalarSubq(${i})" style="color:var(--red);cursor:pointer">✕</span>
+        </div>
+        <div class="cte-body">
+          <textarea placeholder="SELECT MAX(SALARY) FROM EMPLOYEES WHERE DEPARTMENT_ID = E.DEPARTMENT_ID" onchange="scalarSubqs[${i}].sql=this.value;refreshSQL()">${s.sql||''}</textarea>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">Must return exactly 1 row × 1 column. Use outer alias for correlation.</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  container.innerHTML = html || '<div class="empty-hint" style="padding:10px">No expressions yet. Use buttons below.</div>';
+}
+
+function addCaseExpr() {
+  caseExprs.push({id:'case_'+Date.now(), alias:'', whens:[{cond:'',result:''}], elseVal:''});
+  renderExprTab();
+}
+function addCaseWhen(ci) { caseExprs[ci].whens.push({cond:'',result:''}); renderExprTab(); }
+function removeCaseExpr(i) { caseExprs.splice(i,1); renderExprTab(); refreshSQL(); }
+function addScalarSubq() {
+  scalarSubqs.push({id:'sc_'+Date.now(), alias:'', sql:''});
+  renderExprTab();
+}
+function removeScalarSubq(i) { scalarSubqs.splice(i,1); renderExprTab(); refreshSQL(); }
+
+// ================================================================
+// SET TAB: UNION / INTERSECT / MINUS
+// ================================================================
+function renderSetTab() {
+  const container = document.getElementById('set-content');
+  if (!container) return;
+  let html = '';
+
+  if (setOps.length === 0) {
+    container.innerHTML = '<div class="empty-hint" style="padding:10px">Click "+ Add UNION…" below. Each set operation appends a full SQL query after the main query.</div>';
+    return;
+  }
+
+  setOps.forEach((s, i) => {
+    html += `<div class="cte-item">
+      <div class="cte-head">
+        <select onchange="setOps[${i}].type=this.value;refreshSQL()" style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--cyan);font-family:monospace;font-size:10px;padding:2px 5px">
+          ${['UNION','UNION ALL','INTERSECT','MINUS'].map(t=>`<option ${s.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <span style="flex:1;font-size:9px;color:var(--text3);padding-left:6px">Must match column count + types</span>
+        <span onclick="removeSetOp(${i})" style="color:var(--red);cursor:pointer">✕</span>
+      </div>
+      <div class="cte-body">
+        <textarea placeholder="SELECT ... FROM ... WHERE ..." onchange="setOps[${i}].sql=this.value;refreshSQL()">${s.sql||''}</textarea>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">⚠ Column count must exactly match the main SELECT. UNION removes duplicates; UNION ALL keeps them.</div>
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function addSetOp() {
+  setOps.push({id:'set_'+Date.now(), type:'UNION', sql:''});
+  renderSetTab();
+}
+function removeSetOp(i) { setOps.splice(i,1); renderSetTab(); refreshSQL(); }
+
+// ================================================================
+// HIER TAB: CONNECT BY
+// ================================================================
+function renderHierTab() {
+  const container = document.getElementById('hier-content');
+  if (!container) return;
+
+  if (!connectBy || !connectBy.enabled) {
+    container.innerHTML = '<div class="empty-hint" style="padding:10px">Oracle CONNECT BY PRIOR — for org charts, category trees, BOMs.<br><br>Click "+ Enable CONNECT BY" below.</div>';
+    return;
+  }
+
+  const colOptions = canvasTables.flatMap(ct => {
+    const tdef = schema.find(s => s.name === ct.name);
+    return (tdef?.columns||[]).map(c =>
+      `<option value="${ct.alias}.${c.name}">${ct.alias}.${c.name}</option>`
+    );
+  }).join('');
+
+  container.innerHTML = `<div class="agg-section-label">CONNECT BY Configuration</div>
+  <div style="padding:6px 8px">
+    <div style="font-size:9px;color:var(--text3);margin-bottom:4px">START WITH (root condition)</div>
+    <input id="cb-startwith" placeholder="e.g. E.MANAGER_ID IS NULL" value="${connectBy.startWith||''}"
+      onchange="connectBy.startWith=this.value;refreshSQL()"
+      style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:monospace;font-size:10px;padding:4px 6px;outline:none;margin-bottom:8px"/>
+
+    <div style="font-size:9px;color:var(--text3);margin-bottom:4px">PRIOR column (parent side)</div>
+    <select onchange="connectBy.priorCol=this.value;refreshSQL()"
+      style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:monospace;font-size:10px;padding:4px 6px;outline:none;margin-bottom:8px">
+      <option value="">Select column…</option>${colOptions}
+    </select>
+
+    <div style="font-size:9px;color:var(--text3);margin-bottom:4px">= column (child side)</div>
+    <select onchange="connectBy.childCol=this.value;refreshSQL()"
+      style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text1);font-family:monospace;font-size:10px;padding:4px 6px;outline:none;margin-bottom:8px">
+      <option value="">Select column…</option>${colOptions}
+    </select>
+
+    <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);cursor:pointer;margin-bottom:8px">
+      <input type="checkbox" ${connectBy.nocycle?'checked':''} onchange="connectBy.nocycle=this.checked;refreshSQL()" style="accent-color:var(--blue)"/> NOCYCLE (prevent infinite loops)
+    </label>
+
+    <div style="font-size:9px;color:var(--text3);margin-bottom:4px">Hint: Add LEVEL, CONNECT_BY_ROOT, SYS_CONNECT_BY_PATH manually in a CASE expression or CTE if needed.</div>
+
+    <button class="btn btn-sm" style="width:100%;border-color:var(--red);color:var(--red)" onclick="connectBy=null;renderHierTab();refreshSQL()">✕ Disable CONNECT BY</button>
+  </div>`;
+}
+
+function enableConnectBy() {
+  if (!canvasTables.length) { alert('Add a table to canvas first.'); return; }
+  connectBy = {enabled:true, startWith:'', priorCol:'', childCol:'', nocycle:false};
+  renderHierTab();
+}
+
+// ================================================================
+// WHERE LOGIC TOGGLE (AND / OR)
+// ================================================================
+function toggleWhereLogic() {
+  whereLogic = whereLogic === 'AND' ? 'OR' : 'AND';
+  document.getElementById('where-logic-btn').textContent = whereLogic;
+  refreshSQL();
+}
+
+
+// ================================================================
+// VALIDATION ENGINE
+// ================================================================
+function validate() {
+  const warnings = [];
+  const tables = canvasTables.map(t => t.name);
+  const allColCount = Object.values(selectedCols).reduce((s, c) => s + (Array.isArray(c) ? c.length : 0), 0);
+
+  if (tables.length === 0 && ctes.length === 0 && subqueries.length === 0) {
+    warnings.push({type:'info', msg:'No tables on canvas. Drag tables from the sidebar to start.'});
+    return warnings;
+  }
+  if (allColCount === 0 && aggregations.length === 0 && windowFns.length === 0) {
+    warnings.push({type:'info', msg:'No columns selected. Click column names on canvas cards, or add aggregates in AGG tab.'});
+  }
+
+  // ── JOIN PATH CHECKS ──
+  if (tables.length > 1) {
+    const joins = findJoinPath(tables);
+    joins.filter(j => !j.found).forEach(j => {
+      warnings.push({type:'error', msg:`⚠ No FK path: ${j.from} ↔ ${j.to} → CROSS JOIN (cartesian product). Remove one table or add a join condition.`});
+    });
+    joins.filter(j => j.found && j.multiHop).forEach(j => {
+      warnings.push({type:'warn', msg:`Multi-hop: ${j.from} → ${j.to} via intermediate tables. Verify path is intentional — extra rows may be introduced.`});
+    });
+    joins.filter(j => j.found && j.selfJoin).forEach(j => {
+      warnings.push({type:'info', msg:`Self-join on ${j.from} (${j.ta} ↔ ${j.fa}). Verify parent/child direction matches your intent.`});
+    });
+    if (tables.length >= 5) {
+      warnings.push({type:'warn', msg:`${tables.length} tables joined. Oracle optimizer hint /*+ LEADING(...) */ may help. Add WHERE filters to reduce rows early.`});
+    }
+  }
+
+  // ── ORA-00937 / ORA-00979: GROUP BY PITFALLS ──
+  const hasAgg = aggregations.length > 0;
+  const hasGroupBy = groupByCols.length > 0;
+  const hasWindow = windowFns.length > 0;
+  const plainCols = Object.entries(selectedCols).flatMap(([id, cols]) =>
+    (cols||[]).map(col => ({id, col}))
+  );
+
+  if (hasAgg && !hasGroupBy && plainCols.length > 0) {
+    // Mixing aggregate + plain without GROUP BY → ORA-00937
+    warnings.push({
+      type:'error',
+      msg:`ORA-00937: ${plainCols.length} plain column(s) mixed with ${aggregations.length} aggregate(s) but no GROUP BY. Either add GROUP BY in AGG tab, or remove plain columns.`,
+      fix:'Open AGG tab → click "+ GROUP BY column" for every non-aggregated SELECT column'
+    });
+  }
+
+  if (hasAgg && hasGroupBy) {
+    // Check every plain SELECT col is in GROUP BY (ORA-00979)
+    plainCols.forEach(({id, col}) => {
+      const inGB = groupByCols.some(g => g.tableId === id && g.col === col);
+      if (!inGB) {
+        const ct = canvasTables.find(t => t.id === id);
+        warnings.push({
+          type:'error',
+          msg:`ORA-00979: ${ct?.alias||'T'}.${col} is in SELECT but not in GROUP BY. Oracle will reject this query.`,
+          fix:`Add ${ct?.alias||'T'}.${col} to GROUP BY in AGG tab`
+        });
+      }
+    });
+    // Check every GROUP BY col is also in SELECT (not required by Oracle but common mistake)
+    groupByCols.forEach(g => {
+      const inSel = plainCols.some(p => p.id === g.tableId && p.col === g.col);
+      if (!inSel) {
+        warnings.push({
+          type:'warn',
+          msg:`GROUP BY includes ${g.alias||'T'}.${g.col} but it's not in SELECT. This is valid SQL but unusual — you're grouping by a hidden column.`,
+          fix:'Add the column to SELECT or remove it from GROUP BY'
+        });
+      }
+    });
+  }
+
+  // HAVING without GROUP BY → ORA-00934
+  if (havingClauses.some(h=>h.val) && !hasGroupBy) {
+    warnings.push({type:'error', msg:'ORA-00934: HAVING requires GROUP BY. Add GROUP BY columns in AGG tab.',
+      fix:'Open AGG tab → add GROUP BY column'});
+  }
+
+  // Window fn ORDER BY missing for ranking functions → non-deterministic
+  windowFns.forEach(w => {
+    if (['ROW_NUMBER','RANK','DENSE_RANK','NTILE'].includes(w.fn) && !w.orderCol) {
+      warnings.push({type:'error', msg:`${w.fn}() OVER() has no ORDER BY — results are non-deterministic. Oracle may return different rows each run.`,
+        fix:`Set ORDER BY inside window function in AGG tab`});
+    }
+    if (w.fn === 'NTILE' && !w.col) {
+      warnings.push({type:'warn', msg:'NTILE() needs a numeric argument (e.g. NTILE(4)). Set the alias to the bucket count.'});
+    }
+  });
+
+  // Aggregate function on * other than COUNT
+  aggregations.forEach(a => {
+    if (a.col === '*' && a.fn !== 'COUNT') {
+      warnings.push({type:'error', msg:`${a.fn}(*) is invalid — only COUNT(*) is allowed. Select a specific numeric column.`,
+        fix:`Change column from * to a numeric column in AGG tab`});
+    }
+  });
+
+  // ── NULL PROPAGATION PITFALLS ──
+  const joinsList = tables.length > 1 ? findJoinPath(tables) : [];
+  const outerJoins = joinsList.filter(j => {
+    const cfg = joinConfigs[getJoinKey(j)] || {};
+    return j.found && ['LEFT','RIGHT','FULL OUTER'].includes(cfg.type || joinType);
+  });
+
+  outerJoins.forEach(j => {
+    const cfg = joinConfigs[getJoinKey(j)] || {};
+    const jt = cfg.type || joinType;
+    const nullSide = jt === 'LEFT' ? j.to : jt === 'RIGHT' ? j.from : j.from + '/' + j.to;
+    // Check if any WHERE condition filters on the nullable side
+    whereConditions.filter(w => w.col && w.val).forEach(w => {
+      const ct = canvasTables.find(t => t.id === w.tableId);
+      if (ct && (ct.name === j.to || ct.name === j.from)) {
+        if (!['IS NULL','IS NOT NULL'].includes(w.op)) {
+          warnings.push({
+            type:'warn',
+            msg:`WHERE ${ct.alias}.${w.col} ${w.op} '${w.val}' filters on nullable side of ${jt} JOIN (${nullSide}). This converts the outer join to an inner join — NULL rows excluded. Move filter to ON clause or use IS NULL check.`,
+            fix:`Change WHERE condition to ON clause in the join config, or use IS NULL`
+          });
+        }
+      }
+    });
+  });
+
+  if (document.getElementById('chk-distinct')?.checked && outerJoins.length > 0) {
+    warnings.push({type:'warn', msg:'DISTINCT + OUTER JOIN: NULLs from the outer side collapse — may produce fewer rows than expected.'});
+  }
+
+  // ── IMPLICIT TYPE CONVERSION ──
+  whereConditions.filter(w => w.col && w.val).forEach(w => {
+    const ct = canvasTables.find(t => t.id === w.tableId);
+    const tdef = schema.find(s => s.name === ct?.name);
+    const colDef = tdef?.columns.find(c => c.name === w.col);
+    if (!colDef) return;
+    if (/^NUMBER|INTEGER|FLOAT|DECIMAL/i.test(colDef.type) && !/^-?[0-9.,]+$/.test(w.val.trim())) {
+      warnings.push({type:'warn',
+        msg:`Type mismatch: ${ct?.alias}.${w.col} is ${colDef.type} but value "${w.val}" is non-numeric → ORA-01722 or full index scan.`,
+        fix:`Remove quotes — use numeric literal`});
+    }
+    if (/^DATE|TIMESTAMP/i.test(colDef.type)) {
+      if (/^TO_DATE|TO_TIMESTAMP|SYSDATE|TRUNC/i.test(w.val)) {
+        // ok — already using Oracle date functions
+      } else {
+        warnings.push({type:'warn',
+          msg:`${ct?.alias}.${w.col} is ${colDef.type} but value "${w.val}" is a string — implicit conversion bypasses index. Wrap in TO_DATE('${w.val}','YYYY-MM-DD').`,
+          fix:`Use TO_DATE('${w.val}','YYYY-MM-DD') or TRUNC(SYSDATE)`});
+      }
+    }
+    if (/CHAR/i.test(colDef.type) && /^[0-9]+$/.test(w.val.trim())) {
+      warnings.push({type:'info',
+        msg:`${ct?.alias}.${w.col} is ${colDef.type} but value "${w.val}" is numeric — Oracle may do implicit CHAR↔NUMBER conversion. Use string literal '${w.val}'.`});
+    }
+  });
+
+  // ── CTE / SUBQUERY CHECKS ──
+  const mainSQL = generateSQL();
+  ctes.filter(c => c.name && c.sql).forEach(c => {
+    if (!mainSQL.includes(c.name)) {
+      warnings.push({type:'warn', msg:`CTE "${c.name}" defined but not referenced in main query. Add it to FROM or JOIN, or it will be ignored by Oracle.`});
+    }
+    if (!c.sql.trim().toUpperCase().startsWith('SELECT')) {
+      warnings.push({type:'error', msg:`CTE "${c.name}" SQL does not start with SELECT. Oracle CTEs must be SELECT statements.`});
+    }
+  });
+
+  existsSubqs.filter(e => e.sql).forEach(e => {
+    if (e.type === 'IN_SUBQ' && !e.col) {
+      warnings.push({type:'error', msg:'IN (subquery) requires a column to compare. Set the column in the EXISTS/IN panel.'});
+    }
+    if (e.sql.toUpperCase().includes('SELECT *') && e.type !== 'EXISTS') {
+      warnings.push({type:'warn', msg:'IN subquery uses SELECT * — specify exactly one column for the IN list. Oracle will reject multi-column result.'});
+    }
+  });
+
+  // ── MANY-TO-MANY DUPLICATE ROWS ──
+  if (tables.length >= 2 && !document.getElementById('chk-distinct')?.checked && !hasAgg) {
+    const m2m = joinsList.filter(j => {
+      if (!j.found) return false;
+      const fromDef = schema.find(s => s.name === j.from);
+      const toDef = schema.find(s => s.name === j.to);
+      // Many-to-many if both sides have FK pointing at each other (junction table pattern)
+      return fromDef?.columns.some(c => c.fk && c.fk.startsWith(j.to + '.')) &&
+             toDef?.columns.some(c => c.fk && c.fk.startsWith(j.from + '.'));
+    });
+    if (m2m.length > 0) {
+      warnings.push({type:'warn', msg:`Possible many-to-many join: ${m2m.map(j=>j.from+'↔'+j.to).join(', ')}. May produce duplicate rows. Consider DISTINCT or aggregation.`});
+    }
+  }
+
+  // ── MISSING WHERE on large joins ──
+  const wActive = whereConditions.filter(w => w.col && w.val);
+  if (allColCount > 0 && wActive.length === 0 && tables.length > 0 && !hasAgg) {
+    warnings.push({type:'warn', msg:'No WHERE conditions — query returns ALL rows. Add filters in the WHERE tab or use FETCH FIRST.'});
+  }
+
+  // ── AMBIGUOUS COLUMN NAMES ──
+  const colMap = {};
+  Object.entries(selectedCols).forEach(([id, cols]) => {
+    const ct = canvasTables.find(t => t.id === id);
+    (cols||[]).forEach(c => { colMap[c] = (colMap[c]||[]); colMap[c].push(ct?.alias||id); });
+  });
+  Object.entries(colMap).filter(([,tbls]) => tbls.length > 1).forEach(([c, tbls]) => {
+    warnings.push({type:'info', msg:`Column "${c}" selected from multiple tables (${tbls.join(', ')}) — aliases used to disambiguate automatically.`});
+  });
+
+  // ── CONNECT BY checks ──
+  if (connectBy && connectBy.enabled) {
+    if (!connectBy.priorCol || !connectBy.childCol) {
+      warnings.push({type:'error', msg:'CONNECT BY requires both PRIOR column and child column to be set in HIER tab.'});
+    }
+    if (canvasTables.length > 1) {
+      warnings.push({type:'warn', msg:'CONNECT BY with multiple tables is unusual. Typically used on a single self-referencing table (e.g. EMPLOYEES with MANAGER_ID).'});
+    }
+    if (!connectBy.nocycle) {
+      warnings.push({type:'info', msg:'CONNECT BY: if data has cycles (e.g. A→B→A), query will loop. Enable NOCYCLE in HIER tab.'});
+    }
+  }
+
+  // ── SET OPERATION checks ──
+  const activeSets = setOps.filter(s => s.sql && s.sql.trim());
+  if (activeSets.length > 0 && allColCount === 0 && aggregations.length === 0) {
+    warnings.push({type:'error', msg:'SET operation (UNION/INTERSECT/MINUS) requires columns in main SELECT. Select columns on canvas first.'});
+  }
+  activeSets.forEach(s => {
+    const mainColCount = allColCount + aggregations.length + windowFns.length + caseExprs.length + scalarSubqs.length;
+    // rough column count in set SQL
+    const setSelectMatch = s.sql.match(/^SELECT\s+([\s\S]+?)\s+FROM/i);
+    if (setSelectMatch) {
+      const setCols = setSelectMatch[1].split(',').length;
+      if (setCols !== mainColCount && mainColCount > 0) {
+        warnings.push({type:'warn', msg:`${s.type}: main query has ~${mainColCount} column(s) but the ${s.type} query appears to have ~${setCols}. Column counts must match exactly or Oracle will raise ORA-01789.`});
+      }
+    }
+  });
+
+  // ── CASE WHEN checks ──
+  caseExprs.forEach(c => {
+    if (!c.alias) warnings.push({type:'warn', msg:'CASE WHEN expression has no alias — column will have no name in result set. Add alias in EXPR tab.'});
+    const incomplete = c.whens.some(w => !w.cond || !w.result);
+    if (incomplete) warnings.push({type:'error', msg:`CASE WHEN "${c.alias||'(unnamed)'}" has incomplete WHEN/THEN pairs. Fill all conditions and results.`});
+  });
+
+  // ── SCALAR subquery checks ──
+  scalarSubqs.forEach(s => {
+    if (!s.alias) warnings.push({type:'warn', msg:'Scalar subquery has no alias — add one in EXPR tab.'});
+    if (s.sql && !s.sql.toUpperCase().includes('SELECT')) {
+      warnings.push({type:'error', msg:`Scalar subquery "${s.alias||'(unnamed)'}" must be a SELECT statement.`});
+    }
+  });
+
+  if (warnings.filter(w => ['error','warn'].includes(w.type)).length === 0) {
+    warnings.push({type:'ok', msg:'✓ No errors or warnings. Query looks valid — review SQL before executing on production.'});
+  }
+
+  return warnings;
+}
+
+// wrap refreshSQL to call validate properly
+function runValidation() {
+  const warns = validate();
+  const wEl = document.getElementById('val-items');
+  if (!wEl) return;
+  wEl.innerHTML = warns.map(w => `<div class="val-item val-${w.type}">
+    <span class="val-icon">${w.type==='error'?'⚠':w.type==='ok'?'✓':w.type==='warn'?'⚡':'ℹ'}</span>
+    <div><div>${w.msg}</div>${w.fix?`<div class="val-fix">Fix: ${w.fix}</div>`:''}</div>
+  </div>`).join('');
+  document.getElementById('warn-count').textContent = warns.filter(w=>w.type!=='ok').length;
+}
+
+// ================================================================
+// RENDER FUNCTIONS
+// ================================================================
+function renderSidebar() {
+  const filter = document.getElementById('tbl-search').value.toLowerCase();
+  const container = document.getElementById('sidebar-content');
+  let html = '';
+  schema.forEach(t => {
+    if (filter && !t.name.toLowerCase().includes(filter) && !t.columns.some(c => c.name.toLowerCase().includes(filter))) return;
+    const onCanvas = canvasTables.some(ct => ct.name === t.name);
+    const exp = expandedTbls[t.name];
+    const selCount = (selectedCols[t.name] || []).length;
+    const instanceCount = canvasTables.filter(ct => ct.name === t.name).length;
+    html += `<div class="tbl-group">
+      <div class="tbl-header" 
+        draggable="true"
+        ondragstart="onTblDragStart(event,'${t.name}')"
+        ondblclick="quickAddToCanvas('${t.name}')"
+        title="Drag to canvas (drag again for self-join alias)">
+        <div class="tbl-icon">${t.name.slice(0,2)}</div>
+        <span class="tbl-name">${t.name}</span>
+        ${instanceCount > 0 ? `<span style="font-size:8px;background:var(--blue-dark);color:#fff;padding:1px 4px;border-radius:3px">${instanceCount}×</span>` : ''}
+        <span class="tbl-count">${t.columns.length}c</span>
+        <span class="tbl-expand" onclick="toggleExpand('${t.name}',event)">${exp ? '▲' : '▼'}</span>
+      </div>`;
+    if (exp) {
+      html += `<div class="col-list">`;
+      t.columns.forEach(c => {
+        html += `<div class="col-row">
+          <span style="color:${c.pk?'var(--amber)':c.fk?'var(--purple)':'var(--text3)'};font-size:9px">${c.pk?'⬡':c.fk?'◈':'·'}</span>
+          ${c.name}
+          ${c.pk ? `<span class="badge-pk">PK</span>` : ''}
+          ${c.fk && !c.pk ? `<span class="badge-fk">FK→${c.fk.split('.')[0]}</span>` : ''}
+          <span class="type-hint">${c.type.split('(')[0]}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
+  container.innerHTML = html || '<div style="padding:12px;color:var(--text3);font-size:11px">No tables match</div>';
+  document.getElementById('schema-info').textContent = `${schema.length} tables · ${buildRels().length} relationships`;
+}
+
+function renderCanvas() {
+  const canvas = document.getElementById('canvas');
+  const empty = document.getElementById('canvas-empty');
+  empty.style.display = canvasTables.length === 0 ? 'block' : 'none';
+
+  // Remove old cards, keep svg
+  canvas.querySelectorAll('.cv-card').forEach(el => el.remove());
+
+  // Calculate min canvas size
+  let maxX = 900, maxY = 600;
+  canvasTables.forEach(ct => { maxX = Math.max(maxX, ct.x + 240); maxY = Math.max(maxY, ct.y + 400); });
+  canvas.style.minWidth = maxX + 'px';
+  canvas.style.minHeight = maxY + 'px';
+
+  canvasTables.forEach(ct => {
+    const tdef = schema.find(s => s.name === ct.name);
+    if (!tdef) return;
+    const selCols = selectedCols[ct.id] || [];
+    const isSelfJoin = canvasTables.filter(t => t.name === ct.name).length > 1;
+    const div = document.createElement('div');
+    div.className = 'cv-card';
+    div.id = 'cv-' + ct.id;
+    div.style.cssText = `left:${ct.x}px;top:${ct.y}px`;
+
+    let colsHtml = tdef.columns.map(c => {
+      const sel = selCols.includes(c.name);
+      return `<div class="cv-col ${sel ? 'sel' : ''}" onclick="toggleCol('${ct.id}','${c.name}')">
+        <div class="cv-col-check">${sel ? '✓' : ''}</div>
+        <span class="cv-col-name">${c.name}${c.pk ? ` <span class="badge-pk">PK</span>` : ''}${c.fk && !c.pk ? ` <span class="badge-fk">FK</span>` : ''}</span>
+        <span class="cv-col-type">${c.type.split('(')[0]}</span>
+      </div>`;
+    }).join('');
+
+    const selfLabel = isSelfJoin ? `<span style="font-size:8px;background:var(--purple-bg);color:var(--purple);padding:1px 4px;border-radius:3px;border:1px solid rgba(188,140,255,.3)">SELF</span>` : '';
+    div.innerHTML = `<div class="cv-head" onmousedown="startCardDrag(event,'${ct.id}')">
+      <div class="cv-head-icon">${ct.alias.slice(0,2)}</div>
+      <span class="cv-head-name">${ct.name}</span>
+      <span class="cv-head-alias">${ct.alias}</span>
+      ${selfLabel}
+      <span class="cv-head-close" onclick="removeFromCanvas('${ct.id}')" title="Remove from canvas">✕</span>
+    </div>${colsHtml}`;
+    canvas.appendChild(div);
+  });
+
+  renderJoinLines();
+  renderRightPanel();
+  renderWhereTab();
+  renderOrderTab();
+  refreshSQL();
+}
+
+function jTypeClass(type) {
+  return {INNER:'jline-inner',LEFT:'jline-left',RIGHT:'jline-right','FULL OUTER':'jline-full',CROSS:'jline-cross'}[type] || 'jline-inner';
+}
+
+function renderJoinLines() {
+  const svg = document.getElementById('canvas-svg');
+  const tables = canvasTables.map(t => t.name);
+  const joins = findJoinPath(tables);
+  let svgHtml = '';
+  const drawn = new Set();
+
+  joins.forEach(j => {
+    if (!j.found) return;
+    const key = j.selfJoin ? `SELF|${j.from}` : [j.from, j.to].sort().join('|') + j.fromCol;
+    if (drawn.has(key)) return;
+    drawn.add(key);
+
+    // For self-join use first two instances; for normal use first matching instances
+    const instances = canvasTables.filter(t => t.name === j.from);
+    const ft = instances[0];
+    const tt = j.selfJoin ? (instances[1] || instances[0]) : canvasTables.find(t => t.name === j.to);
+    if (!ft || !tt) return;
+
+    const cfg = joinConfigs[getJoinKey(j)] || {};
+    const jt = cfg.type || joinType;
+    const cls = jTypeClass(jt);
+
+    if (j.selfJoin) {
+      // Loop arc for self-join
+      const cx = ft.x + 100, cy = ft.y;
+      svgHtml += `<path class="jline jline-self" d="M${ft.x+80},${cy} Q${ft.x+80},${cy-40} ${ft.x+120},${cy-40} Q${ft.x+160},${cy-40} ${ft.x+160},${cy}"/>
+        <text x="${cx}" y="${cy-44}" text-anchor="middle" fill="var(--purple)" font-size="9" font-family="monospace">self-join: ${j.fromCol}</text>`;
+      return;
+    }
+
+    const x1 = ft.x + 200, y1 = ft.y + 22;
+    const x2 = tt.x, y2 = tt.y + 22;
+    const mx = (x1 + x2) / 2;
+    const label = j.multiHop ? `⇢ ${j.fromCol}→${j.toCol}` : `${j.fromCol}→${j.toCol}`;
+    svgHtml += `<path class="jline ${cls}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>
+      <circle cx="${x1}" cy="${y1}" r="4" fill="var(--blue)"/>
+      <circle cx="${x2}" cy="${y2}" r="4" fill="var(--blue)"/>
+      <text x="${mx}" y="${Math.min(y1,y2)-6}" text-anchor="middle" fill="var(--text3)" font-size="9" font-family="monospace">${label}</text>
+      <text x="${mx}" y="${Math.min(y1,y2)-16}" text-anchor="middle" fill="var(--text3)" font-size="8" font-family="monospace" opacity=".7">${jt}</text>`;
+  });
+
+  const maxX = canvasTables.reduce((m, t) => Math.max(m, t.x + 240), 900);
+  const maxY = canvasTables.reduce((m, t) => Math.max(m, t.y + 400), 600);
+  svg.setAttribute('width', maxX);
+  svg.setAttribute('height', maxY);
+  svg.innerHTML = svgHtml;
+}
+
+function renderRightPanel() {
+  // Selected cols
+  const body = document.getElementById('sel-cols-body');
+  const tables = canvasTables.map(t => t.name);
+  let html = '';
+  let total = 0;
+  canvasTables.forEach(ct => {
+    const cols = selectedCols[ct.id] || [];
+    if (cols.length === 0) return;
+    total += cols.length;
+    html += `<div class="sel-tbl-label">${ct.name} <span style="color:var(--text3)">(${ct.alias})</span></div>`;
+    cols.forEach(c => {
+      html += `<div class="sel-col-item">
+        <span style="color:var(--cyan)">${ct.alias}</span>
+        <span>.</span><span style="color:var(--text1)">${c}</span>
+        <span class="remove" onclick="toggleCol('${ct.id}','${c}')">✕</span>
+      </div>`;
+    });
+  });
+  body.innerHTML = html || '<div class="empty-hint">No columns selected yet.</div>';
+  document.getElementById('sel-col-count').textContent = total;
+
+  // Joins — per-join type + extra conditions
+  const joinsBody = document.getElementById('joins-body');
+  const joins = findJoinPath(tables);
+  let jhtml = '';
+  const seenKeys = new Set();
+
+  joins.forEach((j, ji) => {
+    if (!j.found) {
+      jhtml += `<div class="join-no-path">⚠ No FK path: ${j.from} ↔ ${j.to}<br><span style="font-size:9px;opacity:.7">${j.reason||''}</span></div>`;
+      return;
+    }
+    const key = getJoinKey(j);
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    if (!joinConfigs[key]) joinConfigs[key] = {type: joinType, conditions: []};
+    const cfg = joinConfigs[key];
+
+    const colOptions = tables.flatMap(tbl => {
+      const tdef = schema.find(s => s.name === tbl);
+      return (tdef?.columns||[]).map(c => `<option value="${tbl}||${tdef?.alias||tbl.slice(0,2)}||${c.name}">${tbl}.${c.name}</option>`);
+    }).join('');
+
+    const extraConds = cfg.conditions.map((c, ci) => `
+      <div class="join-cond-row">
+        <select onchange="updateJoinCond('${key}',${ci},'left',this.value)">${colOptions}</select>
+        <select onchange="updateJoinCond('${key}',${ci},'op',this.value)" style="width:60px">
+          ${['=','!=','>','<','>=','<=','BETWEEN'].map(o=>`<option ${c.op===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+        <select onchange="updateJoinCond('${key}',${ci},'right',this.value)">${colOptions}</select>
+        <span onclick="removeJoinCond('${key}',${ci})" style="cursor:pointer;color:var(--red);font-size:11px;padding:0 2px">✕</span>
+      </div>`).join('');
+
+    jhtml += `<div class="join-row">
+      <div class="join-row-head">
+        <select class="join-type-sel" onchange="updateJoinType('${key}',this.value)">
+          ${['INNER','LEFT','RIGHT','FULL OUTER'].map(t=>`<option ${cfg.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <span style="color:var(--text2)">JOIN</span>
+        ${j.selfJoin ? '<span class="self-join-badge">SELF</span>' : ''}
+        ${j.multiHop ? '<span class="self-join-badge" style="color:var(--amber);border-color:rgba(210,153,34,.4)">MULTI-HOP</span>' : ''}
+        <span class="jpath">${j.from}.${j.fromCol} → ${j.to}.${j.toCol}</span>
+        <span onclick="addJoinCond('${key}')" style="cursor:pointer;color:var(--blue);font-size:10px" title="Add non-equi condition">+AND</span>
+      </div>
+      ${extraConds}
+    </div>`;
+  });
+  joinsBody.innerHTML = jhtml || '<div class="empty-hint">Add related tables to canvas.</div>';
+}
+
+function renderWhereTab() {
+  const tables = canvasTables.map(t => t.name);
+  const container = document.getElementById('where-content');
+  if (tables.length === 0) { container.innerHTML = '<div class="empty-hint" style="padding:10px">Add tables to canvas first.</div>'; return; }
+  if (whereConditions.length === 0) { container.innerHTML = '<div class="empty-hint" style="padding:10px">Click "+ Add Condition" below.</div>'; return; }
+  let html = '';
+  whereConditions.forEach((w, i) => {
+    const colOptions = canvasTables.flatMap(ct => {
+      const tdef = schema.find(s => s.name === ct.name);
+      return (tdef?.columns || []).map(c => `<option value="${ct.id}||${ct.alias}||${c.name}" ${w.tableId===ct.id&&w.col===c.name?'selected':''}>${ct.alias}.${c.name}</option>`);
+    }).join('');
+    html += `<div class="where-row">
+      <select onchange="updateWhere(${i},'col',this.value)" style="flex:2;min-width:0">
+        <option value="">Column…</option>${colOptions}
+      </select>
+      <select onchange="updateWhere(${i},'op',this.value)" style="flex:1;min-width:0">
+        ${['=','!=','>','<','>=','<=','LIKE','IN','IS NULL','IS NOT NULL'].map(o=>`<option ${w.op===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+      <input placeholder="value" value="${w.val||''}" onchange="updateWhere(${i},'val',this.value)" ${['IS NULL','IS NOT NULL'].includes(w.op)?'disabled':''}/>
+      <button class="btn btn-icon btn-ghost" onclick="removeWhere(${i})" style="flex-shrink:0">✕</button>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderOrderTab() {
+  const tables = canvasTables.map(t => t.name);
+  const container = document.getElementById('order-content');
+  if (tables.length === 0) { container.innerHTML = '<div class="empty-hint" style="padding:10px">Add tables to canvas first.</div>'; return; }
+  if (orderByCols.length === 0) { container.innerHTML = '<div class="empty-hint" style="padding:10px">Click "+ Add ORDER BY" below.</div>'; return; }
+  let html = '';
+  orderByCols.forEach((o, i) => {
+    const colOptions = canvasTables.flatMap(ct => {
+      const tdef = schema.find(s => s.name === ct.name);
+      return (tdef?.columns || []).map(c => `<option value="${ct.id}||${ct.alias}||${c.name}" ${o.tableId===ct.id&&o.col===c.name?'selected':''}>${ct.alias}.${c.name}</option>`);
+    }).join('');
+    html += `<div class="where-row">
+      <select onchange="updateOrder(${i},'col',this.value)" style="flex:2;min-width:0">
+        <option value="">Column…</option>${colOptions}
+      </select>
+      <select onchange="updateOrder(${i},'dir',this.value)" style="flex:1;min-width:0">
+        <option ${o.dir==='ASC'?'selected':''}>ASC</option>
+        <option ${o.dir==='DESC'?'selected':''}>DESC</option>
+      </select>
+      <button class="btn btn-icon btn-ghost" onclick="removeOrder(${i})" style="flex-shrink:0">✕</button>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function refreshSQL() {
+  // rownum toggle
+  const chk = document.getElementById('chk-rownum');
+  const row = document.getElementById('rownum-row');
+  if (chk && row) row.style.display = chk.checked ? 'block' : 'none';
+
+  const sql = generateSQL();
+  document.getElementById('sql-output').innerHTML = colorSQL(sql);
+  const lines = sql.split('\n').length;
+  const cols = Object.values(selectedCols).reduce((s, c) => s + c.length, 0);
+  document.getElementById('sql-stats').textContent = `${lines} lines · ${cols} cols · ${canvasTables.length} tables`;
+
+  runValidation();
+}
+
+// ================================================================
+// DRAG & DROP
+// ================================================================
+function onTblDragStart(e, name) {
+  e.dataTransfer.setData('table', name);
+}
+document.getElementById('canvas').addEventListener('dragover', e => e.preventDefault());
+document.getElementById('canvas').addEventListener('drop', e => onCanvasDrop(e));
+
+function onCanvasDrop(e) {
+  e.preventDefault();
+  const name = e.dataTransfer.getData('table');
+  if (!name) return;
+  const rect = document.getElementById('canvas').getBoundingClientRect();
+  const scrollEl = document.getElementById('canvas');
+  const x = e.clientX - rect.left + scrollEl.scrollLeft - 100;
+  const y = e.clientY - rect.top + scrollEl.scrollTop - 40;
+  addToCanvas(name, Math.max(10, x), Math.max(10, y));
+}
+
+function quickAddToCanvas(name) {
+  const offset = canvasTables.length;
+  addToCanvas(name, 20 + (offset % 3) * 240, 20 + Math.floor(offset / 3) * 200);
+}
+
+function makeCanvasAlias(name) {
+  const def = schema.find(s => s.name === name);
+  const base = def?.alias || name.slice(0,2);
+  const existing = new Set(canvasTables.map(t => t.alias));
+  let candidate = base, n = 2;
+  while (existing.has(candidate)) { candidate = base + n; n++; }
+  return candidate;
+}
+
+function addToCanvas(name, x, y) {
+  const alias = makeCanvasAlias(name);
+  const id = name + '_' + Date.now();
+  canvasTables.push({id, name, alias, x, y});
+  renderCanvas();
+  renderSidebar();
+}
+
+function removeFromCanvas(id) {
+  const ct = canvasTables.find(t => t.id === id);
+  if (!ct) return;
+  canvasTables = canvasTables.filter(t => t.id !== id);
+  delete selectedCols[id];
+  whereConditions = whereConditions.filter(w => w.tableId !== id);
+  orderByCols = orderByCols.filter(o => o.tableId !== id);
+  renderCanvas();
+  renderSidebar();
+}
+
+// Card drag on canvas
+function startCardDrag(e, id) {
+  if (e.target.closest('.cv-head-close')) return;
+  e.preventDefault();
+  draggingCard = id;
+  const card = document.getElementById('cv-' + id);
+  const ct = canvasTables.find(t => t.id === id);
+  const scrollEl = document.getElementById('canvas');
+  const rect = scrollEl.getBoundingClientRect();
+  dragOffX = e.clientX - rect.left + scrollEl.scrollLeft - ct.x;
+  dragOffY = e.clientY - rect.top + scrollEl.scrollTop - ct.y;
+  if (card) card.classList.add('dragging-card');
+}
+
+document.addEventListener('mousemove', e => {
+  if (!draggingCard) return;
+  const scrollEl = document.getElementById('canvas');
+  const rect = scrollEl.getBoundingClientRect();
+  const x = e.clientX - rect.left + scrollEl.scrollLeft - dragOffX;
+  const y = e.clientY - rect.top + scrollEl.scrollTop - dragOffY;
+  const ct = canvasTables.find(t => t.id === draggingCard);
+  if (!ct) return;
+  ct.x = Math.max(0, x);
+  ct.y = Math.max(0, y);
+  const card = document.getElementById('cv-' + draggingCard);
+  if (card) { card.style.left = ct.x + 'px'; card.style.top = ct.y + 'px'; }
+  renderJoinLines();
+});
+
+document.addEventListener('mouseup', () => {
+  if (draggingCard) {
+    document.getElementById('cv-' + draggingCard)?.classList.remove('dragging-card');
+    draggingCard = null;
+    refreshSQL();
+  }
+});
+
+// ================================================================
+// COLUMN TOGGLE
+// ================================================================
+function toggleCol(id, col) {
+  if (!selectedCols[id]) selectedCols[id] = [];
+  const idx = selectedCols[id].indexOf(col);
+  if (idx >= 0) selectedCols[id].splice(idx, 1);
+  else selectedCols[id].push(col);
+  renderCanvas();
+}
+
+// ================================================================
+// WHERE / ORDER
+// ================================================================
+function addWhereRow() {
+  const tables = canvasTables.map(t => t.name);
+  if (tables.length === 0) { alert('Add a table to the canvas first.'); return; }
+  const firstCT = canvasTables[0];
+  whereConditions.push({tableId: firstCT.id, alias: firstCT.alias, col: '', op: '=', val: ''});
+  renderWhereTab();
+  renderSidebar();
+}
+function updateWhere(i, field, val) {
+  if (field === 'col' && val.includes('||')) {
+    const [tid, alias, col] = val.split('||');
+    whereConditions[i].tableId = tid;
+    whereConditions[i].alias = alias;
+    whereConditions[i].col = col;
+  } else {
+    whereConditions[i][field] = val;
+  }
+  refreshSQL();
+  renderWhereTab();
+}
+function removeWhere(i) { whereConditions.splice(i, 1); renderWhereTab(); refreshSQL(); }
+
+function addOrderRow() {
+  const tables = canvasTables.map(t => t.name);
+  if (tables.length === 0) { alert('Add a table to the canvas first.'); return; }
+  const firstCTO = canvasTables[0];
+  orderByCols.push({tableId: firstCTO.id, alias: firstCTO.alias, col: '', dir: 'ASC'});
+  renderOrderTab();
+}
+function updateOrder(i, field, val) {
+  if (field === 'col' && val.includes('||')) {
+    const [tid, alias, col] = val.split('||');
+    orderByCols[i].tableId = tid;
+    orderByCols[i].alias = alias;
+    orderByCols[i].col = col;
+  } else {
+    orderByCols[i][field] = val;
+  }
+  refreshSQL();
+  renderOrderTab();
+}
+function removeOrder(i) { orderByCols.splice(i, 1); renderOrderTab(); refreshSQL(); }
+
+// ================================================================
+// SIDEBAR TABS
+// ================================================================
+function setTab(tab, el) {
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-tables').style.display = tab === 'tables' ? 'block' : 'none';
+  document.getElementById('tab-where').style.display = tab === 'where' ? 'flex' : 'none';
+  document.getElementById('tab-orderby').style.display = tab === 'orderby' ? 'flex' : 'none';
+  document.getElementById('tab-agg').style.display = tab === 'agg' ? 'flex' : 'none';
+  document.getElementById('tab-cte').style.display = tab === 'cte' ? 'flex' : 'none';
+  document.getElementById('tab-expr').style.display = tab === 'expr' ? 'flex' : 'none';
+  document.getElementById('tab-set').style.display = tab === 'set' ? 'flex' : 'none';
+  document.getElementById('tab-hier').style.display = tab === 'hier' ? 'flex' : 'none';
+  if (tab === 'where') renderWhereTab();
+  if (tab === 'orderby') renderOrderTab();
+  if (tab === 'agg') renderAggTab();
+  if (tab === 'cte') renderCTETab();
+  if (tab === 'expr') renderExprTab();
+  if (tab === 'set') renderSetTab();
+  if (tab === 'hier') renderHierTab();
+}
+
+function toggleExpand(name, e) {
+  e.stopPropagation();
+  expandedTbls[name] = !expandedTbls[name];
+  renderSidebar();
+}
+
+// ================================================================
+// JOIN TYPE
+// ================================================================
+function setJoinType(jt, el) {
+  joinType = jt;
+  document.querySelectorAll('.jtype-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  refreshSQL();
+}
+
+// ================================================================
+// FORMAT TOGGLE
+// ================================================================
+function toggleFormat() {
+  formatted = !formatted;
+  document.getElementById('fmt-btn').textContent = formatted ? 'Formatted' : 'Compact';
+  refreshSQL();
+}
+
+// ================================================================
+// COPY / EXPORT
+// ================================================================
+function copySQL() {
+  const sql = generateSQL();
+  navigator.clipboard?.writeText(sql).then(() => showToast('✓ Copied to clipboard'));
+}
+function exportSQL() {
+  const sql = generateSQL();
+  const blob = new Blob([sql], {type: 'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'query_' + new Date().toISOString().slice(0,10) + '.sql';
+  a.click();
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ================================================================
+// DDL PARSER (Oracle-aware)
+// ================================================================
+function parseDDL(ddl) {
+  const tables = [];
+  const tableRe = /CREATE\s+(?:OR\s+REPLACE\s+)?(?:GLOBAL\s+TEMPORARY\s+)?TABLE\s+(?:\w+\.)?(\w+)\s*\(([\s\S]*?)\)\s*(?:ORGANIZATION|TABLESPACE|ON\s+COMMIT|ENABLE|PCTFREE|STORAGE|;)/gi;
+  // simpler fallback
+  const simple = /CREATE\s+TABLE\s+(?:\w+\.)?(\w+)\s*\(([\s\S]*?)\)\s*;/gi;
+  let m;
+  while ((m = simple.exec(ddl)) !== null) {
+    const tname = m[1].toUpperCase();
+    const body = m[2];
+    const cols = [];
+    const pks = [];
+    const pkMatch = body.match(/CONSTRAINT\s+\w+\s+PRIMARY\s+KEY\s*\(([^)]+)\)/i) ||
+                    body.match(/PRIMARY\s+KEY\s*\(([^)]+)\)/i);
+    if (pkMatch) pkMatch[1].split(',').forEach(c => pks.push(c.trim().replace(/"/g,'').toUpperCase()));
+
+    const fkMap = {};
+    const fkRe = /CONSTRAINT\s+\w+\s+FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+(?:\w+\.)?(\w+)\s*\(([^)]+)\)/gi;
+    let fkm;
+    while ((fkm = fkRe.exec(body)) !== null) {
+      fkm[1].split(',').forEach((fc, idx) => {
+        const tc = fkm[3].split(',')[idx]?.trim().replace(/"/g,'').toUpperCase();
+        fkMap[fc.trim().replace(/"/g,'').toUpperCase()] = fkm[2].toUpperCase() + '.' + tc;
+      });
+    }
+
+    body.split('\n').forEach(line => {
+      line = line.trim().replace(/,$/,'');
+      if (!line) return;
+      const upper = line.toUpperCase();
+      if (['CONSTRAINT','PRIMARY','FOREIGN','UNIQUE','CHECK','INDEX','TABLESPACE'].some(k => upper.startsWith(k))) return;
+      const parts = line.split(/\s+/);
+      if (parts.length < 2) return;
+      const cname = parts[0].replace(/"/g,'').toUpperCase();
+      const ctype = parts.slice(1).filter(p => !['NOT','NULL','DEFAULT','ENABLE'].includes(p.toUpperCase())).join(' ').split(/\s+CONSTRAINT/i)[0];
+      const isPk = pks.includes(cname) || upper.includes('PRIMARY KEY');
+      cols.push({name: cname, type: ctype, pk: isPk, fk: fkMap[cname]||null});
+    });
+
+    if (cols.length > 0) {
+      tables.push({name: tname, alias: makeAlias(tname, tables), columns: cols});
+    }
+  }
+  return tables.length > 0 ? tables : null;
+}
+
+function makeAlias(name, existing) {
+  const words = name.split('_');
+  let alias = words.map(w => w[0]).join('').toUpperCase();
+  if (alias.length < 2) alias = name.slice(0,2).toUpperCase();
+  let candidate = alias, n = 2;
+  while (existing.some(t => t.alias === candidate)) candidate = alias + n++;
+  return candidate;
+}
+
+// ================================================================
+// MODAL
+// ================================================================
+function showModal(mode) {
+  modalMode = mode;
+  document.getElementById('modal').style.display = 'flex';
+  const title = document.getElementById('modal-title');
+  const body = document.getElementById('modal-body');
+  const btn = document.getElementById('modal-action-btn');
+
+  if (mode === 'import') {
+    title.textContent = '⬆ Import Oracle DDL';
+    btn.textContent = 'Parse & Load Schema';
+    btn.style.display = '';
+    body.innerHTML = `
+      <div style="font-size:10px;color:var(--text3);line-height:1.6;margin-bottom:4px">
+        Paste <code>CREATE TABLE</code> statements. Foreign keys via <code>CONSTRAINT … FOREIGN KEY … REFERENCES</code> are auto-detected.
+        Schema prefix like <code>HR.EMPLOYEES</code> is stripped automatically.
+      </div>
+      <textarea id="ddl-input" placeholder="CREATE TABLE EMPLOYEES (&#10;  EMPLOYEE_ID NUMBER NOT NULL,&#10;  DEPARTMENT_ID NUMBER,&#10;  CONSTRAINT PK_EMP PRIMARY KEY (EMPLOYEE_ID),&#10;  CONSTRAINT FK_DEPT FOREIGN KEY (DEPARTMENT_ID) REFERENCES DEPARTMENTS(DEPARTMENT_ID)&#10;);"></textarea>`;
+  } else if (mode === 'schema') {
+    title.textContent = '📦 Sample Schemas';
+    btn.style.display = 'none';
+    body.innerHTML = `
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Click a schema to load it instantly. Your current canvas will be cleared.</div>
+      <div class="schema-cards">
+        ${Object.entries(SAMPLE_SCHEMAS).map(([key, s]) => `
+          <div class="schema-card" onclick="loadSampleSchema('${key}')">
+            <h3>${s.name}</h3>
+            <p>${s.desc}</p>
+            <div class="sc-tags">${s.tags.map(t => `<span class="sc-tag">${t}</span>`).join('')}</div>
+            <div style="margin-top:6px;font-size:9px;color:var(--text3)">${s.tables.length} tables · ${s.tables.reduce((a,t)=>a+t.columns.length,0)} columns</div>
+          </div>
+        `).join('')}
+      </div>`;
+  } else if (mode === 'readme') {
+    title.textContent = '📖 OraQuery — README';
+    btn.style.display = 'none';
+    body.innerHTML = `<div class="readme-body">
+<h3>What is OraQuery?</h3>
+<p>A visual Oracle SQL query builder. Drag tables → click columns → get production-ready SQL with FK-based JOINs, aliases, validation, and Oracle-specific syntax. No writing SQL from memory.</p>
+
+<h3>vs Power BI / SQL Developer QBE</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Power BI</span><span class="diff-vs">→</span><span class="diff-this">OraQuery outputs raw Oracle SQL — copy-paste into TOAD, DBeaver, SQL*Plus, SQLcl</span></div>
+  <div class="diff-row"><span class="diff-tool">SQL Developer QBE</span><span class="diff-vs">→</span><span class="diff-this">OraQuery validates ORA-errors before execution, warns on NULL traps, type mismatches, CROSS JOINs</span></div>
+  <div class="diff-row"><span class="diff-tool">Writing manually</span><span class="diff-vs">→</span><span class="diff-this">FK map auto-resolves aliases — E.DEPARTMENT_ID = D.DEPARTMENT_ID without memorizing column names</span></div>
+</div>
+
+<h3>Quick Start</h3>
+<div class="step"><div class="step-num">1</div><div>Click <kbd>Sample Schemas</kbd> to load HR / Sales / Finance / Inventory, or <kbd>Import DDL</kbd> to paste your own CREATE TABLE statements</div></div>
+<div class="step"><div class="step-num">2</div><div>Drag tables from the sidebar onto the canvas (or double-click). FK join lines appear automatically</div></div>
+<div class="step"><div class="step-num">3</div><div>Click column names on canvas cards to add to SELECT (blue = selected)</div></div>
+<div class="step"><div class="step-num">4</div><div>Use sidebar tabs for WHERE / ORDER / AGG / CTE / EXPR / SET / HIER</div></div>
+<div class="step"><div class="step-num">5</div><div>Review Validation panel → Copy SQL or Export .sql file</div></div>
+
+<h3>Self-Join (Org Chart — Employee + Manager)</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Show each employee's name alongside their manager's name</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 1</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES onto canvas → card appears as alias <code>E</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Step 2</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES again → second card appears as <code>E2</code> (SELF badge shown). MANAGER_ID → EMPLOYEE_ID FK auto-detected</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 3</span><span class="diff-vs">:</span><span class="diff-this">Select <code>E.FIRST_NAME</code>, <code>E.LAST_NAME</code>, <code>E2.FIRST_NAME</code> (manager). Change join to LEFT in right panel to include employees with no manager</span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>SELECT E.FIRST_NAME, E.LAST_NAME, E2.FIRST_NAME FROM EMPLOYEES E LEFT JOIN EMPLOYEES E2 ON E2.EMPLOYEE_ID = E.MANAGER_ID</code></span></div>
+</div>
+
+<h3>Multi-Hop Join (Employee → Country, 3 hops)</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Get employee name + country — no direct FK</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 1</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES + COUNTRIES onto canvas</span></div>
+  <div class="diff-row"><span class="diff-tool">Result</span><span class="diff-vs">:</span><span class="diff-this">BFS auto-finds EMPLOYEES→DEPARTMENTS→LOCATIONS→COUNTRIES. Three JOINs generated. Canvas shows MULTI-HOP badge on join line</span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>INNER JOIN DEPARTMENTS D ON E.DEPARTMENT_ID = D.DEPARTMENT_ID INNER JOIN LOCATIONS L ON D.LOCATION_ID = L.LOCATION_ID INNER JOIN COUNTRIES C ON L.COUNTRY_ID = C.COUNTRY_ID</code></span></div>
+</div>
+
+<h3>Non-Equi Join (Salary in Job Grade Range)</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Join EMPLOYEES to JOBS where salary is within min/max salary range</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 1</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES + JOBS → FK join detected on JOB_ID</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 2</span><span class="diff-vs">:</span><span class="diff-this">In right panel, click <kbd>+AND</kbd> on the join → add <code>E.SALARY &gt;= J.MIN_SALARY</code> and <code>E.SALARY &lt;= J.MAX_SALARY</code></span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>ON E.JOB_ID = J.JOB_ID AND E.SALARY &gt;= J.MIN_SALARY AND E.SALARY &lt;= J.MAX_SALARY</code></span></div>
+</div>
+
+<h3>Aggregation + GROUP BY + HAVING</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Department headcount and avg salary, only depts with more than 5 employees</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 1</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES + DEPARTMENTS. Select <code>D.DEPARTMENT_NAME</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Step 2</span><span class="diff-vs">:</span><span class="diff-this">AGG tab → + Aggregate → COUNT(*) alias <code>headcount</code> → + Aggregate → AVG SALARY alias <code>avg_sal</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Step 3</span><span class="diff-vs">:</span><span class="diff-this">AGG tab → + GROUP BY → D.DEPARTMENT_NAME → + HAVING → COUNT(*) &gt; 5</span></div>
+  <div class="diff-row"><span class="diff-tool">Validation</span><span class="diff-vs">:</span><span class="diff-this">If you forget GROUP BY, tool flags ORA-00937. If you miss a column, ORA-00979 shown with exact column name</span></div>
+</div>
+
+<h3>Window Function (Rank employees by salary per dept)</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Add salary rank within each department to the result set</span></div>
+  <div class="diff-row"><span class="diff-tool">Steps</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES. AGG tab → + Window Function → fn=RANK, col=SALARY, PARTITION BY=DEPARTMENT_ID, ORDER BY=SALARY DESC, alias=<code>sal_rank</code></span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>RANK(E.SALARY) OVER (PARTITION BY E.DEPARTMENT_ID ORDER BY E.SALARY DESC) AS sal_rank</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Validation</span><span class="diff-vs">:</span><span class="diff-this">Missing ORDER BY inside OVER() on RANK/ROW_NUMBER → flagged as non-deterministic error</span></div>
+</div>
+
+<h3>CTE (WITH clause)</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Pre-filter high earners as a named CTE, then join to departments</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 1</span><span class="diff-vs">:</span><span class="diff-this">CTE tab → + Add CTE → name it <code>high_earners</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Step 2</span><span class="diff-vs">:</span><span class="diff-this">Write: <code>SELECT EMPLOYEE_ID, SALARY, DEPARTMENT_ID FROM EMPLOYEES WHERE SALARY &gt; 10000</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Step 3</span><span class="diff-vs">:</span><span class="diff-this">Reference <code>high_earners</code> in a WHERE or JOIN in the main query manually</span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>WITH high_earners AS (SELECT ...) SELECT E.FIRST_NAME FROM EMPLOYEES E INNER JOIN high_earners H ON E.EMPLOYEE_ID = H.EMPLOYEE_ID</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Validation</span><span class="diff-vs">:</span><span class="diff-this">If CTE name not referenced in main query → warning: "CTE defined but not used"</span></div>
+</div>
+
+<h3>EXISTS / NOT EXISTS / IN Subquery</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Find employees who have a job history record</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 1</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES. CTE tab → + EXISTS/IN Subquery → choose <code>EXISTS</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Step 2</span><span class="diff-vs">:</span><span class="diff-this">Write inner SQL: <code>SELECT 1 FROM JOB_HISTORY JH WHERE JH.EMPLOYEE_ID = E.EMPLOYEE_ID</code></span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>WHERE 1=1 AND EXISTS (SELECT 1 FROM JOB_HISTORY JH WHERE JH.EMPLOYEE_ID = E.EMPLOYEE_ID)</code></span></div>
+  <div class="diff-row"><span class="diff-tool">NOT EXISTS</span><span class="diff-vs">:</span><span class="diff-this">Same steps but choose <code>NOT EXISTS</code> — finds employees with no job history</span></div>
+  <div class="diff-row"><span class="diff-tool">IN subquery</span><span class="diff-vs">:</span><span class="diff-this">Choose <code>IN (subquery)</code>, pick the column (e.g. E.DEPARTMENT_ID), write: <code>SELECT DEPARTMENT_ID FROM DEPARTMENTS WHERE LOCATION_ID = 1700</code></span></div>
+</div>
+
+<h3>Scalar Subquery in SELECT</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Show each employee's salary vs their department's max salary</span></div>
+  <div class="diff-row"><span class="diff-tool">Steps</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES. EXPR tab → + Scalar Subquery → alias <code>dept_max_sal</code> → SQL: <code>SELECT MAX(E2.SALARY) FROM EMPLOYEES E2 WHERE E2.DEPARTMENT_ID = E.DEPARTMENT_ID</code></span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>SELECT E.SALARY, (SELECT MAX(E2.SALARY) FROM EMPLOYEES E2 WHERE E2.DEPARTMENT_ID = E.DEPARTMENT_ID) AS dept_max_sal FROM EMPLOYEES E</code></span></div>
+</div>
+
+<h3>CASE WHEN Expression</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Classify salary into HIGH / MID / LOW bands</span></div>
+  <div class="diff-row"><span class="diff-tool">Steps</span><span class="diff-vs">:</span><span class="diff-this">EXPR tab → + CASE WHEN → alias <code>sal_band</code> → WHEN: <code>E.SALARY &gt; 15000</code> THEN <code>'HIGH'</code> → +WHEN: <code>E.SALARY &gt; 8000</code> THEN <code>'MID'</code> → ELSE: <code>'LOW'</code></span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>CASE WHEN E.SALARY &gt; 15000 THEN 'HIGH' WHEN E.SALARY &gt; 8000 THEN 'MID' ELSE 'LOW' END AS sal_band</span></div>
+</div>
+
+<h3>UNION / INTERSECT / MINUS</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Combine employees from dept 10 and dept 20 (UNION)</span></div>
+  <div class="diff-row"><span class="diff-tool">Steps</span><span class="diff-vs">:</span><span class="diff-this">Build main query (dept 10). SET tab → + Add UNION → type=UNION ALL → write: <code>SELECT EMPLOYEE_ID, FIRST_NAME FROM EMPLOYEES WHERE DEPARTMENT_ID = 20</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Validation</span><span class="diff-vs">:</span><span class="diff-this">Tool warns if column count mismatch (ORA-01789)</span></div>
+  <div class="diff-row"><span class="diff-tool">MINUS</span><span class="diff-vs">:</span><span class="diff-this">Use MINUS to find employees in dept 10 who are NOT in the job history — change type to MINUS, write inner query</span></div>
+</div>
+
+<h3>CONNECT BY (Org Chart / Hierarchy)</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Goal</span><span class="diff-vs">:</span><span class="diff-this">Walk the EMPLOYEES hierarchy from top-level managers down</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 1</span><span class="diff-vs">:</span><span class="diff-this">Drag EMPLOYEES. HIER tab → + Enable CONNECT BY</span></div>
+  <div class="diff-row"><span class="diff-tool">Step 2</span><span class="diff-vs">:</span><span class="diff-this">START WITH: <code>E.MANAGER_ID IS NULL</code> → PRIOR col: <code>E.EMPLOYEE_ID</code> → child col: <code>E.MANAGER_ID</code> → check NOCYCLE</span></div>
+  <div class="diff-row"><span class="diff-tool">SQL</span><span class="diff-vs">:</span><span class="diff-this"><code>START WITH E.MANAGER_ID IS NULL CONNECT BY PRIOR E.EMPLOYEE_ID = E.MANAGER_ID NOCYCLE</code></span></div>
+  <div class="diff-row"><span class="diff-tool">Tip</span><span class="diff-vs">:</span><span class="diff-this">Add LEVEL in a CASE expression (EXPR tab) to show depth. Use SYS_CONNECT_BY_PATH in scalar subquery for full path string.</span></div>
+</div>
+
+<h3>WHERE: AND vs OR logic</h3>
+<div class="diff-section">
+  <div class="diff-row"><span class="diff-tool">Default</span><span class="diff-vs">:</span><span class="diff-this">All WHERE conditions joined with AND</span></div>
+  <div class="diff-row"><span class="diff-tool">Toggle</span><span class="diff-vs">:</span><span class="diff-this">Click the <kbd>AND</kbd> button in WHERE tab → switches to <kbd>OR</kbd> — all top-level conditions joined with OR</span></div>
+  <div class="diff-row"><span class="diff-tool">Complex</span><span class="diff-vs">:</span><span class="diff-this">For mixed AND/OR groups, use a CTE or write the complex condition directly in the EXISTS inner SQL</span></div>
+</div>
+
+<h3>Import your own DDL</h3>
+<ul>
+  <li>Click <kbd>Import DDL</kbd> → paste <code>CREATE TABLE</code> statements (each ending with <code>;</code>)</li>
+  <li>Schema prefix <code>HR.EMPLOYEES</code> stripped automatically</li>
+  <li>Supported: <code>CONSTRAINT … PRIMARY KEY</code>, <code>CONSTRAINT … FOREIGN KEY … REFERENCES</code>, composite PKs/FKs</li>
+  <li>Or run the Python script <code>oracle_schema_fetch.py</code> → generates <code>oracle_schema.json</code> → click <kbd>📂 Load JSON Schema</kbd></li>
+</ul>
+
+<h3>All Validation Rules (18 total)</h3>
+<ul>
+  <li><strong>ORA-00937</strong> Aggregate + plain column, no GROUP BY</li>
+  <li><strong>ORA-00979</strong> SELECT column not in GROUP BY</li>
+  <li><strong>ORA-00934</strong> HAVING without GROUP BY</li>
+  <li><strong>ORA-01722</strong> Numeric column, non-numeric WHERE value</li>
+  <li><strong>ORA-01789</strong> UNION/INTERSECT/MINUS column count mismatch</li>
+  <li><strong>DATE implicit</strong> String in WHERE on DATE column → suggests TO_DATE()</li>
+  <li><strong>CHAR↔NUMBER</strong> Numeric literal on CHAR column</li>
+  <li><strong>NULL trap</strong> WHERE filter on nullable side of OUTER JOIN</li>
+  <li><strong>Non-deterministic</strong> ROW_NUMBER/RANK without ORDER BY in OVER()</li>
+  <li><strong>COUNT(*) only</strong> SUM(*)/AVG(*) rejected</li>
+  <li><strong>Unused CTE</strong> CTE defined but not referenced in main query</li>
+  <li><strong>Many-to-many</strong> Junction table without DISTINCT/aggregation</li>
+  <li><strong>IN SELECT *</strong> Multi-column IN subquery</li>
+  <li><strong>CONNECT BY</strong> Missing PRIOR/child col; cycle risk without NOCYCLE</li>
+  <li><strong>CASE incomplete</strong> WHEN/THEN pair missing condition or result</li>
+  <li><strong>No alias</strong> CASE or scalar subquery without alias</li>
+  <li><strong>CROSS JOIN</strong> No FK path between tables</li>
+  <li><strong>No WHERE</strong> Query returns all rows warning</li>
+</ul>
+
+<h3>Tips</h3>
+<ul>
+  <li>Drag table header to move cards on canvas; ✕ to remove</li>
+  <li><strong>Self-join:</strong> drag same table twice → E, E2 aliases auto-assigned</li>
+  <li>Join lines color-coded: blue=INNER, green=LEFT, amber=RIGHT, purple=FULL, red=CROSS</li>
+  <li>Each join has independent type dropdown in right panel</li>
+  <li><kbd>+AND</kbd> on a join → non-equi conditions (range joins)</li>
+  <li>EXPR tab → CASE WHEN for computed columns; scalar subquery for correlated lookups</li>
+  <li>SET tab → UNION ALL is faster than UNION (no dedup pass)</li>
+  <li>HIER tab → always enable NOCYCLE on real data to avoid infinite loops</li>
+  <li>WHERE <kbd>AND</kbd>/<kbd>OR</kbd> toggle switches logic between all top-level conditions</li>
+  <li>Export saves dated <code>.sql</code> file ready for SQL*Plus / TOAD / DBeaver</li>
+</ul>
+</div>\`;
+  }
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+function modalAction() {
+  if (modalMode === 'import') {
+    const ddl = document.getElementById('ddl-input')?.value || '';
+    if (!ddl.trim()) { alert('Please paste DDL first.'); return; }
+    const parsed = parseDDL(ddl);
+    if (!parsed || parsed.length === 0) {
+      alert('Could not parse any tables. Make sure each CREATE TABLE statement ends with a semicolon (;) and contains at least one column definition.');
+      return;
+    }
+    schema = parsed;
+    canvasTables = [];
+    selectedCols = {};
+    whereConditions = [];
+    orderByCols = [];
+    closeModal();
+    renderSidebar();
+    renderCanvas();
+    showToast(`✓ Loaded ${parsed.length} tables`);
+  }
+}
+
+function loadSampleSchema(key) {
+  schema = JSON.parse(JSON.stringify(SAMPLE_SCHEMAS[key].tables));
+  canvasTables = [];
+  selectedCols = {};
+  whereConditions = [];
+  orderByCols = [];
+  joinConfigs = {};
+  selfJoinCount = {};
+  existsSubqs = [];
+  ctes = [];
+  subqueries = [];
+  aggregations = [];
+  groupByCols = [];
+  havingClauses = [];
+  windowFns = [];
+  setOps = [];
+  caseExprs = [];
+  scalarSubqs = [];
+  connectBy = null;
+  whereLogic = 'AND';
+  ctes = []; aggregations = []; groupByCols = []; havingClauses = []; windowFns = []; subqueries = [];
+  closeModal();
+  renderSidebar();
+  renderCanvas();
+  showToast(`✓ Loaded ${SAMPLE_SCHEMAS[key].name}`);
+}
+
+
+// ================================================================
+// JSON SCHEMA LOADER (from oracle_schema_fetch.py output)
+// ================================================================
+function loadJSONSchema() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        // Support both raw array and {tables:[...]} format
+        const tables = Array.isArray(data) ? data : data.tables;
+        if (!tables || tables.length === 0) throw new Error('No tables found in JSON');
+        schema = tables.map(t => ({
+          name: t.name,
+          alias: t.alias || makeAlias(t.name, []),
+          owner: t.owner || '',
+          comment: t.comment || '',
+          num_rows: t.num_rows,
+          columns: (t.columns || []).map(c => ({
+            name: c.name,
+            type: c.type || 'VARCHAR2',
+            pk: !!c.pk,
+            fk: c.fk || null,
+            nullable: c.nullable !== false,
+            comment: c.comment || null,
+          }))
+        }));
+        canvasTables = [];
+        selectedCols = {};
+        whereConditions = [];
+        orderByCols = [];
+        const meta = data.meta || {};
+        renderSidebar();
+        renderCanvas();
+        showToast(`✓ Loaded ${schema.length} tables · ${meta.relationship_count||buildRels().length} relationships`);
+        if (meta.owners) {
+          document.getElementById('schema-info').textContent =
+            `${schema.length} tables · owner: ${meta.owners.join(', ')}`;
+        }
+      } catch(err) {
+        alert('Failed to parse JSON schema: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ================================================================
+// INIT — load HR schema by default
+// ================================================================
+loadSampleSchema('hr');
+</script>
+</body>
+</html>
