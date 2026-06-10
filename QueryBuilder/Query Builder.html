@@ -452,6 +452,7 @@ body{font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;backgrou
 </div>
 </div>
 
+
 <script>
 // ================================================================
 // STATE
@@ -2648,7 +2649,7 @@ function showModal(mode) {
   <li>WHERE <kbd>AND</kbd>/<kbd>OR</kbd> toggle switches logic between all top-level conditions</li>
   <li>Export saves dated <code>.sql</code> file ready for SQL*Plus / TOAD / DBeaver</li>
 </ul>
-</div>\`;
+</div>`;
   }
 }
 
@@ -2696,7 +2697,7 @@ function loadSampleSchema(key) {
   connectBy = null;
   whereLogic = 'AND';
   ctes = []; aggregations = []; groupByCols = []; havingClauses = []; windowFns = []; subqueries = [];
-  closeModal();
+  if (document.getElementById('modal')) closeModal();
   renderSidebar();
   renderCanvas();
   showToast(`✓ Loaded ${SAMPLE_SCHEMAS[key].name}`);
@@ -2759,7 +2760,7 @@ function loadJSONSchema() {
 // ================================================================
 // INIT — load HR schema by default
 // ================================================================
-loadSampleSchema('hr');
+document.addEventListener('DOMContentLoaded', () => loadSampleSchema('hr'));
 </script>
 </body>
 </html>
