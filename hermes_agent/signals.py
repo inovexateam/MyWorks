@@ -363,6 +363,90 @@ def collect_all_signals(watchlist: list) -> list:
     except Exception as e:
         log.warning(f"Options signals failed: {e}")
 
+    log.info("Collecting signals — fundamentals…")
+    try:
+        from sources.fundamentals import get_watchlist_fundamentals, get_fundamental_signals
+        fund_data = get_watchlist_fundamentals(watchlist)
+        for s in get_fundamental_signals(fund_data):
+            all_signals.append(s)
+    except Exception as e:
+        log.warning(f"Fundamental signals failed: {e}")
+
+    log.info("Collecting signals — global macro…")
+    try:
+        from sources.global_macro import get_global_macro, get_global_macro_signals
+        macro = get_global_macro()
+        all_signals += get_global_macro_signals(macro)
+    except Exception as e:
+        log.warning(f"Global macro signals failed: {e}")
+
+    log.info("Collecting signals — breakout scanner…")
+    try:
+        from sources.breakout import full_breakout_scan
+        scan = full_breakout_scan(watchlist)
+        for r in scan.get("breakouts", []):
+            all_signals.append(_sig(
+                r["symbol"], "BREAKOUT", r["severity"],
+                f"🚀 BREAKOUT: {r['symbol']} at 52W high ₹{r['high52']:,.2f} — {r['meaning']}",
+                "TODAY", r))
+        for r in scan.get("accumulation", []):
+            all_signals.append(_sig(
+                r["symbol"], "ACCUMULATION", r["severity"],
+                f"📦 ACCUMULATION: {r['symbol']} — {r['meaning']}",
+                "1W", r))
+        for r in scan.get("consolidation", []):
+            all_signals.append(_sig(
+                r["symbol"], "CONSOLIDATION", "MEDIUM",
+                f"🔔 COILING: {r['symbol']} — {r['meaning']}",
+                "1W", r))
+        top_rs = [r for r in scan.get("rel_strength",[]) if r["rs"] > 115]
+        for r in top_rs[:3]:
+            all_signals.append(_sig(
+                r["symbol"], "REL_STRENGTH", "MEDIUM",
+                f"💪 {r['symbol']} outperforming Nifty by {r['rs']-100:.1f}% — relative strength signal",
+                "1W", r))
+    except Exception as e:
+        log.warning(f"Breakout signals failed: {e}")
+
+    log.info("Collecting signals — news sentiment…")
+    try:
+        from sources.sentiment_nlp import analyze_news_sentiment
+        sent_data = analyze_news_sentiment(watchlist)
+        for s in sent_data:
+            if s.get("flip_alert"):
+                flip = s["sentiment_flip"]
+                sev  = "HIGH" if "NEGATIVE" in flip else "MEDIUM"
+                emoji = "🔴" if "NEGATIVE" in flip else "🟢"
+                all_signals.append(_sig(
+                    s["symbol"], "SENTIMENT_FLIP", sev,
+                    f"{emoji} News sentiment flipped {flip.replace('_',' ')} for {s['symbol']}",
+                    "TODAY", s))
+            elif s["today_score"] <= -1:
+                all_signals.append(_sig(
+                    s["symbol"], "NEGATIVE_NEWS", "MEDIUM",
+                    f"📰 Negative news trend for {s['symbol']} — score {s['today_score']}",
+                    "TODAY", s))
+    except Exception as e:
+        log.warning(f"Sentiment signals failed: {e}")
+
+    log.info("Collecting signals — insider trades…")
+    try:
+        from sources.insider import get_insider_trades
+        insider = get_insider_trades(watchlist)
+        for t in insider:
+            if t["is_key_person"] and t["is_open_market"] and t["action"]=="BUY":
+                all_signals.append(_sig(
+                    t["symbol"], "INSIDER_BUY", "HIGH",
+                    f"🏛️ INSIDER BUY: {t['person'][:25]} bought {t['qty']:,} shares open market — {t['meaning']}",
+                    "1W", t))
+            elif t["is_key_person"] and t["action"]=="SELL":
+                all_signals.append(_sig(
+                    t["symbol"], "INSIDER_SELL", "MEDIUM",
+                    f"🏛️ INSIDER SELL: {t['person'][:25]} sold {t['qty']:,} shares",
+                    "1W", t))
+    except Exception as e:
+        log.warning(f"Options signals failed: {e}")
+
     # Sort: severity first, then timeframe
     tf_order = {"TODAY": 0, "1W": 1, "1M": 2}
     all_signals.sort(key=lambda s: (

@@ -222,6 +222,47 @@ def run_52w_report():
 
 # ── Job: Weekly Signal Digest (1W + 1M) ──────────────────────────────────────
 
+def run_breakout_scan():
+    if not is_market_open():
+        return
+    log.info("▶ Breakout scan…")
+    try:
+        from sources.breakout import full_breakout_scan
+        from formatter import format_breakout_report
+        scan = full_breakout_scan(config.WATCHLIST)
+        if scan["breakouts"] or scan["accumulation"]:
+            sender.send_long(format_breakout_report(scan))
+    except Exception as e:
+        log.exception(f"Breakout scan failed: {e}")
+
+
+def run_fundamentals_brief():
+    if not is_weekday():
+        return
+    log.info("▶ Fundamentals brief…")
+    try:
+        from sources.fundamentals import get_watchlist_fundamentals
+        from formatter import format_fundamentals_report
+        data = get_watchlist_fundamentals(config.WATCHLIST)
+        sender.send_long(format_fundamentals_report(data))
+    except Exception as e:
+        log.exception(f"Fundamentals brief failed: {e}")
+
+
+def run_global_macro_brief():
+    if not is_weekday():
+        return
+    log.info("▶ Global macro brief…")
+    try:
+        from sources.global_macro import get_global_macro
+        from formatter import format_global_macro_report
+        macro = get_global_macro()
+        if macro.get("signals"):
+            sender.send_long(format_global_macro_report(macro))
+    except Exception as e:
+        log.exception(f"Global macro brief failed: {e}")
+
+
 def run_weekly_digest():
     log.info("▶ Weekly signal digest…")
     try:
@@ -256,6 +297,9 @@ def main():
     schedule.every(1).hours.do(run_bulk_block_scan)
     schedule.every(1).hours.do(run_fii_trend)
     schedule.every(1).hours.do(run_circuit_check)
+    schedule.every(1).hours.do(run_breakout_scan)
+    schedule.every().day.at("07:00").do(run_fundamentals_brief)
+    schedule.every().day.at("07:15").do(run_global_macro_brief)
 
     log.info("📅 All jobs scheduled.")
 

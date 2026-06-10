@@ -193,6 +193,8 @@ class HermesGUI:
         self._build_tab_52w()
         self._build_tab_earnings()
         self._build_tab_corporate()
+        self._build_tab_fundamentals()
+        self._build_tab_journal()
         self._build_tab_holdings()
 
         self._build_right_panel(right_panel)
@@ -1068,6 +1070,434 @@ class HermesGUI:
 
     # ── Tab: Holdings Manager ─────────────────────────────────────────────────
 
+    # ── Tab: Fundamentals ─────────────────────────────────────────────────────
+
+    def _build_tab_fundamentals(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Fundamentals  ")
+
+        left  = tk.Frame(f, bg=C["bg"]); left.pack(side="left", fill="both", expand=True, padx=(0,6), pady=10)
+        right = tk.Frame(f, bg=C["bg"]); right.pack(side="left", fill="both", expand=True, pady=10)
+
+        # Watchlist fundamentals table
+        SectionLabel(left, "Watchlist Fundamentals Screener").pack(anchor="w", pady=(0,4))
+        cols = ("Symbol","Price","P/E","Sector P/E","ROE%","Debt%","Rev Growth","Margin%","Signal","Score")
+        self.fund_tree = self._make_tree(left, cols, heights=12)
+        self.fund_tree.pack(fill="both", expand=True, pady=(0,8))
+        widths = [90,80,60,80,60,60,85,70,90,55]
+        for col,w in zip(cols,widths):
+            self.fund_tree.heading(col, text=col)
+            self.fund_tree.column(col, anchor="center", width=w, minwidth=50)
+        self.fund_tree.column("Symbol", anchor="w")
+        for sig in ("STRONG BUY","BUY","HOLD","SELL","STRONG SELL"):
+            col = {
+                "STRONG BUY":C["green"],"BUY":C["teal"],
+                "HOLD":C["muted"],"SELL":C["amber"],"STRONG SELL":C["red"]
+            }[sig]
+            self.fund_tree.tag_configure(sig, foreground=col)
+
+        btn_row = tk.Frame(left, bg=C["bg"]); btn_row.pack(fill="x")
+        self.fund_refresh_btn = HermesButton(btn_row, "↻  SCREEN ALL", self._refresh_fundamentals, accent=True)
+        self.fund_refresh_btn.pack(side="left")
+        HermesButton(btn_row, "📨  SEND REPORT", self._send_fundamentals).pack(side="left", padx=(6,0))
+        self.fund_status_lbl = tk.Label(btn_row, text="", bg=C["bg"], fg=C["muted"], font=("Courier",8))
+        self.fund_status_lbl.pack(side="left", padx=10)
+
+        # Single stock deep dive (right)
+        SectionLabel(right, "Single Stock Deep Dive").pack(anchor="w", pady=(0,4))
+        dd_row = tk.Frame(right, bg=C["bg"]); dd_row.pack(fill="x", pady=(0,8))
+        self.fund_sym_var = tk.StringVar()
+        tk.Entry(dd_row, textvariable=self.fund_sym_var, bg=C["bg3"], fg=C["text"],
+                 insertbackground=C["text"], relief="flat", font=("Courier",10), width=18,
+                 highlightbackground=C["border"], highlightthickness=1).pack(side="left", padx=(0,8))
+        HermesButton(dd_row, "ANALYSE + SEND", self._fund_deep_dive, accent=True).pack(side="left")
+
+        self.fund_detail_text = scrolledtext.ScrolledText(
+            right, bg=C["bg2"], fg=C["text"], font=("Courier",8),
+            relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.fund_detail_text.pack(fill="both", expand=True)
+
+        # Global macro
+        SectionLabel(right, "Global Macro Indicators").pack(anchor="w", pady=(8,4))
+        self.macro_detail_text = scrolledtext.ScrolledText(
+            right, height=8, bg=C["bg2"], fg=C["text"], font=("Courier",8),
+            relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.macro_detail_text.pack(fill="x")
+        btn_row2 = tk.Frame(right, bg=C["bg"]); btn_row2.pack(fill="x", pady=(4,0))
+        HermesButton(btn_row2, "↻  FETCH MACRO", self._refresh_global_macro, accent=True).pack(side="left")
+        HermesButton(btn_row2, "📨  SEND MACRO",  self._send_global_macro).pack(side="left", padx=(6,0))
+
+    # ── Tab: Trade Journal ────────────────────────────────────────────────────
+
+    def _build_tab_journal(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Journal  ")
+
+        left  = tk.Frame(f, bg=C["bg"]); left.pack(side="left", fill="both", expand=True, padx=(0,6), pady=10)
+        right = tk.Frame(f, bg=C["bg"]); right.pack(side="left", fill="y", pady=10, padx=(0,6))
+        right.configure(width=320); right.pack_propagate(False)
+
+        # Log new trade
+        SectionLabel(left, "Log a Trade").pack(anchor="w", pady=(0,4))
+        form = Card(left); form.pack(fill="x", pady=(0,8))
+        self.j_sym_var    = tk.StringVar()
+        self.j_entry_var  = tk.StringVar()
+        self.j_qty_var    = tk.StringVar()
+        self.j_stop_var   = tk.StringVar()
+        self.j_target_var = tk.StringVar()
+        self.j_reason_var = tk.StringVar()
+        self.j_side_var   = tk.StringVar(value="BUY")
+
+        r1 = tk.Frame(form, bg=C["bg2"]); r1.pack(fill="x", pady=(0,4))
+        for lbl, var, w in [("Symbol",self.j_sym_var,12),("Entry ₹",self.j_entry_var,10),("Qty",self.j_qty_var,6)]:
+            tk.Label(r1,text=lbl,bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=9,anchor="w").pack(side="left")
+            tk.Entry(r1,textvariable=var,bg=C["bg3"],fg=C["text"],insertbackground=C["text"],
+                     relief="flat",font=("Courier",10),width=w,
+                     highlightbackground=C["border"],highlightthickness=1).pack(side="left",padx=(0,8))
+
+        r2 = tk.Frame(form, bg=C["bg2"]); r2.pack(fill="x", pady=(0,4))
+        for lbl, var, w in [("Stop ₹",self.j_stop_var,10),("Target ₹",self.j_target_var,10)]:
+            tk.Label(r2,text=lbl,bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=9,anchor="w").pack(side="left")
+            tk.Entry(r2,textvariable=var,bg=C["bg3"],fg=C["text"],insertbackground=C["text"],
+                     relief="flat",font=("Courier",10),width=w,
+                     highlightbackground=C["border"],highlightthickness=1).pack(side="left",padx=(0,8))
+        tk.Label(r2,text="Side",bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=5,anchor="w").pack(side="left")
+        ttk.Combobox(r2,textvariable=self.j_side_var,values=["BUY","SELL"],
+                     state="readonly",width=6,font=("Courier",10)).pack(side="left")
+
+        r3 = tk.Frame(form, bg=C["bg2"]); r3.pack(fill="x")
+        tk.Label(r3,text="Reason",bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=9,anchor="w").pack(side="left")
+        tk.Entry(r3,textvariable=self.j_reason_var,bg=C["bg3"],fg=C["text"],insertbackground=C["text"],
+                 relief="flat",font=("Courier",10),width=40,
+                 highlightbackground=C["border"],highlightthickness=1).pack(side="left",fill="x",expand=True)
+
+        btn_row = tk.Frame(form, bg=C["bg2"]); btn_row.pack(fill="x", pady=(8,0))
+        HermesButton(btn_row,"＋  LOG ENTRY",self._log_trade_entry,accent=True).pack(side="left")
+        self.j_status_lbl = tk.Label(btn_row,text="",bg=C["bg2"],fg=C["green"],font=("Courier",8))
+        self.j_status_lbl.pack(side="left",padx=10)
+
+        # Open trades
+        SectionLabel(left, "Open Trades — Double-click to Close").pack(anchor="w", pady=(8,4))
+        cols = ("ID","Symbol","Side","Entry ₹","Qty","Stop ₹","Target ₹","Date","Reason")
+        self.open_tree = self._make_tree(left, cols, heights=6)
+        self.open_tree.pack(fill="x", pady=(0,8))
+        widths2 = [40,80,50,80,50,70,70,90,180]
+        for col,w in zip(cols,widths2):
+            self.open_tree.heading(col,text=col)
+            self.open_tree.column(col,anchor="center",width=w,minwidth=40)
+        self.open_tree.column("Symbol",anchor="w")
+        self.open_tree.column("Reason",anchor="w")
+        self.open_tree.bind("<Double-1>", self._open_close_dialog)
+
+        # Close trade form
+        SectionLabel(left, "Close a Trade").pack(anchor="w", pady=(0,4))
+        close_form = Card(left); close_form.pack(fill="x")
+        cr = tk.Frame(close_form, bg=C["bg2"]); cr.pack(fill="x")
+        self.j_close_id_var   = tk.StringVar()
+        self.j_exit_var       = tk.StringVar()
+        self.j_exit_reason_var= tk.StringVar(value="Target hit")
+        for lbl,var,w in [("Trade ID",self.j_close_id_var,6),("Exit ₹",self.j_exit_var,10)]:
+            tk.Label(cr,text=lbl,bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=10,anchor="w").pack(side="left")
+            tk.Entry(cr,textvariable=var,bg=C["bg3"],fg=C["text"],insertbackground=C["text"],
+                     relief="flat",font=("Courier",10),width=w,
+                     highlightbackground=C["border"],highlightthickness=1).pack(side="left",padx=(0,8))
+        cr2 = tk.Frame(close_form, bg=C["bg2"]); cr2.pack(fill="x",pady=(4,0))
+        tk.Label(cr2,text="Exit Reason",bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=10,anchor="w").pack(side="left")
+        ttk.Combobox(cr2,textvariable=self.j_exit_reason_var,
+                     values=["Target hit","Stop-loss hit","Trailing stop","Manual exit","News"],
+                     state="readonly",width=18,font=("Courier",10)).pack(side="left",padx=(0,8))
+        btn_row3 = tk.Frame(close_form,bg=C["bg2"]); btn_row3.pack(fill="x",pady=(6,0))
+        HermesButton(btn_row3,"✓  CLOSE TRADE",self._close_trade_entry,accent=True).pack(side="left")
+
+        # Performance stats (right)
+        SectionLabel(right, "Performance Stats").pack(anchor="w", pady=(0,4))
+        self.stats_text = scrolledtext.ScrolledText(
+            right, bg=C["bg2"], fg=C["text"], font=("Courier",9),
+            relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.stats_text.pack(fill="both", expand=True, pady=(0,8))
+
+        btn_row4 = tk.Frame(right,bg=C["bg"]); btn_row4.pack(fill="x")
+        HermesButton(btn_row4,"↻  REFRESH STATS",self._refresh_journal_stats,accent=True).pack(fill="x",pady=2)
+        HermesButton(btn_row4,"📨  SEND STATS",   self._send_journal_stats).pack(fill="x",pady=2)
+
+        # Closed trades
+        SectionLabel(right, "Recent Closed Trades").pack(anchor="w", pady=(8,4))
+        cols2 = ("ID","Symbol","P&L","P&L%","Status")
+        self.closed_tree = self._make_tree(right, cols2, heights=8)
+        self.closed_tree.pack(fill="x")
+        for col in cols2:
+            self.closed_tree.heading(col,text=col)
+            self.closed_tree.column(col,anchor="center",width=58,minwidth=40)
+        self.closed_tree.column("Symbol",anchor="w",width=80)
+        self.closed_tree.tag_configure("WIN",  foreground=C["green"])
+        self.closed_tree.tag_configure("LOSS", foreground=C["red"])
+        self.closed_tree.tag_configure("BREAK_EVEN", foreground=C["muted"])
+
+        self._refresh_journal_ui()
+
+    # ── Fundamentals methods ──────────────────────────────────────────────────
+
+    def _refresh_fundamentals(self):
+        self.fund_refresh_btn.set_busy(True)
+        self.fund_status_lbl.config(text="Scanning…", fg=C["muted"])
+        self._log_gui("Running fundamentals screener…")
+        threading.Thread(target=self._fetch_fundamentals, daemon=True).start()
+
+    def _fetch_fundamentals(self):
+        try:
+            from sources.fundamentals import get_watchlist_fundamentals
+            data = get_watchlist_fundamentals(config.WATCHLIST)
+            log_queue.put(("fundamentals", data))
+        except Exception as e:
+            log.error(f"Fundamentals: {e}")
+            log_queue.put(("fundamentals", []))
+
+    def _update_fundamentals_ui(self, data: list):
+        for i in self.fund_tree.get_children(): self.fund_tree.delete(i)
+        sig_map = {"STRONG BUY":"🚀","BUY":"📈","HOLD":"⏸","SELL":"📉","STRONG SELL":"🔻"}
+        for r in data:
+            sym  = r["symbol"]
+            sig  = r.get("overall","HOLD")
+            emoji= sig_map.get(sig,"⏸")
+            self.fund_tree.insert("","end", tags=(sig,), values=(
+                sym,
+                f"₹{r.get('price',0):,.2f}",
+                f"{r['pe']:.1f}"     if r.get("pe")           else "—",
+                f"{r['sector_pe']}"  if r.get("sector_pe")    else "—",
+                f"{r['roe']:.1f}%"   if r.get("roe")          else "—",
+                f"{r['debt_eq']:.0f}%" if r.get("debt_eq") is not None else "—",
+                f"{r['rev_growth']:+.1f}%" if r.get("rev_growth") else "—",
+                f"{r['profit_margin']:.1f}%" if r.get("profit_margin") else "—",
+                f"{emoji} {sig}",
+                str(r.get("score",0)),
+            ))
+        self.fund_refresh_btn.set_busy(False)
+        self.fund_status_lbl.config(text=f"{len(data)} stocks screened.", fg=C["green"])
+        self._log_gui(f"Fundamentals done — {len(data)} stocks.")
+
+    def _send_fundamentals(self):
+        self._log_gui("Sending fundamentals report…")
+        threading.Thread(target=self._do_send_fundamentals, daemon=True).start()
+
+    def _do_send_fundamentals(self):
+        try:
+            from sources.fundamentals import get_watchlist_fundamentals
+            from formatter import format_fundamentals_report
+            data = get_watchlist_fundamentals(config.WATCHLIST)
+            ok   = sender.send_long(format_fundamentals_report(data))
+            log_queue.put(("log", f"Fundamentals report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Fundamentals send: {e}")
+
+    def _fund_deep_dive(self):
+        sym = self.fund_sym_var.get().strip().upper()
+        if not sym: return
+        if not sym.endswith(".NS"): sym += ".NS"
+        self._log_gui(f"Deep dive fundamentals: {sym}…")
+        def _run():
+            try:
+                from sources.fundamentals import get_fundamentals
+                from formatter import format_single_fundamental
+                r = get_fundamentals(sym)
+                if r:
+                    log_queue.put(("fund_detail", r))
+                    sender.send_long(format_single_fundamental(r))
+            except Exception as e:
+                log.error(f"Fund deep dive: {e}")
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _update_fund_detail_ui(self, r: dict):
+        self.fund_detail_text.config(state="normal")
+        self.fund_detail_text.delete("1.0","end")
+        lines = [
+            f"{r.get('overall','—')} — {r['symbol']}  ₹{r.get('price',0):,.2f}",
+            f"Sector: {r.get('sector','—')}  Score: {r.get('score',0)}/8",
+            "─"*40,
+            f"P/E:           {r.get('pe','—')}  (Sector avg {r.get('sector_pe','—')})",
+            f"P/E Flag:      {r.get('pe_flag','—')}",
+            f"ROE:           {r.get('roe','—')}%  {r.get('roe_flag','')}",
+            f"Debt/Equity:   {r.get('debt_eq','—')}%  {r.get('debt_flag','')}",
+            f"Rev Growth:    {r.get('rev_growth','—')}%  {r.get('rev_flag','')}",
+            f"Profit Margin: {r.get('profit_margin','—')}%",
+            f"FCF:           {r.get('fcf_flag','—')}",
+            f"Beta:          {r.get('beta','—')}",
+            f"Dividend:      {r.get('div_yield','—')}%",
+            f"Analyst:       {r.get('analyst_rec','—')}",
+            f"Target Price:  ₹{r.get('target_price','—')}  ({r.get('upside','—')}% upside)",
+        ]
+        self.fund_detail_text.insert("end", "\n".join(lines))
+        self.fund_detail_text.config(state="disabled")
+
+    def _refresh_global_macro(self):
+        self._log_gui("Fetching global macro…")
+        threading.Thread(target=self._fetch_global_macro, daemon=True).start()
+
+    def _fetch_global_macro(self):
+        try:
+            from sources.global_macro import get_global_macro
+            log_queue.put(("global_macro", get_global_macro()))
+        except Exception as e:
+            log.error(f"Global macro: {e}")
+
+    def _update_global_macro_ui(self, macro: dict):
+        data = macro.get("data",{})
+        self.macro_detail_text.config(state="normal")
+        self.macro_detail_text.delete("1.0","end")
+        rows = [
+            ("US 10Y Yield",  "US_10Y",    "%"),
+            ("DXY Dollar Idx","DXY",       ""),
+            ("India 10Y",     "INDIA_10Y", "%"),
+            ("Brent Crude",   "CRUDE_WTI", "$"),
+            ("Gold",          "GOLD",      "$"),
+            ("US VIX",        "SP500_VIX", ""),
+        ]
+        lines = []
+        for label, key, unit in rows:
+            d   = data.get(key,{})
+            val = d.get("price",0); pct = d.get("pct",0)
+            arrow = "▲" if pct>0 else ("▼" if pct<0 else "─")
+            lines.append(f"{label:<18} {unit}{val:<10} {arrow}{pct:+.2f}%")
+        spread   = macro.get("spread",0)
+        inverted = macro.get("inverted",False)
+        lines.append(f"{'Yield Curve':<18} {spread:.3f}%    {'⚠ INVERTED' if inverted else 'Normal'}")
+        self.macro_detail_text.insert("end", "\n".join(lines))
+        self.macro_detail_text.config(state="disabled")
+        sigs = macro.get("signals",[])
+        if sigs:
+            self._log_gui(f"Macro alerts: {len(sigs)} signals.")
+
+    def _send_global_macro(self):
+        threading.Thread(target=self._do_send_global_macro, daemon=True).start()
+
+    def _do_send_global_macro(self):
+        try:
+            from sources.global_macro import get_global_macro
+            from formatter import format_global_macro_report
+            ok = sender.send_long(format_global_macro_report(get_global_macro()))
+            log_queue.put(("log", f"Global macro {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Global macro send: {e}")
+
+    # ── Trade Journal methods ─────────────────────────────────────────────────
+
+    def _log_trade_entry(self):
+        sym    = self.j_sym_var.get().strip().upper()
+        entry_s= self.j_entry_var.get().strip()
+        qty_s  = self.j_qty_var.get().strip()
+        if not sym or not entry_s or not qty_s:
+            self.j_status_lbl.config(text="Symbol, Entry, Qty required.", fg=C["red"]); return
+        if not sym.endswith(".NS") and sym not in ("NIFTY50","BANKNIFTY"):
+            sym += ".NS"
+        try:
+            entry  = float(entry_s.replace(",",""))
+            qty    = int(qty_s)
+            stop   = float(self.j_stop_var.get().replace(",",""))   if self.j_stop_var.get()   else None
+            target = float(self.j_target_var.get().replace(",","")) if self.j_target_var.get() else None
+        except ValueError:
+            self.j_status_lbl.config(text="Invalid numbers.", fg=C["red"]); return
+        from sources.journal import add_trade
+        tid = add_trade(sym, entry, qty, stop_loss=stop, target=target,
+                        reason=self.j_reason_var.get(), side=self.j_side_var.get())
+        self.j_status_lbl.config(text=f"Trade #{tid} logged!", fg=C["green"])
+        self.root.after(3000, lambda: self.j_status_lbl.config(text=""))
+        self._refresh_journal_ui()
+        self._log_gui(f"Trade logged: #{tid} {sym} {self.j_side_var.get()} {qty}@{entry}")
+
+    def _close_trade_entry(self):
+        tid_s  = self.j_close_id_var.get().strip()
+        exit_s = self.j_exit_var.get().strip()
+        if not tid_s or not exit_s:
+            return
+        try:
+            tid  = int(tid_s)
+            exit_p = float(exit_s.replace(",",""))
+        except ValueError:
+            return
+        from sources.journal import close_trade
+        result = close_trade(tid, exit_p, exit_reason=self.j_exit_reason_var.get())
+        if result:
+            pnl    = result.get("pnl",0)
+            status = result.get("status","—")
+            col    = C["green"] if pnl>=0 else C["red"]
+            self.j_status_lbl.config(
+                text=f"#{tid} closed: {status}  ₹{pnl:+,.2f}", fg=col)
+            self.root.after(4000, lambda: self.j_status_lbl.config(text=""))
+            self._refresh_journal_ui()
+
+    def _open_close_dialog(self, event):
+        item = self.open_tree.focus()
+        if not item: return
+        row = self.open_tree.item(item)["values"]
+        if row:
+            self.j_close_id_var.set(str(row[0]))
+
+    def _refresh_journal_ui(self):
+        from sources.journal import get_open_trades, get_closed_trades, get_performance_stats
+        # Open trades
+        for i in self.open_tree.get_children(): self.open_tree.delete(i)
+        for t in get_open_trades():
+            self.open_tree.insert("","end", values=(
+                t["id"], t["symbol"].replace(".NS",""),
+                t.get("side","BUY"),
+                f"₹{t['entry_price']:,.2f}",
+                t["qty"],
+                f"₹{t['stop_loss']:,.2f}"  if t.get("stop_loss")  else "—",
+                f"₹{t['target']:,.2f}"     if t.get("target")     else "—",
+                t["entry_date"],
+                (t.get("reason","")[:30]) if t.get("reason") else "—",
+            ))
+        # Closed trades
+        for i in self.closed_tree.get_children(): self.closed_tree.delete(i)
+        for t in get_closed_trades(limit=30):
+            tag = t.get("status","BREAK_EVEN")
+            self.closed_tree.insert("","end", tags=(tag,), values=(
+                t["id"], t["symbol"].replace(".NS",""),
+                f"₹{t['pnl']:+,.2f}" if t.get("pnl") is not None else "—",
+                f"{t['pnl_pct']:+.2f}%" if t.get("pnl_pct") is not None else "—",
+                tag,
+            ))
+        # Stats
+        stats = get_performance_stats()
+        self.stats_text.config(state="normal")
+        self.stats_text.delete("1.0","end")
+        if stats.get("total",0) == 0:
+            self.stats_text.insert("end","No closed trades yet.\nStart logging your trades!")
+        else:
+            lines = [
+                f"Grade:       {stats.get('grade','—')}",
+                f"Total Trades {stats['total']}",
+                f"Wins         {stats['wins']} ({stats['win_rate']:.1f}%)",
+                f"Losses       {stats['losses']}",
+                "─"*32,
+                f"Avg Win      ₹{stats['avg_win']:,.2f}",
+                f"Avg Loss     ₹{stats['avg_loss']:,.2f}",
+                f"R:R Ratio    {stats['rr_ratio']:.2f}",
+                f"Expectancy   ₹{stats['expectancy']:,.2f}/trade",
+                "─"*32,
+                f"Total P&L    ₹{stats['total_pnl']:,.2f}",
+            ]
+            self.stats_text.insert("end","\n".join(lines))
+        self.stats_text.config(state="disabled")
+
+    def _refresh_journal_stats(self):
+        self._refresh_journal_ui()
+        self._log_gui("Journal stats refreshed.")
+
+    def _send_journal_stats(self):
+        threading.Thread(target=self._do_send_journal, daemon=True).start()
+
+    def _do_send_journal(self):
+        try:
+            from sources.journal import get_performance_stats
+            from formatter import format_journal_stats
+            ok = sender.send_long(format_journal_stats(get_performance_stats()))
+            log_queue.put(("log", f"Journal stats {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Journal send: {e}")
+
     def _build_tab_holdings(self):
         f = tk.Frame(self.notebook, bg=C["bg"])
         self.notebook.add(f, text="  Holdings  ")
@@ -1154,14 +1584,17 @@ class HermesGUI:
         self.ta_btn2    = HermesButton(inner, "📊  SEND TA SUMMARY", self._send_ta_summary)
         self.sent_btn   = HermesButton(inner, "🌡️  SEND SENTIMENT",  self._send_sentiment)
         self.opt_btn2   = HermesButton(inner, "🎯  SEND OPTIONS",    self._send_options)
+        self.fund_btn2  = HermesButton(inner, "📈  SEND FUNDAMENTALS",self._send_fundamentals)
+        self.macro_btn2 = HermesButton(inner, "🌐  SEND GLOBAL MACRO",self._send_global_macro)
         self.w52_btn    = HermesButton(inner, "📐  SEND 52W",        self._trigger_52w)
         self.corp_btn   = HermesButton(inner, "💰  SEND CORP ACT",   self._trigger_corporate)
         self.earn_btn   = HermesButton(inner, "🗓  SEND EARNINGS",   self._trigger_earnings)
-        self.macro_btn  = HermesButton(inner, "🌐  SEND MACRO",      self._trigger_macro)
+        self.macro_btn  = HermesButton(inner, "📅  SEND MACRO EVT",  self._trigger_macro)
         self.test_btn   = HermesButton(inner, "🔌  TEST TELEGRAM",   self._test_telegram)
         for btn in (self.brief_btn, self.sig_btn2, self.ta_btn2, self.sent_btn,
-                    self.opt_btn2, self.w52_btn, self.corp_btn,
-                    self.earn_btn, self.macro_btn, self.test_btn):
+                    self.opt_btn2, self.fund_btn2, self.macro_btn2,
+                    self.w52_btn, self.corp_btn, self.earn_btn,
+                    self.macro_btn, self.test_btn):
             btn.pack(fill="x", pady=2)
 
         SectionLabel(inner, "Schedule").pack(anchor="w", pady=(10, 4))
@@ -1842,6 +2275,9 @@ class HermesGUI:
                 elif kind == "sentiment":     self._update_sentiment_ui(data)
                 elif kind == "options":       self._update_options_ui(data)
                 elif kind == "promoter":      self._update_promoter_ui(data)
+                elif kind == "fundamentals":  self._update_fundamentals_ui(data)
+                elif kind == "fund_detail":   self._update_fund_detail_ui(data)
+                elif kind == "global_macro":  self._update_global_macro_ui(data)
                 elif kind == "sl_result":
                     self.sl_result_lbl.config(text=data)
                 elif kind == "ta_send_done":

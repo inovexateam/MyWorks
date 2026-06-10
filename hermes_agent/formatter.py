@@ -822,3 +822,395 @@ def format_options_activity(options_data):
 
     lines.append(f"_Hermes Agent · {_esc(_now())}_")
     return "\n".join(lines)
+
+
+# ── 18. Fundamentals Report ──────────────────────────────────────────────────
+
+def format_fundamentals_report(fund_data: list) -> str:
+    lines = [
+        "📈 *FUNDAMENTALS REPORT — YOUR WATCHLIST*",
+        "_Is each stock cheap or expensive? Is the business growing?_",
+        f"_{_esc(_now())}_",
+        "",
+        "_Signal:  🚀 Strong Buy  📈 Buy  ⏸ Hold  📉 Sell  🔻 Strong Sell_",
+        "",
+    ]
+    sig_map = {"STRONG BUY":"🚀","BUY":"📈","HOLD":"⏸","SELL":"📉","STRONG SELL":"🔻"}
+    tbl = [f"{'Stock':<10} {'P/E':>6} {'ROE':>6} {'Debt':>6} {'Rev Grw':>8} {'Signal'}"]
+    tbl.append("─" * 58)
+    for r in fund_data:
+        sym   = r["symbol"][:9]
+        pe    = f"{r['pe']:.0f}"    if r.get("pe")    else "—"
+        roe   = f"{r['roe']:.0f}%"  if r.get("roe")   else "—"
+        debt  = f"{r['debt_eq']:.0f}%" if r.get("debt_eq") is not None else "—"
+        rev   = f"{r['rev_growth']:+.0f}%" if r.get("rev_growth") else "—"
+        sig   = r.get("overall","—")
+        emoji = sig_map.get(sig,"⏸")
+        tbl.append(f"{sym:<10} {pe:>6} {roe:>6} {debt:>6} {rev:>8}  {emoji} {sig}")
+    lines.append(_block(tbl))
+
+    # Highlight top picks
+    buys = [r for r in fund_data if r.get("overall") in ("STRONG BUY","BUY")]
+    if buys:
+        lines.append("*🏆 TOP FUNDAMENTAL PICKS*")
+        for r in buys[:3]:
+            upside = f" · Analyst target {r['upside']:+.0f}% upside" if r.get("upside") else ""
+            lines.append(f"• *{_esc(r['symbol'])}* — {_esc(r.get('overall',''))} (score {r['score']}/8){_esc(upside)}")
+
+    lines += [
+        "",
+        "📖 *Beginner Guide:*",
+        "_P/E: Lower than sector average = cheaper = potentially better buy_",
+        "_ROE above 15% = company uses your money efficiently_",
+        "_Debt below 50% = company is not over-borrowed_",
+        "_Revenue Growth above 10% = business is expanding_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+def format_single_fundamental(r: dict) -> str:
+    sym = r["symbol"]
+    sig = r.get("overall","HOLD")
+    sig_emoji = {"STRONG BUY":"🚀","BUY":"📈","HOLD":"⏸","SELL":"📉","STRONG SELL":"🔻"}.get(sig,"⏸")
+
+    tbl = [f"{'Metric':<22} {'Value':<14} {'Assessment'}"]
+    tbl.append("─" * 60)
+    if r.get("pe"):     tbl.append(f"{'P/E Ratio':<22} {r['pe']:<14.1f} {r.get('pe_flag','')[:25]}")
+    if r.get("roe"):    tbl.append(f"{'ROE (Return on Equity)':<22} {str(r['roe'])+'%':<14} {r.get('roe_flag','')[:25]}")
+    if r.get("debt_eq") is not None: tbl.append(f"{'Debt/Equity':<22} {str(r['debt_eq'])+'%':<14} {r.get('debt_flag','')[:25]}")
+    if r.get("rev_growth"): tbl.append(f"{'Revenue Growth':<22} {str(r['rev_growth'])+'%':<14} {r.get('rev_flag','')[:25]}")
+    if r.get("profit_margin"): tbl.append(f"{'Profit Margin':<22} {str(r['profit_margin'])+'%':<14} {'Good' if r['profit_margin']>15 else 'Average'}")
+    if r.get("beta"):   tbl.append(f"{'Beta (Volatility)':<22} {r['beta']:<14} {'High risk' if r['beta']>1.3 else 'Moderate'}")
+    if r.get("div_yield"): tbl.append(f"{'Dividend Yield':<22} {str(r['div_yield'])+'%':<14} {'Regular income'}")
+    if r.get("target_price"):
+        tbl.append(f"{'Analyst Target':<22} ₹{r['target_price']:<13,.2f} {str(r.get('upside',''))+('% upside' if r.get('upside') else '')}")
+
+    lines = [
+        f"📊 *FUNDAMENTAL ANALYSIS — {_esc(sym)}*",
+        f"_{r.get('name','')[:50]}_",
+        f"_{_esc(_now())}_",
+        "",
+        f"{sig_emoji} *Overall: {_esc(sig)}* \\(score {r['score']}/8\\)",
+        f"💹 Price: ₹{r.get('price',0):,.2f}   Sector: {_esc(r.get('sector',''))}",
+        "",
+        _block(tbl),
+        "",
+        "📖 *What to do:*",
+        f"_{_esc({'STRONG BUY':'All fundamentals are strong. Can consider buying with proper stop-loss.','BUY':'Good fundamentals. Monitor for a good entry price.','HOLD':'Mixed signals. If you own it, hold. Do not add more.','SELL':'Fundamentals weakening. Consider reducing position.','STRONG SELL':'Multiple red flags. Review your position urgently.'}.get(sig,'Review the numbers carefully before deciding.'))}_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 19. Global Macro Report ───────────────────────────────────────────────────
+
+def format_global_macro_report(macro: dict) -> str:
+    data = macro.get("data", {})
+    lines = [
+        "🌐 *GLOBAL MACRO SNAPSHOT*",
+        "_These global factors directly affect the Indian stock market_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    def _pct_fmt(v): return f"{v:+.2f}%" if v else "—"
+
+    tbl = [f"{'Indicator':<18} {'Value':>10} {'Change':>9} {'Impact on India'}"]
+    tbl.append("─" * 65)
+    rows_info = [
+        ("US 10Y Yield",   "US_10Y",    "%",  "Rising = FII outflows from India"),
+        ("US Dollar (DXY)","DXY",       "",   "Stronger $ = FII selling India"),
+        ("India 10Y Yield","INDIA_10Y", "%",  "Rising = costly loans for companies"),
+        ("Brent Crude",    "CRUDE_WTI", "$",  "Rising = bad for auto/airline/FMCG"),
+        ("Gold",           "GOLD",      "$",  "Rising = global fear/uncertainty"),
+        ("Copper",         "COPPER",    "$",  "Falling = global slowdown warning"),
+        ("US VIX",         "SP500_VIX", "",   "Above 25 = global risk-off"),
+    ]
+    for label, key, unit, impact in rows_info:
+        d = data.get(key, {})
+        val = d.get("price", 0)
+        pct = d.get("pct",   0)
+        arrow = "▲" if pct > 0 else ("▼" if pct < 0 else "─")
+        tbl.append(f"{label:<18} {unit+str(val):>10} {arrow+_pct_fmt(pct):>9}  {impact[:30]}")
+    lines.append(_block(tbl))
+
+    # Yield curve
+    spread   = macro.get("spread", 0)
+    inverted = macro.get("inverted", False)
+    lines.append(_block([
+        f"Yield Curve Spread  {spread:.3f}%  {'⚠️ INVERTED — Recession warning' if inverted else '✅ Normal'}",
+    ]))
+
+    # Signals
+    sigs = macro.get("signals", [])
+    if sigs:
+        lines.append("*⚠️ ACTIVE ALERTS*")
+        for s in sigs:
+            sev_e = "🔴" if s["severity"]=="HIGH" else "🟡"
+            lines.append(f"{sev_e} *{_esc(s['indicator'])}* — {_esc(s['meaning'])}")
+            lines.append(f"   _Action: {_esc(s['action'])}_")
+            lines.append("")
+
+    lines += [
+        "📖 *Beginner Guide:*",
+        "_When US 10Y yield rises AND DXY rises = double trouble for India_",
+        "_FIIs sell India and move money to US bonds (safer + better yield)_",
+        "_Watch these two numbers every morning before trading_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 20. Breakout Scanner Report ───────────────────────────────────────────────
+
+def format_breakout_report(scan: dict) -> str:
+    lines = [
+        "🚀 *BREAKOUT & ACCUMULATION SCANNER*",
+        "_Stocks that are coiling, accumulating, or breaking out_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    breakouts = scan.get("breakouts", [])
+    if breakouts:
+        lines.append("*🚀 BREAKOUTS — At or Near 52\\-Week High*")
+        tbl = [f"{'Stock':<10} {'Price':>10} {'52W High':>10} {'Volume':>8} {'Status'}"]
+        tbl.append("─" * 55)
+        for r in breakouts[:5]:
+            conf = "✅ Confirmed" if r["confirmed"] else "⚠️ Low Vol"
+            tbl.append(f"{r['symbol']:<10} ₹{r['price']:>9,.2f} ₹{r['high52']:>9,.2f} {r['vol_ratio']:>6.1f}x  {conf}")
+        lines.append(_block(tbl))
+        lines.append("_Tip: Breakout + high volume = strongest buy signal in technical analysis_")
+        lines.append("")
+
+    accum = scan.get("accumulation", [])
+    if accum:
+        lines.append("*📦 ACCUMULATION — Quiet Buying Detected*")
+        tbl = [f"{'Stock':<10} {'Price':>10} {'Vol Ratio':>10} {'Price Range':>12}"]
+        tbl.append("─" * 48)
+        for r in accum[:5]:
+            tbl.append(f"{r['symbol']:<10} ₹{r['price']:>9,.2f} {r['vol_ratio']:>9.1f}x {r['price_range_pct']:>10.1f}%")
+        lines.append(_block(tbl))
+        lines.append("_High volume + tight price = someone is accumulating quietly_")
+        lines.append("")
+
+    consol = scan.get("consolidation", [])
+    if consol:
+        lines.append("*🔔 CONSOLIDATION — Big Move Coming*")
+        for r in consol[:3]:
+            lines.append(f"• *{_esc(r['symbol'])}* ₹{r['price']:,.2f} — {_esc(r['meaning'])}")
+        lines.append("")
+
+    rs = scan.get("rel_strength", [])
+    if rs:
+        lines.append("*💪 RELATIVE STRENGTH vs Nifty*")
+        tbl = [f"{'Stock':<10} {'Price':>10} {'Stock Ret':>10} {'Nifty Ret':>10} {'RS Score':>9}"]
+        tbl.append("─" * 55)
+        for r in rs[:8]:
+            flag = "✅" if r["outperform"] else "❌"
+            tbl.append(f"{r['symbol']:<10} ₹{r['price']:>9,.2f} {r['stock_ret']:>+9.1f}%  {r['nifty_ret']:>+9.1f}%  {r['rs']:>7.1f} {flag}")
+        lines.append(_block(tbl))
+
+    lines += [
+        "📖 *Beginner Guide:*",
+        "_Breakout = price crossing its highest level in a year — very bullish_",
+        "_Accumulation = someone buying quietly before big move_",
+        "_Relative Strength > 100 = stock beating the index_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 21. News Sentiment Report ─────────────────────────────────────────────────
+
+def format_sentiment_nlp_report(sent_data: list) -> str:
+    lines = [
+        "📰 *NEWS SENTIMENT REPORT*",
+        "_Is the news about your stocks positive or negative?_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    tbl = [f"{'Stock':<10} {'Today':>7} {'7d Avg':>7} {'Sentiment':<18} {'Flip?'}"]
+    tbl.append("─" * 58)
+    for s in sent_data:
+        sym    = s["symbol"][:9]
+        score  = s["today_score"]
+        trend  = s["trend_avg"]
+        sent   = s["sentiment"]
+        flip   = "⚠️ FLIP!" if s.get("flip_alert") else "—"
+        emoji  = "🟢" if score > 0 else ("🔴" if score < 0 else "⚪")
+        tbl.append(f"{sym:<10} {emoji}{score:>+5.2f}  {trend:>+6.2f}  {sent:<18} {flip}")
+    lines.append(_block(tbl))
+
+    # Highlight flips
+    flips = [s for s in sent_data if s.get("flip_alert")]
+    if flips:
+        lines.append("*⚠️ SENTIMENT FLIPS — Act Fast*")
+        for s in flips:
+            flip = s["sentiment_flip"].replace("_"," ")
+            lines.append(f"• *{_esc(s['symbol'])}* — News turned {_esc(flip)}")
+            if s.get("news"):
+                top = s["news"][0]
+                lines.append(f"  Latest: {_esc(top['title'][:60])}")
+
+    lines += [
+        "",
+        "📖 *Guide:*",
+        "_Positive score = good news = stock may rise_",
+        "_Sentiment flip from positive to negative = sell alert_",
+        "_Score below -1 for 3+ days = strong negative signal_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 22. Insider Trades Report ─────────────────────────────────────────────────
+
+def format_insider_report(trades: list) -> str:
+    lines = [
+        "🏛️ *INSIDER TRADING REPORT*",
+        "_Company directors and promoters buying/selling their own stock_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    buys  = [t for t in trades if t["action"]=="BUY"]
+    sells = [t for t in trades if t["action"]=="SELL"]
+
+    if buys:
+        lines.append("*🟢 INSIDER BUYING — Bullish Signal*")
+        tbl = [f"{'Stock':<10} {'Person':<25} {'Qty':>10} {'Value':>10} {'Type'}"]
+        tbl.append("─" * 65)
+        for t in buys[:5]:
+            mkt = "Open Mkt ✅" if t["is_open_market"] else "Other"
+            tbl.append(f"{t['symbol']:<10} {t['person'][:24]:<25} {t['qty']:>10,} ₹{t['value_cr']:>7.1f}Cr  {mkt}")
+        lines.append(_block(tbl))
+        lines.append("_Open market buy = director using their OWN money = highest conviction_")
+        lines.append("")
+
+    if sells:
+        lines.append("*🔴 INSIDER SELLING — Monitor Closely*")
+        tbl = [f"{'Stock':<10} {'Person':<25} {'Qty':>10}"]
+        tbl.append("─" * 48)
+        for t in sells[:5]:
+            tbl.append(f"{t['symbol']:<10} {t['person'][:24]:<25} {t['qty']:>10,}")
+        lines.append(_block(tbl))
+        lines.append("_Selling alone is not always bad — could be personal reasons_")
+        lines.append("")
+
+    lines += [
+        "📖 *Guide:*",
+        "_CEO/MD buying from open market = strongest possible buy signal_",
+        "_Promoter selling = could mean they expect price to fall_",
+        "_Multiple insiders selling = serious red flag — review your position_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 23. Correlation & Beta Report ─────────────────────────────────────────────
+
+def format_correlation_report(corr: dict, beta: dict, drawdown: list) -> str:
+    lines = [
+        "🔗 *PORTFOLIO CORRELATION & RISK REPORT*",
+        "_Are your stocks truly diversified or moving together?_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    if beta:
+        pb = beta.get("portfolio_beta", 1.0)
+        lines.append("*📊 PORTFOLIO BETA*")
+        lines.append(_block([
+            f"Portfolio Beta   {pb:.2f}",
+            f"Interpretation   {beta.get('interpretation','')}",
+            f"Risk Level       {beta.get('risk_level','')}",
+        ]))
+        lines.append("_Beta > 1 means your portfolio falls MORE than Nifty when market drops_")
+        lines.append("")
+
+    if corr and corr.get("high_corr"):
+        lines.append("*⚠️ HIGHLY CORRELATED PAIRS*")
+        lines.append("_These stocks move together — holding both = hidden concentration_")
+        tbl = [f"{'Stock 1':<12} {'Stock 2':<12} {'Correlation':>12} {'Risk'}"]
+        tbl.append("─" * 45)
+        for p in corr["high_corr"][:6]:
+            tbl.append(f"{p['stock1']:<12} {p['stock2']:<12} {p['corr']:>12.3f}  {p['risk']}")
+        lines.append(_block(tbl))
+        lines.append("_Correlation > 0.8 = almost same risk. Consider removing one._")
+        lines.append("")
+
+    if drawdown:
+        lines.append("*📉 DRAWDOWN SCENARIOS — If Market Falls*")
+        tbl = [f"{'Scenario':<20} {'Estimated Loss':>16} {'Portfolio Left':>16}"]
+        tbl.append("─" * 55)
+        for d in drawdown:
+            tbl.append(f"{d['scenario']:<20} ₹{d['est_loss']:>13,.0f}  ₹{d['rem_value']:>14,.0f}")
+        lines.append(_block(tbl))
+        lines.append("_This helps you prepare mentally and financially for market falls_")
+
+    lines += [
+        "",
+        "📖 *What to do:*",
+        "_Sell one stock from highly correlated pairs_",
+        "_If portfolio beta > 1.3, reduce risky high-beta stocks_",
+        "_Always keep 20% cash as buffer for drawdown opportunities_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 24. Trade Journal Report ──────────────────────────────────────────────────
+
+def format_journal_stats(stats: dict) -> str:
+    if not stats or stats.get("total",0) == 0:
+        return "\n".join([
+            "📓 *TRADE JOURNAL*",
+            "_No closed trades yet. Start logging your trades!_",
+            f"\n_Hermes Agent · {_esc(_now())}_",
+        ])
+
+    grade = stats.get("grade","—")
+    g_emoji = {"EXCELLENT":"🏆","GOOD":"🥇","AVERAGE":"🥈","NEEDS WORK":"🥉"}.get(grade,"—")
+
+    lines = [
+        "📓 *TRADE JOURNAL — PERFORMANCE REPORT*",
+        f"_{_esc(_now())}_",
+        "",
+        f"{g_emoji} *Grade: {_esc(grade)}*",
+        "",
+    ]
+
+    tbl = [
+        f"Total Trades     {stats['total']}",
+        f"Wins             {stats['wins']}  ({stats['win_rate']:.1f}%)",
+        f"Losses           {stats['losses']}",
+        f"Win Rate         {stats['win_rate']:.1f}%",
+        f"Average Win      ₹{stats['avg_win']:,.2f}",
+        f"Average Loss     ₹{stats['avg_loss']:,.2f}",
+        f"Risk:Reward      {stats['rr_ratio']:.2f}",
+        f"Expectancy       ₹{stats['expectancy']:,.2f} per trade",
+        f"Total P&L        ₹{stats['total_pnl']:,.2f}",
+    ]
+    lines.append(_block(tbl))
+
+    best  = stats.get("best_trade",{})
+    worst = stats.get("worst_trade",{})
+    if best:
+        lines.append(_block([
+            f"Best Trade   {best.get('symbol','')}  +₹{best.get('pnl',0):,.2f}",
+            f"Worst Trade  {worst.get('symbol','')}  ₹{worst.get('pnl',0):,.2f}",
+        ]))
+
+    lines += [
+        "📖 *What these numbers mean:*",
+        "_Win Rate above 50% = more wins than losses_",
+        "_Risk:Reward above 2 = profits cover losses even at 40% win rate_",
+        "_Expectancy > 0 = your system makes money on average_",
+        "",
+        "_The goal: Win Rate 50%+ AND Risk:Reward 2:1 = consistently profitable_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
