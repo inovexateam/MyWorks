@@ -1,0 +1,22 @@
+# Example systemd service for running the scheduler as a background daemon.
+# Copy to /etc/systemd/system/jira-sprint-scheduler.service and adjust paths.
+#
+# Then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable jira-sprint-scheduler
+#   sudo systemctl start jira-sprint-scheduler
+#   sudo systemctl status jira-sprint-scheduler
+
+[Unit]
+Description=JIRA Sprint Report Scheduler
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/jira_sprint_dashboard
+EnvironmentFile=/path/to/jira_sprint_dashboard/.env
+ExecStart=/usr/bin/python3 /path/to/jira_sprint_dashboard/scheduler/scheduled_report.py --time 09:00 --days mon,tue,wed,thu,fri
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
