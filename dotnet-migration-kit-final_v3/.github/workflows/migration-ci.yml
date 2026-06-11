@@ -1,0 +1,201 @@
+name: .NET Migration CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, "release/**"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+
+jobs:
+  build-and-analyse:
+    name: Build + Org Static Analysis
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Configure Artifactory (block nuget.org)
+        run: |
+          dotnet nuget remove source nuget.org 2>/dev/null || true
+          dotnet nuget add source "${{ secrets.ARTIFACTORY_URL }}/api/nuget/nuget-virtual" \
+            --name Artifactory \
+            --username "${{ secrets.ARTIFACTORY_USER }}" \
+            --password "${{ secrets.ARTIFACTORY_TOKEN }}" \
+            --store-password-in-clear-text
+
+      - name: Restore (locked mode — enforces package integrity)
+        run: dotnet restore src-core/ --locked-mode
+
+      - name: Build + Roslyn/Org analyzers (SAST runs here)
+        run: dotnet build src-core/ --no-restore --configuration Release
+
+      - name: CVE scan (dotnet SDK built-in — no external tool)
+        run: |
+          OUTPUT=$(dotnet list src-core/ package --vulnerable --include-transitive 2>&1)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -qiE "\b(High|Critical)\b"; then
+            echo "::error::HIGH/CRITICAL CVE found — update packages before merging"
+            exit 1
+          fi
+
+      - name: Secret detection (grep-based — no pip/npm install)
+        run: |
+          HITS=$(git diff origin/${{ github.base_ref || 'main' }}...HEAD \
+            -- "*.cs" "*.json" "*.config" \
+            | grep "^+" | grep -iv "^+++" \
+            | grep -iE "(password\s*=\s*[^$<{\"'][^;]{3,}|api[_-]?key\s*[:=]\s*[a-zA-Z0-9]{16,})" \
+            | grep -iv "(//|#|todo|example|placeholder|<\w+>)" || true)
+          if [ -n "$HITS" ]; then
+            echo "::error::Potential secrets in diff — move to Key Vault / env vars"
+            echo "$HITS"
+            exit 1
+          fi
+
+      - name: Framework dependency gate
+        run: |
+          HITS=$(find src-core/ -name "*.cs" -not -path "*/obj/*" \
+            | xargs grep -l "using System\.Web" 2>/dev/null || true)
+          if [ -n "$HITS" ]; then
+            echo "::error::System.Web references found in src-core/ — must be zero"
+            echo "$HITS"
+            exit 1
+          fi
+
+      - name: Migration progress metrics
+        if: always()
+        run: |
+          DONE=$(grep -c "✅" .github/memory/MAP.md 2>/dev/null || echo 0)
+          QUEUE=$(grep -c "⏳" .github/memory/MAP.md 2>/dev/null || echo 0)
+          BLOCK=$(grep -c "🚧" .github/memory/MAP.md 2>/dev/null || echo 0)
+          ASPX=$(find src-framework/ -name "*.aspx" -not -path "*/obj/*" 2>/dev/null | wc -l)
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Done | $DONE |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏳ Queue | $QUEUE |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚧 Blocked | $BLOCK |" >> $GITHUB_STEP_SUMMARY
+          echo "| .aspx remaining | $ASPX |" >> $GITHUB_STEP_SUMMARY
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: [self-hosted]
+    needs: build-and-analyse
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Configure Artifactory
+        run: |
+          dotnet nuget remove source nuget.org 2>/dev/null || true
+          dotnet nuget add source "${{ secrets.ARTIFACTORY_URL }}/api/nuget/nuget-virtual" \
+            --name Artifactory \
+            --username "${{ secrets.ARTIFACTORY_USER }}" \
+            --password "${{ secrets.ARTIFACTORY_TOKEN }}" \
+            --store-password-in-clear-text
+
+      - name: Restore
+        run: dotnet restore src-core/ --locked-mode
+
+      - name: Unit Tests + Coverage
+        run: |
+          dotnet test src-core/ \
+            --no-restore \
+            --configuration Release \
+            --filter "Category!=Integration&Category!=E2E" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults \
+            --logger "trx;LogFileName=results.trx"
+
+      - name: Enforce coverage minimum (75%)
+        run: |
+          XML=$(find TestResults -name "*.cobertura.xml" 2>/dev/null | head -1)
+          if [ -z "$XML" ]; then echo "::warning::No coverage file found"; exit 0; fi
+          RATE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML" | head -1)
+          PCT=$(echo "$RATE * 100" | bc)
+          echo "Coverage: ${PCT}%"
+          if (( $(echo "$PCT < 75" | bc -l) )); then
+            echo "::error::Coverage ${PCT}% below 75% minimum"
+            exit 1
+          fi
+
+  integration-tests:
+    name: Integration Tests (PR to main only)
+    runs-on: [self-hosted]
+    needs: unit-tests
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Test@Pass123!"
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Test@Pass123!' -Q 'SELECT 1' -b"
+          --health-interval 15s --health-timeout 10s --health-retries 10
+    env:
+      ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=TestDb;User Id=sa;Password=Test@Pass123!;TrustServerCertificate=True"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Configure Artifactory
+        run: |
+          dotnet nuget remove source nuget.org 2>/dev/null || true
+          dotnet nuget add source "${{ secrets.ARTIFACTORY_URL }}/api/nuget/nuget-virtual" \
+            --name Artifactory \
+            --username "${{ secrets.ARTIFACTORY_USER }}" \
+            --password "${{ secrets.ARTIFACTORY_TOKEN }}" \
+            --store-password-in-clear-text
+
+      - name: Restore
+        run: dotnet restore src-core/ --locked-mode
+
+      - name: Apply EF Core migrations
+        run: |
+          dotnet ef database update \
+            --project src-core/DAC.Core/ \
+            --startup-project src-core/WebApp.Core/
+
+      - name: Integration Tests
+        run: |
+          dotnet test src-core/ \
+            --no-restore \
+            --configuration Release \
+            --filter "Category=Integration"
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: [self-hosted]
+    needs: [build-and-analyse, unit-tests]
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - name: Evaluate gate
+        run: |
+          B="${{ needs.build-and-analyse.result }}"
+          T="${{ needs.unit-tests.result }}"
+          echo "| Job | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build + SAST | $B |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | $T |" >> $GITHUB_STEP_SUMMARY
+          [ "$B" = "failure" ] && echo "::error::Build/SAST failed" && exit 1
+          [ "$T" = "failure" ] && echo "::error::Unit tests failed" && exit 1
+          echo "✅ Quality gate passed" >> $GITHUB_STEP_SUMMARY

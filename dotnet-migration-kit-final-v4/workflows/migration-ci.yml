@@ -1,0 +1,153 @@
+name: .NET Migration CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, "release/**"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build + Static Analysis
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Configure Artifactory (no nuget.org)
+        run: |
+          dotnet nuget remove source nuget.org 2>/dev/null || true
+          dotnet nuget add source "${{ secrets.ARTIFACTORY_URL }}/api/nuget/nuget-virtual" \
+            --name Artifactory \
+            --username "${{ secrets.ARTIFACTORY_USER }}" \
+            --password "${{ secrets.ARTIFACTORY_TOKEN }}" \
+            --store-password-in-clear-text
+
+      - name: Restore
+        run: dotnet restore src-core/ --locked-mode
+
+      - name: Build + Roslyn/Org analyzers
+        run: dotnet build src-core/ --no-restore --configuration Release
+
+      - name: CVE scan (SDK built-in — no external tools)
+        run: |
+          OUT=$(dotnet list src-core/ package --vulnerable --include-transitive 2>&1)
+          echo "$OUT"
+          echo "$OUT" | grep -qiE "\b(High|Critical)\b" && exit 1 || true
+
+      - name: Secret scan (grep — no pip/npm)
+        run: |
+          HITS=$(git diff origin/${{ github.base_ref || 'main' }}...HEAD \
+            -- "*.cs" "*.json" "*.config" \
+            | grep "^+" | grep -iv "^+++" \
+            | grep -iE "(password\s*=\s*[^$<{\"'][^;]{3,}|api[_-]?key\s*[:=]\s*[a-zA-Z0-9]{16,})" \
+            | grep -iv "(//|#|todo|example|placeholder)" || true)
+          [ -n "$HITS" ] && echo "::error::Potential secrets found" && echo "$HITS" && exit 1 || true
+
+      - name: Framework dep gate
+        run: |
+          HITS=$(find src-core/ -name "*.cs" -not -path "*/obj/*" \
+            | xargs grep -l "using System\.Web" 2>/dev/null || true)
+          [ -n "$HITS" ] && echo "::error::System.Web in src-core/" && echo "$HITS" && exit 1 || true
+
+      - name: Migration progress
+        if: always()
+        run: |
+          DONE=$(grep -c "✅" .github/memory/CODEBASE-MAP.md 2>/dev/null || echo 0)
+          QUEUE=$(grep -c "⏳" .github/memory/CODEBASE-MAP.md 2>/dev/null || echo 0)
+          BLOCK=$(grep -c "🚧" .github/memory/CODEBASE-MAP.md 2>/dev/null || echo 0)
+          printf "| Metric | Count |\n|--------|-------|\n| Done | $DONE |\n| Queue | $QUEUE |\n| Blocked | $BLOCK |\n" >> $GITHUB_STEP_SUMMARY
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: [self-hosted]
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Configure Artifactory
+        run: |
+          dotnet nuget remove source nuget.org 2>/dev/null || true
+          dotnet nuget add source "${{ secrets.ARTIFACTORY_URL }}/api/nuget/nuget-virtual" \
+            --name Artifactory --username "${{ secrets.ARTIFACTORY_USER }}" \
+            --password "${{ secrets.ARTIFACTORY_TOKEN }}" --store-password-in-clear-text
+      - name: Restore
+        run: dotnet restore src-core/ --locked-mode
+      - name: Unit Tests + Coverage
+        run: |
+          dotnet test src-core/ --no-restore --configuration Release \
+            --filter "Category!=Integration&Category!=E2E" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults \
+            --logger "trx;LogFileName=results.trx"
+      - name: Coverage gate (75%)
+        run: |
+          XML=$(find TestResults -name "*.cobertura.xml" 2>/dev/null | head -1)
+          [ -z "$XML" ] && echo "::warning::No coverage file" && exit 0
+          RATE=$(grep -oP 'line-rate="\K[0-9.]+' "$XML" | head -1)
+          PCT=$(echo "$RATE * 100" | bc)
+          echo "Coverage: ${PCT}%"
+          (( $(echo "$PCT < 75" | bc -l) )) && echo "::error::Coverage below 75%" && exit 1 || true
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: [self-hosted]
+    needs: unit-tests
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Test@Pass123!"
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Test@Pass123!' -Q 'SELECT 1' -b"
+          --health-interval 15s --health-timeout 10s --health-retries 10
+    env:
+      ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=TestDb;User Id=sa;Password=Test@Pass123!;TrustServerCertificate=True"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Configure Artifactory
+        run: |
+          dotnet nuget remove source nuget.org 2>/dev/null || true
+          dotnet nuget add source "${{ secrets.ARTIFACTORY_URL }}/api/nuget/nuget-virtual" \
+            --name Artifactory --username "${{ secrets.ARTIFACTORY_USER }}" \
+            --password "${{ secrets.ARTIFACTORY_TOKEN }}" --store-password-in-clear-text
+      - name: Restore & Migrate DB
+        run: |
+          dotnet restore src-core/ --locked-mode
+          dotnet ef database update --project src-core/DAC.Core/ --startup-project src-core/WebApp.Core/
+      - name: Integration Tests
+        run: dotnet test src-core/ --no-restore --configuration Release --filter "Category=Integration"
+
+  gate:
+    name: Quality Gate
+    runs-on: [self-hosted]
+    needs: [build, unit-tests]
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - name: Evaluate
+        run: |
+          [ "${{ needs.build.result }}" = "failure" ] && echo "::error::Build failed" && exit 1
+          [ "${{ needs.unit-tests.result }}" = "failure" ] && echo "::error::Tests failed" && exit 1
+          echo "✅ Quality gate passed"
