@@ -9,7 +9,7 @@
  */
 
 import * as vscode from "vscode";
-import { callCopilot, callCopilotJSON } from "./copilot-llm.js";
+import { callCopilot, callCopilotJSON } from "./copilot-llm";
 
 // ═══════════════════════════════════════════════════
 // TRIAGE AGENT

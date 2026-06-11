@@ -8,15 +8,15 @@
  */
 
 import * as vscode from "vscode";
-import { RCAPanel } from "./rca-panel.js";
-import { sessionStore } from "./session-store.js";
+import { RCAPanel } from "./rca-panel";
+import { sessionStore } from "./session-store";
 import {
   runTriageAgent,
   runInvestigatorAgent,
   runCodeAnalystAgent,
   runLogAnalystAgent,
   runSynthesizerAgent,
-} from "./agents.js";
+} from "./agents";
 
 export function activate(context: vscode.ExtensionContext) {
 

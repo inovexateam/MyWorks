@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "module": "Node16",
+    "module": "commonjs",
     "target": "ES2022",
     "outDir": "dist",
     "lib": ["ES2022"],
     "sourceMap": true,
-    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "moduleResolution": "Node16"
+    "moduleResolution": "node"
   },
-  "exclude": ["node_modules", ".vscode-test"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", ".vscode-test", "dist"]
 }
