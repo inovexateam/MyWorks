@@ -34,3 +34,20 @@ MARKET_OPEN_HOUR    = 9
 MARKET_OPEN_MINUTE  = 15
 MARKET_CLOSE_HOUR   = 15
 MARKET_CLOSE_MINUTE = 30
+
+# ─── Optional: Twilio SMS fallback ───────────────────────────────────────────
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN  = os.getenv("TWILIO_AUTH_TOKEN",  "")
+TWILIO_FROM        = os.getenv("TWILIO_FROM",        "")
+TWILIO_TO          = os.getenv("TWILIO_TO",          "")
+
+# ─── Optional: Anthropic Claude API for AI outlook ───────────────────────────
+ANTHROPIC_API_KEY  = os.getenv("ANTHROPIC_API_KEY",  "")
+
+# ─── Paper trading starting capital ──────────────────────────────────────────
+PAPER_STARTING_CASH = 1_000_000   # ₹10 Lakh
+
+# ─── Tax settings ────────────────────────────────────────────────────────────
+STCG_RATE  = 0.15
+LTCG_RATE  = 0.10
+LTCG_EXEMPTION = 100_000

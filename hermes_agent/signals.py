@@ -447,6 +447,54 @@ def collect_all_signals(watchlist: list) -> list:
     except Exception as e:
         log.warning(f"Options signals failed: {e}")
 
+    log.info("Collecting signals — VWAP intraday…")
+    try:
+        from sources.vwap import get_watchlist_vwap
+        vwap_data = get_watchlist_vwap(watchlist)
+        for r in vwap_data:
+            if r.get("position") in ("STRONG BELOW","BELOW"):
+                all_signals.append(_sig(
+                    r["symbol"], "VWAP_BELOW", "MEDIUM",
+                    f"📉 {r['symbol']} trading {r['diff_pct']:+.1f}% below VWAP ₹{r['vwap']:,.2f} — sellers in control",
+                    "TODAY", r))
+            elif r.get("position") in ("STRONG ABOVE",):
+                all_signals.append(_sig(
+                    r["symbol"], "VWAP_ABOVE", "LOW",
+                    f"📈 {r['symbol']} trading {r['diff_pct']:+.1f}% above VWAP ₹{r['vwap']:,.2f} — buyers in control",
+                    "TODAY", r))
+    except Exception as e:
+        log.warning(f"VWAP signals failed: {e}")
+
+    log.info("Collecting signals — earnings history…")
+    try:
+        from sources.earnings_history import get_watchlist_earnings_history
+        eh_data = get_watchlist_earnings_history(watchlist)
+        for r in eh_data:
+            if r.get("consistent_beater"):
+                all_signals.append(_sig(
+                    r["symbol"], "EARNINGS_BEATER", "MEDIUM",
+                    f"🏆 {r['symbol']} beat estimates {r['beats']}/4 quarters — consistent outperformer",
+                    "1M", r))
+            elif r.get("consistent_misser"):
+                all_signals.append(_sig(
+                    r["symbol"], "EARNINGS_MISSER", "MEDIUM",
+                    f"⚠️ {r['symbol']} missed estimates {r['misses']}/4 quarters — management not delivering",
+                    "1M", r))
+    except Exception as e:
+        log.warning(f"Earnings history signals failed: {e}")
+
+    log.info("Collecting signals — economic calendar…")
+    try:
+        from sources.economic_calendar import get_high_impact_events
+        events = get_high_impact_events(days_ahead=3)
+        for ev in events:
+            all_signals.append(_sig(
+                "MARKET", "ECON_EVENT", "HIGH" if ev["impact"]=="HIGH" else "MEDIUM",
+                f"📅 {ev['event']} in {ev['days_out']}d ({ev['date']}) — markets may be volatile",
+                "TODAY" if ev["days_out"]<=1 else "1W", ev))
+    except Exception as e:
+        log.warning(f"Economic calendar signals failed: {e}")
+
     # Sort: severity first, then timeframe
     tf_order = {"TODAY": 0, "1W": 1, "1M": 2}
     all_signals.sort(key=lambda s: (

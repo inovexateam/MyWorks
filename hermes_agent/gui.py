@@ -195,6 +195,9 @@ class HermesGUI:
         self._build_tab_corporate()
         self._build_tab_fundamentals()
         self._build_tab_journal()
+        self._build_tab_screener()
+        self._build_tab_paper_trading()
+        self._build_tab_tax_rebalance()
         self._build_tab_holdings()
 
         self._build_right_panel(right_panel)
@@ -1498,6 +1501,609 @@ class HermesGUI:
         except Exception as e:
             log.error(f"Journal send: {e}")
 
+    # ── Tab: Screener & Peers ────────────────────────────────────────────────
+
+    def _build_tab_screener(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Screener  ")
+        left  = tk.Frame(f, bg=C["bg"]); left.pack(side="left", fill="both", expand=True, padx=(0,6), pady=10)
+        right = tk.Frame(f, bg=C["bg"]); right.pack(side="left", fill="both", expand=True, pady=10)
+
+        # Screener.in data
+        SectionLabel(left, "Screener.in — Deep Fundamentals").pack(anchor="w", pady=(0,4))
+        cols = ("Symbol","ROCE%","ROE%","D/E","F-Score","Profit Trend","10Y Sales CAGR")
+        self.scr_tree = self._make_tree(left, cols, heights=10)
+        self.scr_tree.pack(fill="both", expand=True, pady=(0,8))
+        widths = [90,70,60,55,80,110,120]
+        for col,w in zip(cols,widths):
+            self.scr_tree.heading(col,text=col)
+            self.scr_tree.column(col,anchor="center",width=w,minwidth=50)
+        self.scr_tree.column("Symbol",anchor="w")
+        btn_row = tk.Frame(left,bg=C["bg"]); btn_row.pack(fill="x")
+        self.scr_btn = HermesButton(btn_row,"↻  FETCH SCREENER DATA",self._refresh_screener,accent=True)
+        self.scr_btn.pack(side="left")
+        HermesButton(btn_row,"📨  SEND REPORT",self._send_screener_report).pack(side="left",padx=(6,0))
+
+        # Earnings beat/miss history
+        SectionLabel(left, "Earnings Beat/Miss History").pack(anchor="w", pady=(10,4))
+        cols2 = ("Symbol","Beats","Misses","Avg Surprise","Quality","Streak")
+        self.eh_tree = self._make_tree(left, cols2, heights=8)
+        self.eh_tree.pack(fill="x", pady=(0,8))
+        for col in cols2:
+            self.eh_tree.heading(col,text=col)
+            self.eh_tree.column(col,anchor="center",width=90,minwidth=60)
+        self.eh_tree.column("Symbol",anchor="w",width=100)
+        self.eh_tree.tag_configure("EXCELLENT",foreground=C["green"])
+        self.eh_tree.tag_configure("GOOD",foreground=C["teal"])
+        self.eh_tree.tag_configure("POOR",foreground=C["red"])
+        btn_row2 = tk.Frame(left,bg=C["bg"]); btn_row2.pack(fill="x")
+        HermesButton(btn_row2,"↻  FETCH EARNINGS HISTORY",self._refresh_earnings_history,accent=True).pack(side="left")
+        HermesButton(btn_row2,"📨  SEND",self._send_earnings_history).pack(side="left",padx=(6,0))
+
+        # Peer comparison (right)
+        SectionLabel(right, "Peer Comparison").pack(anchor="w", pady=(0,4))
+        pc_row = tk.Frame(right,bg=C["bg"]); pc_row.pack(fill="x",pady=(0,6))
+        self.pc_sym_var = tk.StringVar()
+        tk.Entry(pc_row,textvariable=self.pc_sym_var,bg=C["bg3"],fg=C["text"],
+                 insertbackground=C["text"],relief="flat",font=("Courier",10),width=16,
+                 highlightbackground=C["border"],highlightthickness=1).pack(side="left",padx=(0,8))
+        HermesButton(pc_row,"COMPARE + SEND",self._run_peer_compare,accent=True).pack(side="left")
+        cols3 = ("Stock","P/E","ROE%","Rev Grw","Margin","P/E Rank","ROE Rank")
+        self.pc_tree = self._make_tree(right, cols3, heights=10)
+        self.pc_tree.pack(fill="x",pady=(0,8))
+        for col in cols3:
+            self.pc_tree.heading(col,text=col)
+            self.pc_tree.column(col,anchor="center",width=80,minwidth=55)
+        self.pc_tree.column("Stock",anchor="w",width=100)
+        self.pc_tree.tag_configure("target",foreground=C["amber"])
+
+        # VWAP
+        SectionLabel(right, "VWAP — Intraday Position").pack(anchor="w", pady=(8,4))
+        cols4 = ("Symbol","Price","VWAP","Diff%","Signal")
+        self.vwap_tree = self._make_tree(right, cols4, heights=8)
+        self.vwap_tree.pack(fill="x")
+        for col in cols4:
+            self.vwap_tree.heading(col,text=col)
+            self.vwap_tree.column(col,anchor="center",width=90,minwidth=60)
+        self.vwap_tree.column("Symbol",anchor="w")
+        self.vwap_tree.tag_configure("BUY ZONE",foreground=C["green"])
+        self.vwap_tree.tag_configure("SELL ZONE",foreground=C["red"])
+        self.vwap_tree.tag_configure("NEUTRAL",foreground=C["muted"])
+        btn_row3 = tk.Frame(right,bg=C["bg"]); btn_row3.pack(fill="x",pady=(4,0))
+        HermesButton(btn_row3,"↻  FETCH VWAP",self._refresh_vwap,accent=True).pack(side="left")
+        HermesButton(btn_row3,"📨  SEND VWAP",self._send_vwap_report).pack(side="left",padx=(6,0))
+
+    # ── Tab: Paper Trading ────────────────────────────────────────────────────
+
+    def _build_tab_paper_trading(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Paper Trading  ")
+        left  = tk.Frame(f, bg=C["bg"]); left.pack(side="left", fill="both", expand=True, padx=(0,6), pady=10)
+        right = tk.Frame(f, bg=C["bg"]); right.pack(side="left", fill="y", pady=10)
+        right.configure(width=320); right.pack_propagate(False)
+
+        SectionLabel(left, "Virtual Portfolio — ₹10L Starting Capital").pack(anchor="w", pady=(0,4))
+        self.pt_summary_text = scrolledtext.ScrolledText(
+            left, height=6, bg=C["bg2"], fg=C["text"], font=("Courier",9),
+            relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.pt_summary_text.pack(fill="x", pady=(0,8))
+
+        cols = ("Symbol","Qty","Avg ₹","CMP ₹","P&L","P&L%")
+        self.pt_pos_tree = self._make_tree(left, cols, heights=8)
+        self.pt_pos_tree.pack(fill="x", pady=(0,8))
+        for col in cols:
+            self.pt_pos_tree.heading(col,text=col)
+            self.pt_pos_tree.column(col,anchor="center",width=90,minwidth=60)
+        self.pt_pos_tree.column("Symbol",anchor="w",width=100)
+        self.pt_pos_tree.tag_configure("up",foreground=C["green"])
+        self.pt_pos_tree.tag_configure("dn",foreground=C["red"])
+
+        # Trade history
+        SectionLabel(left, "Recent Trades").pack(anchor="w", pady=(4,4))
+        cols2 = ("ID","Symbol","Action","Qty","Price","Value","P&L","Date")
+        self.pt_hist_tree = self._make_tree(left, cols2, heights=6)
+        self.pt_hist_tree.pack(fill="x")
+        widths2 = [40,80,60,50,80,90,80,90]
+        for col,w in zip(cols2,widths2):
+            self.pt_hist_tree.heading(col,text=col)
+            self.pt_hist_tree.column(col,anchor="center",width=w,minwidth=40)
+        self.pt_hist_tree.column("Symbol",anchor="w")
+
+        # Order entry (right)
+        SectionLabel(right, "Place Paper Trade").pack(anchor="w", pady=(0,4))
+        form = Card(right); form.pack(fill="x", pady=(0,8))
+        self.pt_sym_var   = tk.StringVar()
+        self.pt_qty_var   = tk.StringVar()
+        self.pt_price_var = tk.StringVar()
+        self.pt_reason_var= tk.StringVar()
+        self.pt_side_var  = tk.StringVar(value="BUY")
+        for lbl,var,w in [("Symbol",self.pt_sym_var,14),("Qty",self.pt_qty_var,8),("Price ₹",self.pt_price_var,10)]:
+            row = tk.Frame(form,bg=C["bg2"]); row.pack(fill="x",pady=2)
+            tk.Label(row,text=lbl,bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=8,anchor="w").pack(side="left")
+            tk.Entry(row,textvariable=var,bg=C["bg3"],fg=C["text"],insertbackground=C["text"],
+                     relief="flat",font=("Courier",10),width=w,
+                     highlightbackground=C["border"],highlightthickness=1).pack(side="left")
+        r2 = tk.Frame(form,bg=C["bg2"]); r2.pack(fill="x",pady=2)
+        tk.Label(r2,text="Side",bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=8,anchor="w").pack(side="left")
+        ttk.Combobox(r2,textvariable=self.pt_side_var,values=["BUY","SELL"],
+                     state="readonly",width=6,font=("Courier",10)).pack(side="left",padx=(0,8))
+        r3 = tk.Frame(form,bg=C["bg2"]); r3.pack(fill="x",pady=2)
+        tk.Label(r3,text="Reason",bg=C["bg2"],fg=C["muted"],font=("Courier",8),width=8,anchor="w").pack(side="left")
+        tk.Entry(r3,textvariable=self.pt_reason_var,bg=C["bg3"],fg=C["text"],insertbackground=C["text"],
+                 relief="flat",font=("Courier",10),width=20,
+                 highlightbackground=C["border"],highlightthickness=1).pack(side="left")
+        btn_row = tk.Frame(form,bg=C["bg2"]); btn_row.pack(fill="x",pady=(8,0))
+        HermesButton(btn_row,"▶  EXECUTE PAPER TRADE",self._paper_execute,accent=True).pack(fill="x")
+        self.pt_status_lbl = tk.Label(right,text="",bg=C["bg"],fg=C["green"],font=("Courier",8))
+        self.pt_status_lbl.pack(anchor="w",pady=(4,8))
+
+        btn_row2 = tk.Frame(right,bg=C["bg"]); btn_row2.pack(fill="x")
+        HermesButton(btn_row2,"↻  REFRESH PORTFOLIO",self._refresh_paper_portfolio,accent=True).pack(fill="x",pady=2)
+        HermesButton(btn_row2,"📨  SEND PAPER REPORT",self._send_paper_report).pack(fill="x",pady=2)
+        HermesButton(btn_row2,"🔄  RESET TO ₹10L",self._reset_paper_portfolio).pack(fill="x",pady=2)
+
+        self._refresh_paper_portfolio()
+
+    # ── Tab: Tax & Rebalance ─────────────────────────────────────────────────
+
+    def _build_tab_tax_rebalance(self):
+        f = tk.Frame(self.notebook, bg=C["bg"])
+        self.notebook.add(f, text="  Tax & Rebalance  ")
+        left  = tk.Frame(f, bg=C["bg"]); left.pack(side="left", fill="both", expand=True, padx=(0,6), pady=10)
+        right = tk.Frame(f, bg=C["bg"]); right.pack(side="left", fill="both", expand=True, pady=10)
+
+        # Tax
+        SectionLabel(left, "Tax P&L Calculator — STCG vs LTCG").pack(anchor="w", pady=(0,4))
+        cols = ("Symbol","P&L","Held Days","Tax Type","Tax","Save if Wait","Advice")
+        self.tax_tree = self._make_tree(left, cols, heights=10)
+        self.tax_tree.pack(fill="both", expand=True, pady=(0,6))
+        widths = [90,90,80,80,80,100,260]
+        for col,w in zip(cols,widths):
+            self.tax_tree.heading(col,text=col)
+            self.tax_tree.column(col,anchor="center",width=w,minwidth=55)
+        self.tax_tree.column("Symbol",anchor="w")
+        self.tax_tree.column("Advice",anchor="w")
+        self.tax_tree.tag_configure("ltcg",foreground=C["green"])
+        self.tax_tree.tag_configure("stcg",foreground=C["amber"])
+
+        self.tax_summary_lbl = tk.Label(left,text="",bg=C["bg"],fg=C["text"],font=("Courier",8))
+        self.tax_summary_lbl.pack(anchor="w",pady=(0,4))
+        btn_row = tk.Frame(left,bg=C["bg"]); btn_row.pack(fill="x")
+        self.tax_btn = HermesButton(btn_row,"↻  CALCULATE TAX",self._refresh_tax,accent=True)
+        self.tax_btn.pack(side="left")
+        HermesButton(btn_row,"📨  SEND TAX REPORT",self._send_tax_report).pack(side="left",padx=(6,0))
+
+        # Golden rules (left bottom)
+        SectionLabel(left, "Golden Rules — Today's Check").pack(anchor="w", pady=(12,4))
+        self.rules_text = scrolledtext.ScrolledText(
+            left, height=10, bg=C["bg2"], fg=C["text"], font=("Courier",8),
+            relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.rules_text.pack(fill="x", pady=(0,4))
+        btn_row2 = tk.Frame(left,bg=C["bg"]); btn_row2.pack(fill="x")
+        HermesButton(btn_row2,"↻  CHECK RULES",self._refresh_golden_rules,accent=True).pack(side="left")
+        HermesButton(btn_row2,"📨  SEND RULES",self._send_golden_rules).pack(side="left",padx=(6,0))
+
+        # Rebalance (right)
+        SectionLabel(right, "Portfolio Rebalancing").pack(anchor="w", pady=(0,4))
+        self.reb_summary_lbl = tk.Label(right,text="",bg=C["bg"],fg=C["text"],font=("Courier",9,"bold"))
+        self.reb_summary_lbl.pack(anchor="w",pady=(0,4))
+        cols2 = ("Symbol","Allocation%","Status")
+        self.reb_tree = self._make_tree(right, cols2, heights=10)
+        self.reb_tree.pack(fill="x", pady=(0,6))
+        for col in cols2:
+            self.reb_tree.heading(col,text=col)
+            self.reb_tree.column(col,anchor="center",width=110,minwidth=70)
+        self.reb_tree.column("Symbol",anchor="w",width=120)
+        self.reb_tree.tag_configure("over",foreground=C["red"])
+        self.reb_tree.tag_configure("ok",  foreground=C["green"])
+        self.reb_tree.tag_configure("tiny",foreground=C["muted"])
+
+        self.reb_actions_text = scrolledtext.ScrolledText(
+            right, height=6, bg=C["bg2"], fg=C["amber"], font=("Courier",8),
+            relief="flat", state="disabled",
+            highlightbackground=C["border"], highlightthickness=1)
+        self.reb_actions_text.pack(fill="x", pady=(0,6))
+        btn_row3 = tk.Frame(right,bg=C["bg"]); btn_row3.pack(fill="x")
+        HermesButton(btn_row3,"↻  ANALYSE REBALANCE",self._refresh_rebalance,accent=True).pack(side="left")
+        HermesButton(btn_row3,"📨  SEND REPORT",self._send_rebalance_report).pack(side="left",padx=(6,0))
+
+    # ── Screener methods ──────────────────────────────────────────────────────
+
+    def _refresh_screener(self):
+        self.scr_btn.set_busy(True)
+        self._log_gui("Fetching Screener.in data…")
+        threading.Thread(target=self._fetch_screener, daemon=True).start()
+
+    def _fetch_screener(self):
+        try:
+            from sources.screener_in import get_watchlist_screener
+            log_queue.put(("screener", get_watchlist_screener(config.WATCHLIST)))
+        except Exception as e:
+            log.error(f"Screener: {e}"); log_queue.put(("screener",[]))
+
+    def _update_screener_ui(self, data):
+        for i in self.scr_tree.get_children(): self.scr_tree.delete(i)
+        for r in data:
+            pt  = r.get("profit_trend","—")
+            fs  = f"{r['f_score']}/{r['f_score_max']}" if r.get("f_score") is not None else "—"
+            self.scr_tree.insert("","end", values=(
+                r["symbol"],
+                f"{r['roce']:.0f}%" if r.get("roce") else "—",
+                f"{r['roe']:.0f}%"  if r.get("roe")  else "—",
+                f"{r['debt_equity']:.1f}" if r.get("debt_equity") is not None else "—",
+                fs, pt,
+                f"{r['sales_cagr_10y']:.0f}%" if r.get("sales_cagr_10y") else "—",
+            ))
+        self.scr_btn.set_busy(False)
+        self._log_gui(f"Screener data loaded — {len(data)} stocks.")
+
+    def _send_screener_report(self):
+        threading.Thread(target=lambda: self._do_send("screener"), daemon=True).start()
+
+    def _do_send(self, kind):
+        try:
+            if kind == "screener":
+                from sources.screener_in import get_watchlist_screener
+                from formatter import format_screener_report
+                ok = sender.send_long(format_screener_report(get_watchlist_screener(config.WATCHLIST)))
+            log_queue.put(("log", f"{kind} report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"{kind} send: {e}")
+
+    def _refresh_earnings_history(self):
+        self._log_gui("Fetching earnings history…")
+        threading.Thread(target=self._fetch_eh, daemon=True).start()
+
+    def _fetch_eh(self):
+        try:
+            from sources.earnings_history import get_watchlist_earnings_history
+            log_queue.put(("earnings_history", get_watchlist_earnings_history(config.WATCHLIST)))
+        except Exception as e:
+            log.error(f"EH: {e}"); log_queue.put(("earnings_history",[]))
+
+    def _update_eh_ui(self, data):
+        for i in self.eh_tree.get_children(): self.eh_tree.delete(i)
+        for r in data:
+            q   = r.get("quality","—")
+            strk= f"{r['streak_count']}x {r['streak_type']}" if r.get("streak_type") in ("BEAT","MISS") else "—"
+            tag = {"EXCELLENT":"EXCELLENT","GOOD":"GOOD","POOR":"POOR"}.get(q,"")
+            self.eh_tree.insert("","end", tags=(tag,), values=(
+                r["symbol"], r["beats"], r["misses"],
+                f"{r['avg_surprise']:+.1f}%", q, strk))
+        self._log_gui(f"Earnings history: {len(data)} stocks.")
+
+    def _send_earnings_history(self):
+        threading.Thread(target=self._do_send_eh, daemon=True).start()
+
+    def _do_send_eh(self):
+        try:
+            from sources.earnings_history import get_watchlist_earnings_history
+            from formatter import format_earnings_history
+            ok = sender.send_long(format_earnings_history(get_watchlist_earnings_history(config.WATCHLIST)))
+            log_queue.put(("log", f"Earnings history {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"EH send: {e}")
+
+    def _run_peer_compare(self):
+        sym = self.pc_sym_var.get().strip().upper()
+        if not sym: return
+        if not sym.endswith(".NS"): sym += ".NS"
+        self._log_gui(f"Peer comparison: {sym}…")
+        threading.Thread(target=lambda: self._fetch_peer(sym), daemon=True).start()
+
+    def _fetch_peer(self, sym):
+        try:
+            from sources.peer_compare import get_peer_comparison
+            log_queue.put(("peer", get_peer_comparison(sym)))
+        except Exception as e:
+            log.error(f"Peer: {e}"); log_queue.put(("peer", None))
+
+    def _update_peer_ui(self, result):
+        for i in self.pc_tree.get_children(): self.pc_tree.delete(i)
+        if not result: return
+        for p in result.get("peers",[]):
+            tag = ("target",) if p["is_target"] else ()
+            self.pc_tree.insert("","end", tags=tag, values=(
+                ("→ " if p["is_target"] else "  ") + p["symbol"],
+                f"{p['pe']:.1f}"  if p.get("pe")  else "—",
+                f"{p['roe']:.1f}%" if p.get("roe") else "—",
+                f"{p['rev_growth']:+.1f}%" if p.get("rev_growth") else "—",
+                f"{p['margin']:.1f}%" if p.get("margin") else "—",
+                f"#{p['pe_rank']}"  if p.get("pe_rank")  else "—",
+                f"#{p['roe_rank']}" if p.get("roe_rank") else "—",
+            ))
+        # Also send to Telegram
+        try:
+            from formatter import format_peer_comparison
+            sender.send_long(format_peer_comparison(result))
+        except Exception: pass
+        self._log_gui(f"Peer comparison done: {result.get('n_peers',0)} peers.")
+
+    def _refresh_vwap(self):
+        self._log_gui("Fetching VWAP…")
+        threading.Thread(target=self._fetch_vwap, daemon=True).start()
+
+    def _fetch_vwap(self):
+        try:
+            from sources.vwap import get_watchlist_vwap
+            log_queue.put(("vwap", get_watchlist_vwap(config.WATCHLIST)))
+        except Exception as e:
+            log.error(f"VWAP: {e}"); log_queue.put(("vwap",[]))
+
+    def _update_vwap_ui(self, data):
+        for i in self.vwap_tree.get_children(): self.vwap_tree.delete(i)
+        for r in data:
+            sig = r.get("signal","NEUTRAL")
+            self.vwap_tree.insert("","end", tags=(sig,), values=(
+                r["symbol"], f"₹{r['price']:,.2f}", f"₹{r['vwap']:,.2f}",
+                f"{r['diff_pct']:+.1f}%", sig))
+        self._log_gui(f"VWAP loaded: {len(data)} stocks.")
+
+    def _send_vwap_report(self):
+        threading.Thread(target=self._do_send_vwap, daemon=True).start()
+
+    def _do_send_vwap(self):
+        try:
+            from sources.vwap import get_watchlist_vwap
+            from formatter import format_vwap_report
+            ok = sender.send_long(format_vwap_report(get_watchlist_vwap(config.WATCHLIST)))
+            log_queue.put(("log", f"VWAP report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"VWAP send: {e}")
+
+    # ── Paper Trading methods ─────────────────────────────────────────────────
+
+    def _paper_execute(self):
+        sym    = self.pt_sym_var.get().strip().upper()
+        qty_s  = self.pt_qty_var.get().strip()
+        price_s= self.pt_price_var.get().strip()
+        side   = self.pt_side_var.get()
+        if not sym or not qty_s or not price_s: return
+        if not sym.endswith(".NS"): sym += ".NS"
+        try:
+            qty   = int(qty_s)
+            price = float(price_s.replace(",",""))
+        except ValueError: return
+        from sources.paper_trading import paper_buy, paper_sell
+        result = paper_buy(sym, qty, price, self.pt_reason_var.get()) if side=="BUY" \
+                 else paper_sell(sym, qty, price, self.pt_reason_var.get())
+        if result.get("success"):
+            msg = f"✅ Paper {side}: {sym} {qty}@₹{price:,.2f}"
+            self.pt_status_lbl.config(text=msg, fg=C["green"])
+            self._log_gui(msg)
+            self._refresh_paper_portfolio()
+        else:
+            self.pt_status_lbl.config(text=f"❌ {result.get('error','Failed')}", fg=C["red"])
+        self.root.after(4000, lambda: self.pt_status_lbl.config(text=""))
+
+    def _refresh_paper_portfolio(self):
+        threading.Thread(target=self._fetch_paper_portfolio, daemon=True).start()
+
+    def _fetch_paper_portfolio(self):
+        try:
+            from sources.paper_trading import get_portfolio_summary
+            from data_fetcher import get_price
+            positions = __import__("sources.paper_trading", fromlist=["get_positions"]).get_positions()
+            prices = {}
+            for p in positions:
+                pr = get_price(p["symbol"] + ".NS")
+                if pr: prices[p["symbol"]] = pr
+            log_queue.put(("paper_portfolio", get_portfolio_summary(prices)))
+        except Exception as e:
+            log.error(f"Paper portfolio: {e}")
+
+    def _update_paper_portfolio_ui(self, summary):
+        # Summary text
+        self.pt_summary_text.config(state="normal"); self.pt_summary_text.delete("1.0","end")
+        lines = [
+            f"Starting Capital  ₹{summary.get('starting_cash',1000000):,.0f}",
+            f"Current Value     ₹{summary.get('total_value',0):,.0f}",
+            f"Cash Available    ₹{summary.get('cash',0):,.0f}",
+            f"Total P&L         {'+'if summary.get('total_pnl',0)>=0 else ''}₹{summary.get('total_pnl',0):,.0f}  ({summary.get('total_pnl_pct',0):+.2f}%)",
+        ]
+        self.pt_summary_text.insert("end","\n".join(lines))
+        self.pt_summary_text.config(state="disabled")
+        # Positions
+        for i in self.pt_pos_tree.get_children(): self.pt_pos_tree.delete(i)
+        for p in summary.get("positions",[]):
+            tag = "up" if p["pnl"]>=0 else "dn"
+            self.pt_pos_tree.insert("","end", tags=(tag,), values=(
+                p["symbol"], p["qty"], f"₹{p['avg_price']:,.2f}",
+                f"₹{p['cur_price']:,.2f}",
+                f"{'+'if p['pnl']>=0 else ''}₹{p['pnl']:,.0f}",
+                f"{p['pnl_pct']:+.1f}%"))
+        # Trade history
+        from sources.paper_trading import get_trade_history
+        for i in self.pt_hist_tree.get_children(): self.pt_hist_tree.delete(i)
+        for t in get_trade_history(limit=20):
+            self.pt_hist_tree.insert("","end", values=(
+                t["id"], t["symbol"], t["action"], t["qty"],
+                f"₹{t['price']:,.2f}", f"₹{t['value']:,.0f}",
+                f"{'+'if (t.get('pnl') or 0)>=0 else ''}₹{t.get('pnl',0) or 0:,.0f}",
+                t["trade_date"]))
+
+    def _send_paper_report(self):
+        threading.Thread(target=self._do_send_paper, daemon=True).start()
+
+    def _do_send_paper(self):
+        try:
+            from sources.paper_trading import get_portfolio_summary
+            from formatter import format_paper_portfolio
+            ok = sender.send_long(format_paper_portfolio(get_portfolio_summary()))
+            log_queue.put(("log", f"Paper report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Paper send: {e}")
+
+    def _reset_paper_portfolio(self):
+        from tkinter import messagebox
+        if messagebox.askyesno("Reset","Reset virtual portfolio to ₹10L cash?"):
+            from sources.paper_trading import reset_paper_portfolio
+            reset_paper_portfolio()
+            self._refresh_paper_portfolio()
+            self._log_gui("Paper portfolio reset to ₹10L.")
+
+    # ── Tax methods ───────────────────────────────────────────────────────────
+
+    def _refresh_tax(self):
+        self.tax_btn.set_busy(True)
+        self._log_gui("Calculating tax P&L…")
+        threading.Thread(target=self._fetch_tax, daemon=True).start()
+
+    def _fetch_tax(self):
+        try:
+            from data_fetcher import get_portfolio_pnl
+            from tax import calculate_portfolio_tax, total_tax_summary
+            pnl     = get_portfolio_pnl(config.PORTFOLIO)
+            results = calculate_portfolio_tax(config.PORTFOLIO, pnl)
+            summary = total_tax_summary(results)
+            log_queue.put(("tax", (results, summary)))
+        except Exception as e:
+            log.error(f"Tax: {e}"); log_queue.put(("tax",([],{})))
+
+    def _update_tax_ui(self, data):
+        results, summary = data
+        for i in self.tax_tree.get_children(): self.tax_tree.delete(i)
+        for r in results:
+            tt  = r.get("current_type","—")
+            tag = "ltcg" if tt=="LTCG" else "stcg"
+            save= f"₹{r['tax_saving']:,.0f}" if r.get("tax_saving",0)>0 else "—"
+            self.tax_tree.insert("","end", tags=(tag,), values=(
+                r.get("symbol",""),
+                f"{'+'if r['pnl']>=0 else ''}₹{r['pnl']:,.0f}",
+                f"{r.get('holding_days',0)}d",
+                tt,
+                f"₹{r.get('tax_now',0):,.0f}",
+                save,
+                r.get("advice","")[:40],
+            ))
+        if summary:
+            self.tax_summary_lbl.config(
+                text=f"Total Tax: STCG ₹{summary.get('stcg_tax',0):,.0f}  "
+                     f"LTCG ₹{summary.get('ltcg_tax',0):,.0f}  "
+                     f"Potential saving ₹{summary.get('potential_saving',0):,.0f}")
+        self.tax_btn.set_busy(False)
+        self._log_gui("Tax P&L calculated.")
+
+    def _send_tax_report(self):
+        threading.Thread(target=self._do_send_tax, daemon=True).start()
+
+    def _do_send_tax(self):
+        try:
+            from data_fetcher import get_portfolio_pnl
+            from tax import calculate_portfolio_tax, total_tax_summary
+            from formatter import format_tax_report
+            pnl     = get_portfolio_pnl(config.PORTFOLIO)
+            results = calculate_portfolio_tax(config.PORTFOLIO, pnl)
+            summary = total_tax_summary(results)
+            ok = sender.send_long(format_tax_report(results, summary))
+            log_queue.put(("log", f"Tax report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Tax send: {e}")
+
+    # ── Golden Rules methods ──────────────────────────────────────────────────
+
+    def _refresh_golden_rules(self):
+        self._log_gui("Checking golden rules…")
+        threading.Thread(target=self._fetch_golden_rules, daemon=True).start()
+
+    def _fetch_golden_rules(self):
+        try:
+            from rules import check_golden_rules
+            log_queue.put(("golden_rules", check_golden_rules(config.PORTFOLIO, config.WATCHLIST)))
+        except Exception as e:
+            log.error(f"Rules: {e}"); log_queue.put(("golden_rules", None))
+
+    def _update_golden_rules_ui(self, result):
+        self.rules_text.config(state="normal"); self.rules_text.delete("1.0","end")
+        if not result:
+            self.rules_text.insert("end","Could not check rules.")
+            self.rules_text.config(state="disabled"); return
+        lines = [
+            f"VERDICT: {result['verdict']}  ({result['passed']}/{result['total']} passed)",
+            result.get("explanation",""), "─"*40,
+        ]
+        for r in result.get("rules",[]):
+            icon = "✅" if r.get("pass") else ("❌" if r.get("pass") is False else "⚪")
+            lines.append(f"{icon} {r['rule'][:38]}")
+            lines.append(f"   {r.get('value','')}")
+        self.rules_text.insert("end","\n".join(lines))
+        self.rules_text.config(state="disabled")
+        self._log_gui(f"Golden rules: {result['verdict']}")
+
+    def _send_golden_rules(self):
+        threading.Thread(target=self._do_send_rules, daemon=True).start()
+
+    def _do_send_rules(self):
+        try:
+            from rules import check_golden_rules
+            from formatter import format_golden_rules
+            ok = sender.send_long(format_golden_rules(
+                check_golden_rules(config.PORTFOLIO, config.WATCHLIST)))
+            log_queue.put(("log", f"Rules {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Rules send: {e}")
+
+    # ── Rebalance methods ─────────────────────────────────────────────────────
+
+    def _refresh_rebalance(self):
+        self._log_gui("Analysing rebalance…")
+        threading.Thread(target=self._fetch_rebalance, daemon=True).start()
+
+    def _fetch_rebalance(self):
+        try:
+            from data_fetcher import get_portfolio_pnl
+            from rebalance import get_rebalance_suggestions
+            pnl   = get_portfolio_pnl(config.PORTFOLIO)
+            total = sum(r.get("market_value",0) for r in pnl)
+            log_queue.put(("rebalance", get_rebalance_suggestions(pnl, total)))
+        except Exception as e:
+            log.error(f"Rebalance: {e}"); log_queue.put(("rebalance",{}))
+
+    def _update_rebalance_ui(self, result):
+        if not result: return
+        health = result.get("health","—")
+        h_col  = {"HEALTHY":C["green"],"NEEDS TRIM":C["amber"],"REBALANCE NOW":C["red"]}.get(health,C["muted"])
+        self.reb_summary_lbl.config(
+            text=f"Status: {health}  |  Cash: {result.get('cash_pct',0):.1f}%",fg=h_col)
+        for i in self.reb_tree.get_children(): self.reb_tree.delete(i)
+        for p in result.get("positions",[]):
+            tag  = "over" if p["overweight"] else ("tiny" if p["tiny"] else "ok")
+            flag = "⚠️ TOO LARGE" if p["overweight"] else ("🔸 TINY" if p["tiny"] else "✅ OK")
+            self.reb_tree.insert("","end", tags=(tag,), values=(
+                p["symbol"], f"{p['pct']:.1f}%", flag))
+        self.reb_tree.insert("","end", values=("CASH", f"{result.get('cash_pct',0):.1f}%",""))
+        # Actions
+        self.reb_actions_text.config(state="normal"); self.reb_actions_text.delete("1.0","end")
+        actions = result.get("actions",[])
+        if actions:
+            lines = ["SUGGESTED ACTIONS:", "─"*35]
+            for a in actions:
+                lines.append(f"• {a['action']} {a['symbol']}")
+                lines.append(f"  {a['reason']}")
+                if a.get("amount"): lines.append(f"  Amount: ₹{a['amount']:,.0f}")
+            self.reb_actions_text.insert("end","\n".join(lines))
+        else:
+            self.reb_actions_text.insert("end","✅ Portfolio is well balanced.")
+        self.reb_actions_text.config(state="disabled")
+        self._log_gui(f"Rebalance: {health}")
+
+    def _send_rebalance_report(self):
+        threading.Thread(target=self._do_send_rebalance, daemon=True).start()
+
+    def _do_send_rebalance(self):
+        try:
+            from data_fetcher import get_portfolio_pnl
+            from rebalance import get_rebalance_suggestions
+            from formatter import format_rebalance_report
+            pnl   = get_portfolio_pnl(config.PORTFOLIO)
+            total = sum(r.get("market_value",0) for r in pnl)
+            ok    = sender.send_long(format_rebalance_report(get_rebalance_suggestions(pnl, total)))
+            log_queue.put(("log", f"Rebalance report {'sent ✅' if ok else 'failed ❌'}"))
+        except Exception as e:
+            log.error(f"Rebalance send: {e}")
+
     def _build_tab_holdings(self):
         f = tk.Frame(self.notebook, bg=C["bg"])
         self.notebook.add(f, text="  Holdings  ")
@@ -2278,6 +2884,14 @@ class HermesGUI:
                 elif kind == "fundamentals":  self._update_fundamentals_ui(data)
                 elif kind == "fund_detail":   self._update_fund_detail_ui(data)
                 elif kind == "global_macro":  self._update_global_macro_ui(data)
+                elif kind == "screener":      self._update_screener_ui(data)
+                elif kind == "earnings_history": self._update_eh_ui(data)
+                elif kind == "peer":          self._update_peer_ui(data)
+                elif kind == "vwap":          self._update_vwap_ui(data)
+                elif kind == "paper_portfolio": self._update_paper_portfolio_ui(data)
+                elif kind == "tax":           self._update_tax_ui(data)
+                elif kind == "golden_rules":  self._update_golden_rules_ui(data)
+                elif kind == "rebalance":     self._update_rebalance_ui(data)
                 elif kind == "sl_result":
                     self.sl_result_lbl.config(text=data)
                 elif kind == "ta_send_done":

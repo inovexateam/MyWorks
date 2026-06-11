@@ -1214,3 +1214,322 @@ def format_journal_stats(stats: dict) -> str:
         f"\n_Hermes Agent · {_esc(_now())}_",
     ]
     return "\n".join(lines)
+
+
+# ── 25. Golden Rules ──────────────────────────────────────────────────────────
+
+def format_golden_rules(result: dict) -> str:
+    verdict = result["verdict"]
+    passed  = result["passed"]
+    total   = result["total"]
+    v_color = {"✅":"✅","⚠️":"⚠️","🔴":"🔴","🚫":"🚫"}.get(verdict[:2],"❓")
+
+    lines = [
+        "📋 *DAILY TRADING RULES CHECK*",
+        "_7 conditions checked before you trade today_",
+        f"_{_esc(result.get('date',''))}  {_esc(result.get('time',''))}_",
+        "",
+        f"*{_esc(verdict)}*  \\({passed}/{total} rules passed\\)",
+        f"_{_esc(result.get('explanation',''))}_",
+        "",
+    ]
+
+    tbl = [f"{'Rule':<42} {'Result'}"]
+    tbl.append("─" * 52)
+    for r in result.get("rules", []):
+        icon  = "✅" if r.get("pass") else ("❌" if r.get("pass") is False else "⚪")
+        tbl.append(f"{icon} {r['rule'][:40]:<40}  {r.get('value','')[:10]}")
+    lines.append(_block(tbl))
+
+    lines += [
+        "📖 *Why these rules matter:*",
+        "_These 7 checks filter out 80% of bad trade days._",
+        "_A day with < 4 rules passing = market conditions are risky._",
+        "_You cannot control the market. You CAN control when you trade._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 26. VWAP Report ───────────────────────────────────────────────────────────
+
+def format_vwap_report(vwap_data: list) -> str:
+    lines = [
+        "📊 *VWAP INTRADAY REPORT*",
+        "_Where each stock stands vs the institutional average price today_",
+        f"_{_esc(_now())}_",
+        "",
+        "_VWAP = Volume Weighted Average Price — where most trades happened today_",
+        "_Above VWAP = buyers in control ✅   Below VWAP = sellers in control ❌_",
+        "",
+    ]
+    tbl = [f"{'Stock':<10} {'Price':>9} {'VWAP':>9} {'Diff':>7} {'Signal'}"]
+    tbl.append("─" * 55)
+    for r in vwap_data:
+        sym   = r["symbol"][:9]
+        arrow = "▲" if r["diff_pct"] > 0 else ("▼" if r["diff_pct"] < 0 else "─")
+        sig   = r.get("signal","NEUTRAL")
+        tbl.append(f"{sym:<10} ₹{r['price']:>8,.2f} ₹{r['vwap']:>8,.2f} {arrow}{r['diff_pct']:>+5.1f}%  {sig}")
+    lines.append(_block(tbl))
+
+    lines += [
+        "📖 *How to use VWAP:*",
+        "_Buy when price dips to VWAP and bounces — institutional support_",
+        "_Sell when price is far above VWAP — extended, may pull back_",
+        "_Strong stock = price stays above VWAP all day_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 27. Earnings History ──────────────────────────────────────────────────────
+
+def format_earnings_history(data: list) -> str:
+    lines = [
+        "📊 *EARNINGS BEAT/MISS HISTORY*",
+        "_Did each company deliver better results than analysts expected?_",
+        f"_{_esc(_now())}_",
+        "",
+        "_BEAT = actual profit > estimate ✅   MISS = actual profit < estimate ❌_",
+        "",
+    ]
+    tbl = [f"{'Stock':<10} {'Beats':>6} {'Misses':>7} {'Avg Surprise':>13} {'Quality':<12} {'Streak'}"]
+    tbl.append("─" * 65)
+    for r in data:
+        sym  = r["symbol"][:9]
+        q    = r.get("quality","—")
+        q_e  = {"EXCELLENT":"🏆","GOOD":"✅","AVERAGE":"🟡","POOR":"❌"}.get(q,"—")
+        strk = f"{r['streak_count']}x {r['streak_type']}" if r.get("streak_type") in ("BEAT","MISS") else "—"
+        tbl.append(
+            f"{sym:<10} {r['beats']:>6} {r['misses']:>7} {r['avg_surprise']:>+12.1f}%"
+            f"  {q_e} {q:<10} {strk}")
+    lines.append(_block(tbl))
+
+    beaters = [r for r in data if r.get("consistent_beater")]
+    if beaters:
+        lines.append("*🏆 CONSISTENT BEATERS — These companies keep surprising investors:*")
+        for r in beaters:
+            lines.append(f"• *{_esc(r['symbol'])}* — Beat estimates {r['beats']}/4 quarters, avg +{r['avg_surprise']:.1f}%")
+
+    lines += [
+        "",
+        "📖 *Why this matters:*",
+        "_Companies that consistently beat estimates get re-rated higher._",
+        "_Consistent missers = management not delivering on promises = avoid._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 28. Screener.in Deep Fundamentals ────────────────────────────────────────
+
+def format_screener_report(data: list) -> str:
+    lines = [
+        "🔬 *DEEP FUNDAMENTALS — SCREENER.IN DATA*",
+        "_10-year financial data and quality scores_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+    tbl = [f"{'Stock':<10} {'ROCE':>6} {'ROE':>6} {'D/E':>5} {'F-Score':>8} {'Profit Trend':<14} {'10Y Sales CAGR'}"]
+    tbl.append("─" * 72)
+    for r in data:
+        sym   = r["symbol"][:9]
+        roce  = f"{r['roce']:.0f}%"  if r.get("roce")  else "—"
+        roe   = f"{r['roe']:.0f}%"   if r.get("roe")   else "—"
+        de    = f"{r['debt_equity']:.1f}" if r.get("debt_equity") is not None else "—"
+        fs    = f"{r['f_score']}/{r['f_score_max']} {r.get('f_interpretation','')}" if r.get("f_score") is not None else "—"
+        pt    = r.get("profit_trend","—")
+        cagr  = f"{r['sales_cagr_10y']:.0f}%" if r.get("sales_cagr_10y") else "—"
+        tbl.append(f"{sym:<10} {roce:>6} {roe:>6} {de:>5} {fs:>8} {pt:<14} {cagr}")
+    lines.append(_block(tbl))
+    lines += [
+        "📖 *Piotroski F-Score:*",
+        "_Score 4-5 = strong quality company_",
+        "_Score 0-2 = weak fundamentals = caution_",
+        "_ROCE above 15% = company earns good return on capital_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 29. Peer Comparison ───────────────────────────────────────────────────────
+
+def format_peer_comparison(result: dict) -> str:
+    if not result:
+        return "_No peer data available_"
+    sym    = result["symbol"]
+    sector = result["sector"]
+    lines  = [
+        f"🏆 *PEER COMPARISON — {_esc(sym)} vs {_esc(sector)} SECTOR*",
+        "_Where does your stock rank against its competitors?_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+    tbl = [f"{'Stock':<12} {'P/E':>6} {'ROE':>6} {'Rev Grw':>8} {'Margin':>7} {'PE Rank':>8} {'ROE Rank'}"]
+    tbl.append("─" * 62)
+    for p in result.get("peers", []):
+        sym_c = ("→ " if p["is_target"] else "  ") + p["symbol"][:10]
+        pe    = f"{p['pe']:.1f}"   if p.get("pe")   else "—"
+        roe   = f"{p['roe']:.1f}%" if p.get("roe")  else "—"
+        rev   = f"{p['rev_growth']:+.1f}%" if p.get("rev_growth") else "—"
+        mg    = f"{p['margin']:.1f}%" if p.get("margin") else "—"
+        per   = f"#{p['pe_rank']}"  if p.get("pe_rank")  else "—"
+        rr    = f"#{p['roe_rank']}" if p.get("roe_rank") else "—"
+        tbl.append(f"{sym_c:<12} {pe:>6} {roe:>6} {rev:>8} {mg:>7} {per:>8} {rr}")
+    lines.append(_block(tbl))
+
+    target = result.get("target")
+    if target:
+        lines += [
+            f"*Your stock {_esc(sym)}:*",
+            f"• P/E rank: #{target.get('pe_rank','—')} out of {result['n_peers']} peers",
+            f"• ROE rank: #{target.get('roe_rank','—')} out of {result['n_peers']} peers",
+        ]
+    lines += [
+        "",
+        "📖 *What to look for:*",
+        "_#1 or #2 in ROE rank = best managed company in sector_",
+        "_Low P/E rank = cheapest in sector = potential value buy_",
+        "_Always buy the best company in a good sector_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 30. Rebalancing Report ────────────────────────────────────────────────────
+
+def format_rebalance_report(result: dict) -> str:
+    health = result.get("health","—")
+    h_emoji = {"HEALTHY":"✅","NEEDS TRIM":"⚠️","REBALANCE NOW":"🔴"}.get(health,"—")
+    lines = [
+        "⚖️ *PORTFOLIO REBALANCING REPORT*",
+        "_Is your portfolio balanced? Is any stock too large?_",
+        f"_{_esc(_now())}_",
+        "",
+        f"{h_emoji} *Status: {_esc(health)}*",
+        f"_Cash: {result.get('cash_pct',0):.1f}% · Target: ≥{result.get('cash_target',10):.0f}%_",
+        "",
+    ]
+
+    tbl = [f"{'Stock':<12} {'Allocation':>11} {'Status'}"]
+    tbl.append("─" * 38)
+    for p in result.get("positions",[]):
+        flag = "⚠️ TOO LARGE" if p["overweight"] else ("🔸 TINY" if p["tiny"] else "✅ OK")
+        tbl.append(f"{p['symbol']:<12} {p['pct']:>10.1f}%  {flag}")
+    tbl.append(f"{'CASH':<12} {result.get('cash_pct',0):>10.1f}%")
+    lines.append(_block(tbl))
+
+    actions = result.get("actions",[])
+    if actions:
+        lines.append("*📋 SUGGESTED ACTIONS:*")
+        for a in actions:
+            lines.append(f"• *{_esc(a['action'])} {_esc(a['symbol'])}* — {_esc(a['reason'])}")
+            if a.get("amount"):
+                lines.append(f"  Reduce by approx ₹{a['amount']:,.0f}")
+        lines.append("")
+
+    lines += [
+        "📖 *Why rebalance?*",
+        "_If one stock grows to 30% of portfolio and falls 20% = your whole_",
+        "_portfolio drops 6%. Keeping max 20% per stock limits your damage._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 31. Tax Report ────────────────────────────────────────────────────────────
+
+def format_tax_report(tax_results: list, summary: dict) -> str:
+    lines = [
+        "🧾 *TAX P&L REPORT*",
+        "_STCG \\(held < 1 year\\) = 15% tax · LTCG \\(held > 1 year\\) = 10% above ₹1L_",
+        f"_{_esc(_now())}_",
+        "",
+    ]
+
+    tbl = [f"{'Stock':<10} {'P&L':>12} {'Held':>7} {'Tax Type':>9} {'Tax':>10} {'Save if Wait'}"]
+    tbl.append("─" * 65)
+    for r in tax_results:
+        sym  = r.get("symbol","")[:9]
+        pnl  = r.get("pnl",0)
+        days = r.get("holding_days",0)
+        tt   = r.get("current_type","—")
+        tax  = r.get("tax_now",0)
+        save = r.get("tax_saving",0)
+        tbl.append(
+            f"{sym:<10} {'+'if pnl>=0 else ''}₹{pnl:>10,.0f}"
+            f"  {days:>5}d  {tt:>9}  ₹{tax:>8,.0f}"
+            f"  {'₹'+f'{save:,.0f}' if save>0 else '—'}")
+    lines.append(_block(tbl))
+
+    if summary:
+        lines.append(_block([
+            f"Total P&L        {'+'if summary['total_pnl']>=0 else ''}₹{summary['total_pnl']:,.0f}",
+            f"STCG Tax         ₹{summary['stcg_tax']:,.0f}",
+            f"LTCG Tax         ₹{summary['ltcg_tax']:,.0f}",
+            f"Potential Saving ₹{summary['potential_saving']:,.0f}  (by waiting for LTCG)",
+        ]))
+
+    lines += [
+        "📖 *Tax Tips:*",
+        "_Hold shares for 1 year to qualify for lower LTCG tax_",
+        "_Book losses in March to offset gains and reduce tax_",
+        "_LTCG up to ₹1 Lakh per year is completely tax free_",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 32. Paper Trading Report ──────────────────────────────────────────────────
+
+def format_paper_portfolio(summary: dict) -> str:
+    lines = [
+        "🎮 *PAPER TRADING PORTFOLIO*",
+        "_Virtual money — practice without risk_",
+        f"_{_esc(_now())}_",
+        "",
+        _block([
+            f"Starting Capital  ₹{summary.get('starting_cash',1000000):,.0f}",
+            f"Current Value     ₹{summary.get('total_value',0):,.0f}",
+            f"Cash Available    ₹{summary.get('cash',0):,.0f}",
+            f"Total P&L         {'+'if summary.get('total_pnl',0)>=0 else ''}₹{summary.get('total_pnl',0):,.0f}  ({summary.get('total_pnl_pct',0):+.2f}%)",
+        ]),
+    ]
+
+    positions = summary.get("positions",[])
+    if positions:
+        lines.append("*OPEN POSITIONS:*")
+        tbl = [f"{'Stock':<10} {'Qty':>6} {'Avg ₹':>10} {'CMP ₹':>10} {'P&L':>12} {'P&L%':>7}"]
+        tbl.append("─" * 58)
+        for p in positions:
+            tbl.append(
+                f"{p['symbol']:<10} {p['qty']:>6} ₹{p['avg_price']:>9,.2f}"
+                f" ₹{p['cur_price']:>9,.2f}"
+                f" {'+'if p['pnl']>=0 else ''}₹{p['pnl']:>10,.0f}"
+                f" {p['pnl_pct']:>+6.1f}%")
+        lines.append(_block(tbl))
+
+    lines += [
+        "📖 *Paper trading tip:*",
+        "_Treat virtual money exactly like real money._",
+        "_Use stop-losses, position sizing — same rules as real trading._",
+        "_Only move to real money after 3 months of consistent virtual profits._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ]
+    return "\n".join(lines)
+
+
+# ── 33. Claude AI Outlook ─────────────────────────────────────────────────────
+
+def format_claude_outlook(symbol: str, outlook_text: str) -> str:
+    sym = symbol.replace(".NS","")
+    return "\n".join([
+        f"🤖 *AI OUTLOOK — {_esc(sym)}*",
+        f"_{_esc(_now())}_",
+        "",
+        f"_{_esc(outlook_text)}_",
+        "",
+        "_This is AI-generated analysis, not financial advice._",
+        "_Always do your own research before trading._",
+        f"\n_Hermes Agent · {_esc(_now())}_",
+    ])

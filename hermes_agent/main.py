@@ -277,6 +277,47 @@ def run_weekly_digest():
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def run_golden_rules():
+    if not is_weekday(): return
+    log.info("▶ Golden rules check…")
+    try:
+        from rules import check_golden_rules
+        from formatter import format_golden_rules
+        result = check_golden_rules(config.PORTFOLIO, config.WATCHLIST)
+        sender.send_long(format_golden_rules(result))
+        log.info(f"✅ Golden rules: {result['verdict']}")
+    except Exception as e:
+        log.exception(f"Golden rules failed: {e}")
+
+
+def run_weekly_rebalance_check():
+    if not is_weekday(): return
+    log.info("▶ Rebalance check…")
+    try:
+        from data_fetcher import get_portfolio_pnl
+        from rebalance import get_rebalance_suggestions
+        from formatter import format_rebalance_report
+        pnl   = get_portfolio_pnl(config.PORTFOLIO)
+        total = sum(r.get("market_value",0) for r in pnl)
+        result= get_rebalance_suggestions(pnl, total)
+        if result.get("health") != "HEALTHY":
+            sender.send_long(format_rebalance_report(result))
+    except Exception as e:
+        log.exception(f"Rebalance check failed: {e}")
+
+
+def run_vwap_eod_report():
+    if not is_weekday(): return
+    log.info("▶ VWAP EOD report…")
+    try:
+        from sources.vwap import get_watchlist_vwap
+        from formatter import format_vwap_report
+        data = get_watchlist_vwap(config.WATCHLIST)
+        sender.send_long(format_vwap_report(data))
+    except Exception as e:
+        log.exception(f"VWAP EOD report failed: {e}")
+
+
 def main():
     log.info("=" * 60)
     log.info("  HERMES AGENT v2 — STARTING UP")
@@ -292,6 +333,9 @@ def main():
     schedule.every().day.at(config.MORNING_BRIEF_TIME).do(run_morning_brief)
     schedule.every().day.at(config.AFTER_MARKET_TIME).do(run_52w_report)
     schedule.every().sunday.at("09:00").do(run_weekly_digest)
+    schedule.every().day.at("07:45").do(run_golden_rules)
+    schedule.every().monday.at("08:30").do(run_weekly_rebalance_check)
+    schedule.every().day.at("15:50").do(run_vwap_eod_report)
 
     # Hourly market-hours jobs
     schedule.every(1).hours.do(run_bulk_block_scan)
