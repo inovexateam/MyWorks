@@ -1,0 +1,113 @@
+{
+  "name": "rca-copilot-extension",
+  "displayName": "RCA Agent — AI Root Cause Analysis",
+  "description": "Multi-agent root cause analysis using GitHub Copilot. No API keys needed.",
+  "version": "1.0.0",
+  "publisher": "your-org",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["AI", "Other"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "rca.startAnalysis",
+        "title": "RCA: Start Root Cause Analysis",
+        "icon": "$(search-fuzzy)"
+      },
+      {
+        "command": "rca.analyzeFile",
+        "title": "RCA: Analyze Current File",
+        "icon": "$(microscope)"
+      },
+      {
+        "command": "rca.analyzeSelection",
+        "title": "RCA: Analyze Selected Code",
+        "icon": "$(bug)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "rca.analyzeSelection",
+          "when": "editorHasSelection",
+          "group": "navigation"
+        },
+        {
+          "command": "rca.analyzeFile",
+          "group": "navigation"
+        }
+      ]
+    },
+    "chatParticipants": [
+      {
+        "id": "rca.agent",
+        "fullName": "RCA Agent",
+        "name": "rca",
+        "description": "Multi-agent root cause analysis. Type @rca /start, /investigate, /analyze, /logs, or /report",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "start",
+            "description": "Start a full RCA session — describe the incident"
+          },
+          {
+            "name": "investigate",
+            "description": "Investigate a GitHub repo or recent commits"
+          },
+          {
+            "name": "analyze",
+            "description": "Analyze current file or pasted code for root causes"
+          },
+          {
+            "name": "logs",
+            "description": "Analyze log output or stack trace"
+          },
+          {
+            "name": "report",
+            "description": "Generate final postmortem-style RCA report"
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "RCA Agent",
+      "properties": {
+        "rca.githubToken": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub Personal Access Token (optional — for private repos and higher rate limits)"
+        },
+        "rca.defaultSeverity": {
+          "type": "string",
+          "enum": ["P1", "P2", "P3", "P4"],
+          "default": "P2",
+          "description": "Default incident severity"
+        },
+        "rca.maxFileSizeKB": {
+          "type": "number",
+          "default": 200,
+          "description": "Max file size to send for analysis (KB)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^20.0.0",
+    "@vscode/vsce": "^2.24.0",
+    "typescript": "^5.3.0"
+  }
+}
