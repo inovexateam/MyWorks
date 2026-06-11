@@ -1,0 +1,115 @@
+name: Blast Radius Visualizer
+
+on:
+  pull_request:
+    branches: [main, develop, master]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  blast-radius:
+    name: Compute blast radius
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Blast Radius analysis
+        id: blast
+        run: |
+          python tools/blast-radius/blast_radius.py \
+            --pr ${{ github.base_ref }} \
+            --json > blast-output.json 2>&1 || true
+
+          python tools/blast-radius/blast_radius.py \
+            --pr ${{ github.base_ref }} \
+            --no-report \
+            --pr-comment > blast-comment.md 2>&1 || true
+
+          python tools/blast-radius/blast_radius.py \
+            --pr ${{ github.base_ref }} \
+            --report blast-radius.html 2>&1 || true
+
+          # Extract max risk score for threshold check
+          MAX=$(python -c "
+          import json, sys
+          try:
+              data = json.load(open('blast-output.json'))
+              print(data.get('summary',{}).get('risk',{}).get('max', 0))
+          except: print(0)
+          ")
+          echo "max_risk=$MAX" >> $GITHUB_OUTPUT
+          echo "Max risk score: $MAX"
+
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '';
+            try {
+              body = fs.readFileSync('blast-comment.md', 'utf8');
+            } catch(e) {
+              body = '## Blast Radius Visualizer\n\nNo impact detected or analysis failed.';
+            }
+
+            // Find and update existing comment, or create new one
+            const marker = '<!-- blast-radius-report -->';
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.data.find(c => c.body.includes(marker));
+            const fullBody = marker + '\n' + body;
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: fullBody,
+              });
+            }
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blast-radius-report-${{ github.event.pull_request.number }}
+          path: blast-radius.html
+          retention-days: 30
+
+      - name: Upload JSON output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blast-radius-json-${{ github.event.pull_request.number }}
+          path: blast-output.json
+          retention-days: 30
+
+      - name: Fail on critical risk
+        # Only block if max risk is critical — adjust threshold as needed
+        if: ${{ steps.blast.outputs.max_risk >= 70 }}
+        run: |
+          echo "::error::Blast radius score ${{ steps.blast.outputs.max_risk }}/100 — critical risk detected."
+          echo "Review the blast-radius report in Actions artifacts before merging."
+          exit 1

@@ -1,0 +1,139 @@
+name: Architectural Drift Detector
+
+on:
+  pull_request:
+    branches: [main, develop, master]
+  push:
+    branches: [main]
+  schedule:
+    # Weekly drift report — catches slow drift nobody noticed
+    - cron: '0 9 * * 1'
+
+jobs:
+  arch-drift:
+    name: Check architectural drift
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # full history for timeline
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Run drift scan
+        id: scan
+        run: |
+          python tools/arch-drift/arch_drift.py \
+            --repo . \
+            --json > drift-output.json 2>&1 || true
+
+          python tools/arch-drift/arch_drift.py \
+            --repo . \
+            --pr-comment > drift-comment.md 2>&1 || true
+
+          python tools/arch-drift/arch_drift.py \
+            --repo . \
+            --no-report 2>&1 || true
+
+          python tools/arch-drift/arch_drift.py \
+            --repo . \
+            --report arch-drift-report.html 2>&1 || true
+
+          SCORE=$(python -c "
+          import json, sys
+          try:
+            d = json.load(open('drift-output.json'))
+            print(d.get('score', 0))
+          except: print(0)
+          ")
+          NEW=$(python -c "
+          import json, sys
+          try:
+            d = json.load(open('drift-output.json'))
+            print(d.get('new_violations', 0))
+          except: print(0)
+          ")
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "new=$NEW"     >> $GITHUB_OUTPUT
+          echo "Drift score: $SCORE  New violations: $NEW"
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '';
+            try { body = fs.readFileSync('drift-comment.md', 'utf8'); }
+            catch(e) { body = '## Architectural Drift Detector\n\nScan completed — no violations detected.'; }
+
+            const marker = '<!-- arch-drift-report -->';
+            const fullBody = marker + '\n' + body;
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.data.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.issue.number, body: fullBody,
+              });
+            }
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arch-drift-report-${{ github.run_number }}
+          path: arch-drift-report.html
+          retention-days: 60
+
+      - name: Commit updated drift state (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "Arch Drift Bot"
+          git config user.email "bot@arch-drift"
+          git add .arch-drift-state.json .arch-drift-timeline.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: update arch drift state [skip ci]"
+          git push || true
+
+      - name: Build weekly timeline (scheduled)
+        if: github.event_name == 'schedule'
+        run: |
+          python tools/arch-drift/arch_drift.py \
+            --repo . \
+            --timeline \
+            --report arch-drift-weekly.html
+
+      - name: Fail on new violations in PR
+        if: github.event_name == 'pull_request' && steps.scan.outputs.new > 0
+        run: |
+          echo "::error::This PR introduces ${{ steps.scan.outputs.new }} new architectural violation(s)."
+          echo "Review the Arch Drift report in the PR comment before merging."
+          exit 1
+
+      - name: Fail if drift score too high
+        if: steps.scan.outputs.score >= 50
+        run: |
+          echo "::warning::Drift score is ${{ steps.scan.outputs.score }}/100."
+          echo "Consider scheduling a refactor sprint to address accumulated drift."

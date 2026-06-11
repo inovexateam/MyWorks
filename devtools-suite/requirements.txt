@@ -1,0 +1,10 @@
+# DevTools Suite — dependencies
+# All tools use Python stdlib only, except these optional ones:
+
+pyyaml>=6.0        # arch-drift (arch-rules.yml parsing) + flag-graveyard (YAML config)
+
+# Optional — only needed for docstring-filler AI mode:
+# openai>=1.0       # or set OPENAI_API_KEY and use any OpenAI-compatible endpoint
+
+# Python 3.12+ required
+# Git 2.30+ required (used by all tools via subprocess)

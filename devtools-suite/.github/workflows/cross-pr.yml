@@ -1,0 +1,151 @@
+name: Cross-PR Dependency Intelligence
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    # Daily scan at 9am — catches newly opened PRs that conflict with existing ones
+    - cron: '0 9 * * 1-5'
+
+jobs:
+  cross-pr-scan:
+    name: Scan for cross-PR conflicts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Cross-PR scan
+        id: scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO:  ${{ github.repository }}
+        run: |
+          cd tools/cross-pr
+
+          # Full JSON scan
+          python cross_pr.py --json > cross-pr-output.json 2>&1 || true
+
+          # HTML report
+          python cross_pr.py --report cross-pr-report.html --no-report 2>&1 || true
+          python cross_pr.py --report cross-pr-report.html 2>&1 || true
+
+          # Extract stats
+          CRITICAL=$(python -c "
+          import json
+          try:
+            d = json.load(open('cross-pr-output.json'))
+            print(d.get('critical', 0))
+          except: print(0)")
+
+          # For PRs: generate comment for this specific PR
+          PR_NUM=${{ github.event.pull_request.number }}
+          if [ -n "$PR_NUM" ]; then
+            python cross_pr.py --comment $PR_NUM > pr-comment.md 2>&1 || true
+          fi
+
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "Cross-PR critical conflicts: $CRITICAL"
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- cross-pr-intelligence -->';
+            let body = marker + '\n';
+            try {
+              body += fs.readFileSync('tools/cross-pr/pr-comment.md', 'utf8');
+            } catch(e) {
+              body += '## Cross-PR Intelligence\n\nNo conflicts with other open PRs detected.';
+            }
+
+            const prNumber = parseInt(process.env.PR_NUMBER);
+
+            // Find existing comment to update
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            const existing = comments.data.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }
+
+      - name: Upload HTML dashboard
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-pr-dashboard
+          path: tools/cross-pr/cross-pr-report.html
+          retention-days: 14
+
+      - name: Upload JSON report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-pr-json
+          path: tools/cross-pr/cross-pr-output.json
+          retention-days: 14
+
+      - name: Fail on critical conflicts (PR mode)
+        if: github.event_name == 'pull_request' && steps.scan.outputs.critical > 0
+        run: |
+          echo "::error::Cross-PR Intelligence: ${{ steps.scan.outputs.critical }} critical conflict(s) detected."
+          echo "Check the PR comment for details before merging."
+          exit 1
+
+      - name: Daily summary (scheduled)
+        if: github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let data = {};
+            try { data = JSON.parse(fs.readFileSync('tools/cross-pr/cross-pr-output.json')); }
+            catch(e) { return; }
+
+            if (!data.critical && !data.high) return;
+
+            const body = [
+              '## Daily Cross-PR Intelligence Report\n',
+              `Found **${data.critical || 0}** critical and **${data.high || 0}** high-severity conflicts across **${data.pr_count || 0}** open PRs.\n`,
+              'See the cross-pr-dashboard artifact for the full report.\n',
+              `*${new Date().toISOString().slice(0,10)}*`
+            ].join('\n');
+
+            // Post as an issue comment on a tracking issue, or create a new issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Cross-PR] ${data.critical || 0} critical conflict(s) — ${new Date().toISOString().slice(0,10)}`,
+              body,
+              labels: ['cross-pr-intelligence'],
+            });

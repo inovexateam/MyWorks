@@ -1,0 +1,77 @@
+name: Implicit Knowledge Extractor
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # weekly Monday
+  workflow_dispatch:
+
+jobs:
+  knowledge-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run knowledge extraction
+        id: scan
+        run: |
+          python tools/knowledge-extractor/knowledge_extractor.py \
+            --repo . --json > knowledge-output.json 2>&1 || true
+
+          python tools/knowledge-extractor/knowledge_extractor.py \
+            --repo . --wiki --report knowledge-report.html 2>&1 || true
+
+          CRITICAL=$(python -c "
+          import json
+          try:
+            d = json.load(open('knowledge-output.json'))
+            print(d.get('critical_count', 0))
+          except: print(0)")
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-report-${{ github.run_number }}
+          path: |
+            knowledge-report.html
+            knowledge-wiki/
+          retention-days: 30
+
+      - name: Create issue for critical gaps
+        if: steps.scan.outputs.critical > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let data = {};
+            try { data = JSON.parse(fs.readFileSync('knowledge-output.json')); } catch(e) {}
+            const date = new Date().toISOString().slice(0,10);
+            const gaps = (data.gaps || []).filter(g => g.risk === 'critical').slice(0, 10);
+            const rows = gaps.map(g =>
+              `| \`${g.module}\` | ${g.primary} | ${g.description} |`
+            ).join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Knowledge] ${data.critical_count} critical bus-factor gaps — ${date}`,
+              body: [
+                `## Knowledge gaps — ${date}`,
+                `**${data.critical_count}** module(s) have bus factor 1.`,
+                '',
+                '| Module | Expert | Risk |',
+                '|--------|--------|------|',
+                rows,
+                '',
+                '*See Actions artifact for full report and pairing recommendations.*'
+              ].join('\n'),
+              labels: ['knowledge', 'tech-debt'],
+            });

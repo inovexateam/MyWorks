@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""
+Git pre-commit hook for Blast Radius Visualizer.
+
+Install:
+  cp hooks/pre-commit .git/hooks/pre-commit
+  chmod +x .git/hooks/pre-commit
+
+What it does:
+  - Runs blast radius on your staged changes before every commit
+  - Prints a risk summary in the terminal
+  - Warns (but does NOT block) if risk >= 40
+  - Hard-blocks commit only if risk >= 90 (configurable)
+
+To bypass in an emergency:
+  git commit --no-verify
+"""
+
+import subprocess
+import sys
+import os
+import json
+from pathlib import Path
+
+# ── Config ────────────────────────────────────────────────────────────────────
+WARN_THRESHOLD  = 40    # print warning, still allow commit
+BLOCK_THRESHOLD = 90    # hard stop — must use --no-verify to bypass
+TOOL_PATH = Path(__file__).resolve().parent.parent / "tools" / "blast-radius" / "blast_radius.py"
+
+RESET = '\033[0m'; BOLD = '\033[1m'; RED = '\033[91m'; AMBER = '\033[93m'
+BLUE = '\033[94m'; GREEN = '\033[92m'; MUTED = '\033[90m'
+
+RISK_COLOR = {'critical': RED, 'high': AMBER, 'medium': BLUE, 'low': GREEN}
+
+def main():
+    # Only run if the tool exists
+    if not TOOL_PATH.exists():
+        sys.exit(0)
+
+    print(f"\n{MUTED}[blast-radius] Scanning staged changes...{RESET}", flush=True)
+
+    try:
+        result = subprocess.run(
+            [sys.executable, str(TOOL_PATH), '--json', '--no-report'],
+            capture_output=True, text=True, timeout=60
+        )
+        if not result.stdout.strip():
+            # Nothing to analyse
+            sys.exit(0)
+
+        data = json.loads(result.stdout)
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception) as e:
+        print(f"{MUTED}[blast-radius] Skipped: {e}{RESET}")
+        sys.exit(0)
+
+    summary = data.get('summary', {})
+    risk = summary.get('risk', {})
+    max_score = risk.get('max', 0)
+    nodes = data.get('blast_nodes', [])
+
+    if not nodes:
+        print(f"{GREEN}[blast-radius] No impact detected.{RESET}")
+        sys.exit(0)
+
+    # ── Print summary ─────────────────────────────────────────────────────────
+    print(f"\n{BOLD}  Blast Radius — staged changes{RESET}")
+    print(f"  {'─' * 44}")
+    print(f"  Symbols changed:  {len(nodes)}")
+    print(f"  Files affected:   {summary.get('files_affected', 0)}")
+    print(f"  Symbols impacted: {summary.get('symbols_affected', 0)}")
+    print(f"  Uncovered paths:  {summary.get('uncovered_paths', 0)}")
+    print()
+
+    for n in nodes[:6]:
+        label = n['risk_label']
+        color = RISK_COLOR.get(label, MUTED)
+        cov_icon = f"{GREEN}✓{RESET}" if n['has_test_coverage'] else f"{RED}✗{RESET}"
+        print(f"  {color}[{label.upper():8}]{RESET}  {n['symbol']:30}  score {n['risk_score']:3}/100  {cov_icon}")
+
+    if len(nodes) > 6:
+        print(f"  {MUTED}... and {len(nodes)-6} more symbols{RESET}")
+
+    print()
+
+    # ── Threshold checks ──────────────────────────────────────────────────────
+    if max_score >= BLOCK_THRESHOLD:
+        print(f"  {RED}{BOLD}✗ COMMIT BLOCKED — risk score {max_score}/100 ≥ {BLOCK_THRESHOLD}{RESET}")
+        print(f"  {MUTED}Review the impact above. Use git commit --no-verify to bypass.{RESET}\n")
+        sys.exit(1)
+
+    if max_score >= WARN_THRESHOLD:
+        label = 'critical' if max_score >= 70 else 'high'
+        color = RISK_COLOR[label]
+        print(f"  {color}⚠  {label.upper()} risk (score {max_score}/100) — review before pushing{RESET}")
+        print(f"  {MUTED}Run: python tools/blast-radius/blast_radius.py --report{RESET}\n")
+    else:
+        print(f"  {GREEN}✓ Risk score {max_score}/100 — safe to commit{RESET}\n")
+
+    sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
