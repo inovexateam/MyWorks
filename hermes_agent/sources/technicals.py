@@ -228,22 +228,183 @@ def analyze(symbol: str) -> dict | None:
         log.debug(f"S/R failed {symbol}: {e}")
         result["support"] = result["resistance"] = None
 
+    # ── Supertrend ────────────────────────────────────────────────────────────
+    try:
+        if HAS_TA:
+            st = ta.supertrend(high, low, close, length=10, multiplier=3)
+            st_col = [c for c in st.columns if "SUPERTd" in c]
+            if st_col:
+                st_dir = int(st[st_col[0]].iloc[-1])  # 1=bullish, -1=bearish
+                st_val_col = [c for c in st.columns if c.startswith("SUPERT_") and "d" not in c and "l" not in c and "s" not in c]
+                st_price = round(float(st[st_val_col[0]].iloc[-1]), 2) if st_val_col else None
+                result["supertrend"]       = st_price
+                result["supertrend_dir"]   = "UP" if st_dir == 1 else "DOWN"
+                result["supertrend_signal"]= "BUY" if st_dir == 1 else "SELL"
+            else:
+                result["supertrend_dir"] = "N/A"; result["supertrend_signal"] = "N/A"
+        else:
+            result["supertrend_dir"] = "N/A"; result["supertrend_signal"] = "N/A"
+    except Exception as e:
+        log.debug(f"Supertrend failed {symbol}: {e}")
+        result["supertrend_dir"] = "N/A"; result["supertrend_signal"] = "N/A"
+
+    # ── ADX — Trend Strength ──────────────────────────────────────────────────
+    try:
+        if HAS_TA:
+            adx_df  = ta.adx(high, low, close, length=14)
+            adx_col = [c for c in adx_df.columns if c.startswith("ADX_")]
+            adx_val = round(float(adx_df[adx_col[0]].iloc[-1]), 2) if adx_col else None
+        else:
+            # Manual ADX fallback
+            adx_val = None
+        result["adx"] = adx_val
+        result["adx_strength"] = (
+            "STRONG"  if adx_val and adx_val > 25 else
+            "WEAK"    if adx_val and adx_val < 20 else
+            "MODERATE" if adx_val else "N/A"
+        )
+        result["adx_tradeable"] = adx_val and adx_val > 25
+    except Exception as e:
+        log.debug(f"ADX failed {symbol}: {e}")
+        result["adx"] = None; result["adx_strength"] = "N/A"
+
+    # ── Stochastic RSI ────────────────────────────────────────────────────────
+    try:
+        if HAS_TA:
+            stoch_df = ta.stochrsi(close, length=14, rsi_length=14, k=3, d=3)
+            k_col = [c for c in stoch_df.columns if "STOCHRSIk" in c]
+            d_col = [c for c in stoch_df.columns if "STOCHRSId" in c]
+            stoch_k = round(float(stoch_df[k_col[0]].iloc[-1]), 2) if k_col else None
+            stoch_d = round(float(stoch_df[d_col[0]].iloc[-1]), 2) if d_col else None
+            result["stoch_k"] = stoch_k
+            result["stoch_d"] = stoch_d
+            result["stoch_signal"] = (
+                "OVERSOLD"   if stoch_k and stoch_k < 20 else
+                "OVERBOUGHT" if stoch_k and stoch_k > 80 else
+                "NEUTRAL"
+            )
+        else:
+            result["stoch_k"] = None; result["stoch_signal"] = "N/A"
+    except Exception as e:
+        log.debug(f"StochRSI failed {symbol}: {e}")
+        result["stoch_k"] = None; result["stoch_signal"] = "N/A"
+
+    # ── OBV — On Balance Volume ───────────────────────────────────────────────
+    try:
+        if HAS_TA:
+            obv_s = ta.obv(close, volume)
+        else:
+            obv_s = (close.diff().apply(lambda x: 1 if x > 0 else -1) * volume).cumsum()
+        obv_now  = float(obv_s.iloc[-1])
+        obv_prev = float(obv_s.iloc[-5])   # 5-day comparison
+        obv_trend = "RISING" if obv_now > obv_prev else "FALLING"
+        # Rising OBV + flat price = accumulation
+        price_change_5d = abs(float(close.iloc[-1]) - float(close.iloc[-5])) / float(close.iloc[-5]) * 100
+        result["obv_trend"]        = obv_trend
+        result["obv_accumulating"] = obv_trend == "RISING" and price_change_5d < 2.0
+    except Exception as e:
+        log.debug(f"OBV failed {symbol}: {e}")
+        result["obv_trend"] = "N/A"; result["obv_accumulating"] = False
+
+    # ── Pivot Points ──────────────────────────────────────────────────────────
+    try:
+        # Previous day OHLC
+        prev_h = float(high.iloc[-2]); prev_l = float(low.iloc[-2]); prev_c = float(close.iloc[-2])
+        pp = round((prev_h + prev_l + prev_c) / 3, 2)
+        result["pivot"] = pp
+        result["pivot_r1"] = round(2*pp - prev_l, 2)
+        result["pivot_r2"] = round(pp + (prev_h - prev_l), 2)
+        result["pivot_s1"] = round(2*pp - prev_h, 2)
+        result["pivot_s2"] = round(pp - (prev_h - prev_l), 2)
+        cur = float(close.iloc[-1])
+        result["pivot_position"] = "ABOVE" if cur > pp else "BELOW"
+    except Exception as e:
+        log.debug(f"Pivot failed {symbol}: {e}")
+        result["pivot"] = None
+
+    # ── Candlestick Patterns ──────────────────────────────────────────────────
+    try:
+        o = float(df["open"].iloc[-1])
+        h2= float(high.iloc[-1])
+        l2= float(low.iloc[-1])
+        c2= float(close.iloc[-1])
+        body   = abs(c2 - o)
+        candle_range = h2 - l2
+        upper_wick = h2 - max(o, c2)
+        lower_wick = min(o, c2) - l2
+
+        patterns = []
+        if candle_range > 0:
+            if body / candle_range < 0.1:
+                patterns.append("DOJI")          # indecision
+            if lower_wick > 2*body and upper_wick < body:
+                patterns.append("HAMMER")         # bullish reversal
+            if upper_wick > 2*body and lower_wick < body:
+                patterns.append("SHOOTING STAR")  # bearish reversal
+
+        # Engulfing (needs previous candle)
+        if len(df) >= 2:
+            po = float(df["open"].iloc[-2]); pc = float(df["close"].iloc[-2])
+            if c2 > o and pc < po and c2 > po and o < pc:
+                patterns.append("BULLISH ENGULFING")
+            elif c2 < o and pc > po and c2 < po and o > pc:
+                patterns.append("BEARISH ENGULFING")
+
+        result["candlestick_patterns"] = patterns
+        result["candlestick_signal"]   = (
+            "BULLISH" if any(p in patterns for p in ["HAMMER","BULLISH ENGULFING"]) else
+            "BEARISH" if any(p in patterns for p in ["SHOOTING STAR","BEARISH ENGULFING"]) else
+            "NEUTRAL"
+        )
+    except Exception as e:
+        log.debug(f"Candle failed {symbol}: {e}")
+        result["candlestick_patterns"] = []; result["candlestick_signal"] = "NEUTRAL"
+
+    # ── Price Action (HH/HL/LH/LL) ───────────────────────────────────────────
+    try:
+        highs  = high.rolling(5).max()
+        lows   = low.rolling(5).min()
+        hh = float(highs.iloc[-1]) > float(highs.iloc[-6])   # higher high
+        hl = float(lows.iloc[-1])  > float(lows.iloc[-6])    # higher low
+        lh = float(highs.iloc[-1]) < float(highs.iloc[-6])   # lower high
+        ll = float(lows.iloc[-1])  < float(lows.iloc[-6])    # lower low
+        if hh and hl:   pa = "UPTREND"
+        elif lh and ll: pa = "DOWNTREND"
+        elif hh and ll: pa = "VOLATILE"
+        else:           pa = "SIDEWAYS"
+        result["price_action"] = pa
+    except Exception as e:
+        log.debug(f"Price action failed {symbol}: {e}")
+        result["price_action"] = "N/A"
+
     # ── Overall TA Signal ─────────────────────────────────────────────────────
     bullish = 0
     bearish = 0
-    if result.get("rsi_signal")   == "OVERSOLD":   bullish += 1
-    if result.get("rsi_signal")   == "OVERBOUGHT": bearish += 1
-    if result.get("above_ma50"):                   bullish += 1
-    if result.get("above_ma50")   == False:        bearish += 1
-    if result.get("above_ma200"):                  bullish += 1
-    if result.get("above_ma200")  == False:        bearish += 1
-    if result.get("macd_cross")   == "BULLISH":    bullish += 2
-    if result.get("macd_cross")   == "BEARISH":    bearish += 2
-    if result.get("ma_cross")     == "GOLDEN":     bullish += 2
-    if result.get("ma_cross")     == "DEATH":      bearish += 2
-    if result.get("volume_signal") in ("SPIKE","HIGH"): bullish += 1
-    if result.get("bb_signal")    == "NEAR_LOWER": bullish += 1
-    if result.get("bb_signal")    == "NEAR_UPPER": bearish += 1
+    if result.get("rsi_signal")        == "OVERSOLD":       bullish += 1
+    if result.get("rsi_signal")        == "OVERBOUGHT":     bearish += 1
+    if result.get("above_ma50"):                            bullish += 1
+    if result.get("above_ma50")        == False:            bearish += 1
+    if result.get("above_ma200"):                           bullish += 1
+    if result.get("above_ma200")       == False:            bearish += 1
+    if result.get("macd_cross")        == "BULLISH":        bullish += 2
+    if result.get("macd_cross")        == "BEARISH":        bearish += 2
+    if result.get("ma_cross")          == "GOLDEN":         bullish += 2
+    if result.get("ma_cross")          == "DEATH":          bearish += 2
+    if result.get("volume_signal")    in ("SPIKE","HIGH"):  bullish += 1
+    if result.get("bb_signal")         == "NEAR_LOWER":     bullish += 1
+    if result.get("bb_signal")         == "NEAR_UPPER":     bearish += 1
+    if result.get("supertrend_signal") == "BUY":            bullish += 2
+    if result.get("supertrend_signal") == "SELL":           bearish += 2
+    if result.get("stoch_signal")      == "OVERSOLD":       bullish += 1
+    if result.get("stoch_signal")      == "OVERBOUGHT":     bearish += 1
+    if result.get("obv_accumulating"):                      bullish += 1
+    if result.get("candlestick_signal")== "BULLISH":        bullish += 1
+    if result.get("candlestick_signal")== "BEARISH":        bearish += 1
+    if result.get("price_action")      == "UPTREND":        bullish += 1
+    if result.get("price_action")      == "DOWNTREND":      bearish += 1
+    # ADX gates: only count trend signals if trend is strong
+    if not result.get("adx_tradeable", True):
+        bullish = max(0, bullish - 1); bearish = max(0, bearish - 1)
 
     score = bullish - bearish
     result["ta_score"]  = score
