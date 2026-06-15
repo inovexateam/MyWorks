@@ -17,28 +17,55 @@ def get_earnings_history(symbol: str) -> dict | None:
     """
     try:
         t = yf.Ticker(symbol if symbol.endswith(".NS") else symbol + ".NS")
-        earnings = t.quarterly_earnings
-        if earnings is None or earnings.empty:
-            return None
 
+        # Try quarterly_earnings first, fall back to income_stmt
         records = []
-        for period, row in earnings.iterrows():
-            actual   = row.get("Actual",   None)
-            estimate = row.get("Estimate", None)
-            if actual is None:
-                continue
-            surprise_pct = None
-            result       = "N/A"
-            if estimate and estimate != 0:
-                surprise_pct = round(((actual - estimate) / abs(estimate)) * 100, 1)
-                result = "BEAT" if actual > estimate else ("MISS" if actual < estimate else "INLINE")
-            records.append({
-                "period":       str(period),
-                "actual":       round(float(actual),   2),
-                "estimate":     round(float(estimate), 2) if estimate else None,
-                "surprise_pct": surprise_pct,
-                "result":       result,
-            })
+        try:
+            earnings = t.quarterly_earnings
+            if earnings is not None and not earnings.empty:
+                for period, row in earnings.iterrows():
+                    actual   = row.get("Actual",   None)
+                    estimate = row.get("Estimate", None)
+                    if actual is None:
+                        continue
+                    surprise_pct = None
+                    result       = "N/A"
+                    if estimate and estimate != 0:
+                        surprise_pct = round(((actual - estimate) / abs(estimate)) * 100, 1)
+                        result = "BEAT" if actual > estimate else ("MISS" if actual < estimate else "INLINE")
+                    records.append({
+                        "period":       str(period),
+                        "actual":       round(float(actual),   2),
+                        "estimate":     round(float(estimate), 2) if estimate else None,
+                        "surprise_pct": surprise_pct,
+                        "result":       result,
+                    })
+        except Exception:
+            pass
+
+        # Fallback: derive from income_stmt net income trend
+        if not records:
+            try:
+                inc = t.quarterly_income_stmt
+                if inc is not None and not inc.empty:
+                    ni_row = None
+                    for idx in inc.index:
+                        if "net income" in str(idx).lower():
+                            ni_row = inc.loc[idx]
+                            break
+                    if ni_row is not None:
+                        for i, (col, val) in enumerate(ni_row.items()):
+                            if i >= 4: break
+                            if val and val == val:  # not NaN
+                                records.append({
+                                    "period":       str(col)[:10],
+                                    "actual":       round(float(val)/1e7, 2),
+                                    "estimate":     None,
+                                    "surprise_pct": None,
+                                    "result":       "N/A",
+                                })
+            except Exception:
+                pass
 
         if not records:
             return None
