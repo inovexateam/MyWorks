@@ -1,0 +1,60 @@
+{
+  "name": "flowbuilder",
+  "displayName": "Flow Diagram Builder",
+  "description": "Visual drag-and-drop flow diagram builder with animated export — SVG, PNG, GIF, WebM",
+  "version": "1.0.0",
+  "publisher": "inovexa",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Visualization", "Other"],
+  "icon": "icon.png",
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "flowbuilder.open",
+        "title": "Flow Builder: Open Diagram"
+      },
+      {
+        "command": "flowbuilder.openInSide",
+        "title": "Flow Builder: Open in Side Panel"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "flowbuilder.open",
+          "group": "navigation",
+          "when": "resourceExtname == .flow"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "flowbuilder.open",
+          "when": "resourceExtname == .flow"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "flow",
+        "extensions": [".flow"],
+        "mimetypes": ["application/json"]
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "flowbuilder.open",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f"
+      }
+    ]
+  },
+  "scripts": {
+    "package": "vsce package",
+    "install-extension": "code --install-extension flowbuilder-1.0.0.vsix"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^2.22.0"
+  }
+}

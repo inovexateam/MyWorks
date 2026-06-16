@@ -363,13 +363,8 @@ function drawShape(oc,sh,hw,hh,z){
   else if(sh==='stadium'||sh==='queue'){const r=hh;oc.moveTo(-hw+r,-hh);oc.lineTo(hw-r,-hh);oc.arc(hw-r,0,r,-Math.PI/2,Math.PI/2);oc.lineTo(-hw+r,hh);oc.arc(-hw+r,0,r,Math.PI/2,3*Math.PI/2);oc.closePath();}
   else if(sh==='cylinder'){
     const ry=hh*0.22;
-    // Side walls + bottom cap as one closed path
-    oc.moveTo(-hw,-hh+ry);          // top-left
-    oc.lineTo(-hw, hh-ry);          // left wall down
-    oc.ellipse(0,hh-ry,hw,ry,0,Math.PI,0,false);  // bottom ellipse left→right
-    oc.lineTo(hw,-hh+ry);           // right wall up
-    oc.ellipse(0,-hh+ry,hw,ry,0,0,Math.PI,false); // top ellipse right→left
-    oc.closePath();
+    // Just draw the rectangular body — top/bottom ellipses handled in drawNode separately
+    oc.rect(-hw,-hh+ry,hw*2,hh*2-ry*2);
   }
   else if(sh==='document'){const wave=hh*0.2;oc.moveTo(-hw,-hh);oc.lineTo(hw,-hh);oc.lineTo(hw,hh-wave);oc.quadraticCurveTo(hw/2,hh,0,hh-wave);oc.quadraticCurveTo(-hw/2,hh-wave*2,-hw,hh-wave);oc.closePath();}
   else if(sh==='cloud'){oc.arc(-hw*0.22,hh*0.05,hh*0.3,Math.PI*0.8,Math.PI*1.9);oc.arc(-hw*0.05,-hh*0.2,hh*0.3,Math.PI*1.1,Math.PI*2);oc.arc(hw*0.2,-hh*0.1,hh*0.28,Math.PI*1.5,Math.PI*2.2);oc.arc(hw*0.3,hh*0.15,hh*0.26,Math.PI*1.8,Math.PI*2.8);oc.arc(0,hh*0.3,hh*0.24,0,Math.PI);oc.closePath();}
@@ -478,10 +473,17 @@ function drawNode(n,phase){
 
   if(n.shape==='cylinder'){
     const ry=sh*0.22;
-    // Fill top cap so no gap shows
+    // Bottom ellipse (filled so body color shows, then stroked)
+    ctx.beginPath();ctx.ellipse(0,sh/2-ry,sw/2,ry,0,0,Math.PI*2);
+    ctx.fillStyle=c.f;ctx.fill();ctx.strokeStyle=c.s;ctx.lineWidth=1;ctx.stroke();
+    // Left + right side lines (cover rect corners)
+    ctx.beginPath();
+    ctx.moveTo(-sw/2,-sh/2+ry);ctx.lineTo(-sw/2,sh/2-ry);
+    ctx.moveTo(sw/2,-sh/2+ry);ctx.lineTo(sw/2,sh/2-ry);
+    ctx.stroke();
+    // Top ellipse filled cap + stroke
     ctx.beginPath();ctx.ellipse(0,-sh/2+ry,sw/2,ry,0,0,Math.PI*2);
-    ctx.fillStyle=c.f;ctx.fill();
-    ctx.strokeStyle=c.s;ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=c.f;ctx.fill();ctx.stroke();
   }
   if(n.shape==='note'){const fold=sh*0.28;ctx.beginPath();ctx.moveTo(sw/2-fold,-sh/2);ctx.lineTo(sw/2-fold,-sh/2+fold);ctx.lineTo(sw/2,-sh/2+fold);ctx.strokeStyle=c.s;ctx.lineWidth=0.75;ctx.stroke();}
   if(n.shape==='component'){const bw=5*zoom,bh=3.5*zoom;[-sh/2+sh*0.28,-sh/2+sh*0.56].forEach(by=>{ctx.beginPath();rr(ctx,-sw/2-bw/2,by,bw,bh,1);ctx.fillStyle=c.f;ctx.fill();ctx.strokeStyle=c.s;ctx.lineWidth=0.75;ctx.stroke();});}
@@ -882,7 +884,12 @@ function renderFrame(oc,bx,by,scale,atTick,noShadow){
       oc.fillStyle=c.t;oc.font='11px system-ui,sans-serif';oc.textAlign='center';oc.textBaseline='top';oc.fillText(n.label,0,hh+3);oc.restore();return;
     }
     oc.beginPath();drawShape(oc,n.shape,hw,hh,1);oc.fill();oc.stroke();
-    if(n.shape==='cylinder'){const ry=hh*0.22;oc.beginPath();oc.ellipse(0,-hh+ry,hw,ry,0,0,Math.PI*2);oc.stroke();}
+    if(n.shape==='cylinder'){
+      const ry=hh*0.22;
+      oc.beginPath();oc.ellipse(0,hh-ry,hw,ry,0,0,Math.PI*2);oc.fillStyle=c.f;oc.fill();oc.strokeStyle=c.s;oc.lineWidth=0.75;oc.stroke();
+      oc.beginPath();oc.moveTo(-hw,-hh+ry);oc.lineTo(-hw,hh-ry);oc.moveTo(hw,-hh+ry);oc.lineTo(hw,hh-ry);oc.stroke();
+      oc.beginPath();oc.ellipse(0,-hh+ry,hw,ry,0,0,Math.PI*2);oc.fillStyle=c.f;oc.fill();oc.stroke();
+    }
     if(n.shape==='note'){const fold=hh*0.28;oc.beginPath();oc.moveTo(hw-fold,-hh);oc.lineTo(hw-fold,-hh+fold);oc.lineTo(hw,-hh+fold);oc.strokeStyle=c.s;oc.lineWidth=0.5;oc.stroke();}
     let ty2=0;if(n.shape==='cylinder')ty2=hh*0.1;if(n.shape==='callout')ty2=-hh*0.2;
     oc.fillStyle=c.t;oc.font='12px system-ui,sans-serif';oc.textAlign='center';oc.textBaseline='middle';oc.fillText(n.label,0,ty2);
