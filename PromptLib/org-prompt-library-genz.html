@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✨ prompt drip — the org's prompt stash</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* gen z palette — electric, candy, high-contrast */
+  --bg-primary:#ffffff;
+  --bg-page:#0e0a1f;
+  --bg-page2:#1a1033;
+  --bg-card:#15102b;
+  --bg-card-hover:#1d1640;
+  --bg-chip:#241c45;
+  --text-primary:#f5f3ff;
+  --text-secondary:#b8aee0;
+  --text-tertiary:#7e74a8;
+  --border-primary:#4b3d8a;
+  --border-secondary:#352a63;
+  --border-tertiary:#241c45;
+  --grad-1:#ff5fa2; /* hot pink */
+  --grad-2:#7c5cff; /* violet */
+  --grad-3:#00e5c7; /* mint/teal */
+  --grad-4:#ffd23f; /* sunshine */
+  --grad-5:#5fc8ff; /* sky */
+  --grad-6:#ff8a5c; /* peach */
+  --radius-md:14px;
+  --radius-lg:22px;
+  --radius-pill:999px;
+  --font-display:"Sora",sans-serif;
+  --font-sans:"Space Grotesk",-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  font-family:var(--font-sans);
+  color:var(--text-primary);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(124,92,255,0.35), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(255,95,162,0.25), transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(0,229,199,0.18), transparent 50%),
+    var(--bg-page);
+  min-height:100vh;
+}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.page{max-width:1140px;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+
+.hero{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:1.75rem;flex-wrap:wrap}
+.hero-title-wrap{display:flex;flex-direction:column;gap:6px}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--grad-3);font-weight:600;width:fit-content}
+.eyebrow::before{content:"●";color:var(--grad-1);font-size:9px}
+.top-bar h1{
+  font-family:var(--font-display);
+  font-size:clamp(28px,4vw,40px);
+  font-weight:800;
+  line-height:1.05;
+  background:linear-gradient(95deg, var(--grad-1), var(--grad-2) 45%, var(--grad-5) 80%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  letter-spacing:-0.01em;
+}
+.top-bar h1 i{display:none}
+.count-badge{
+  font-family:var(--font-mono);
+  font-size:11px;font-weight:600;
+  padding:4px 11px;
+  border-radius:var(--radius-pill);
+  background:linear-gradient(95deg, var(--grad-1), var(--grad-2));
+  color:#fff;
+  margin-left:10px;
+  vertical-align:middle;
+  box-shadow:0 0 16px rgba(124,92,255,0.5);
+}
+.subtitle{font-size:14px;color:var(--text-secondary);margin-top:2px;font-weight:500}
+.subtitle b{color:var(--grad-4);font-weight:600}
+
+.search-wrap{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg-card);
+  border:1.5px solid var(--border-secondary);
+  border-radius:var(--radius-pill);
+  padding:11px 18px;min-width:260px;
+  transition:border-color .2s, box-shadow .2s;
+}
+.search-wrap:hover, .search-wrap:focus-within{
+  border-color:var(--grad-2);
+  box-shadow:0 0 0 3px rgba(124,92,255,0.18);
+}
+.search-wrap input{border:none;background:transparent;outline:none;font-size:14px;color:var(--text-primary);width:100%;font-family:var(--font-sans);font-weight:500}
+.search-wrap input::placeholder{color:var(--text-tertiary)}
+.search-wrap i{color:var(--grad-3);font-size:17px}
+
+.role-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem}
+.role-tab{
+  font-family:var(--font-sans);
+  font-size:13px;font-weight:600;
+  padding:8px 16px;
+  border:1.5px solid var(--border-secondary);
+  border-radius:var(--radius-pill);
+  cursor:pointer;
+  background:var(--bg-card);
+  color:var(--text-secondary);
+  transition:all .18s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;
+}
+.role-tab:hover{border-color:var(--grad-3);color:var(--text-primary);transform:translateY(-2px)}
+.role-tab.active{
+  background:linear-gradient(95deg, var(--grad-1), var(--grad-2));
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 18px rgba(255,95,162,0.35);
+  transform:translateY(-1px);
+}
+.role-tab.new-badge{position:relative}
+.role-tab.new-badge::after{
+  content:"NEW";font-family:var(--font-mono);
+  font-size:8.5px;font-weight:700;
+  background:var(--grad-4);color:#1a1033;
+  border-radius:var(--radius-pill);padding:2px 6px;
+  position:absolute;top:-9px;right:-8px;
+  box-shadow:0 2px 6px rgba(255,210,63,0.5);
+}
+
+.note-banner{
+  font-family:var(--font-mono);
+  font-size:12px;line-height:1.6;
+  color:var(--text-secondary);
+  background:var(--bg-chip);
+  border:1.5px dashed var(--grad-3);
+  border-radius:var(--radius-md);
+  padding:12px 16px;margin-bottom:18px;display:none;
+}
+.note-banner.show{display:block}
+.note-banner::before{content:"💡 ";}
+
+.prompt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.prompt-card{
+  background:var(--bg-card);
+  border:1.5px solid var(--border-tertiary);
+  border-radius:var(--radius-lg);
+  padding:1.2rem 1.3rem;
+  cursor:pointer;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), border-color .18s, box-shadow .18s;
+  position:relative;
+  overflow:hidden;
+}
+.prompt-card::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(135deg, rgba(124,92,255,0.08), rgba(255,95,162,0.05));
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.prompt-card:hover{
+  border-color:var(--grad-2);
+  transform:translateY(-4px) scale(1.01);
+  box-shadow:0 10px 30px rgba(124,92,255,0.25);
+}
+.prompt-card:hover::before{opacity:1}
+.prompt-card.highlight{border-color:var(--grad-3);box-shadow:0 0 0 1px rgba(0,229,199,0.25)}
+.card-header{display:flex;align-items:flex-start;gap:11px;margin-bottom:9px;position:relative;z-index:1}
+.card-icon{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:17px;
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,0.08);
+}
+.card-meta{flex:1;min-width:0}
+.card-title{font-family:var(--font-display);font-size:15px;font-weight:700;line-height:1.3;margin-bottom:2px;color:var(--text-primary)}
+.card-role{font-family:var(--font-mono);font-size:10.5px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em}
+.card-desc{font-size:13px;color:var(--text-secondary);line-height:1.55;margin-bottom:12px;position:relative;z-index:1}
+.card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
+.tag{
+  font-family:var(--font-mono);
+  font-size:10px;font-weight:600;
+  padding:3px 10px;border-radius:var(--radius-pill);
+  background:var(--bg-chip);color:var(--grad-5);
+  border:1px solid var(--border-secondary);
+}
+.copy-btn{
+  font-family:var(--font-sans);
+  font-size:12.5px;font-weight:600;
+  padding:6px 13px;
+  border:1.5px solid var(--border-secondary);
+  border-radius:var(--radius-pill);
+  background:transparent;cursor:pointer;
+  color:var(--text-secondary);
+  display:flex;align-items:center;gap:5px;
+  transition:all .15s;white-space:nowrap;
+}
+.copy-btn:hover{background:var(--grad-2);color:#fff;border-color:var(--grad-2)}
+.copy-btn.copied{color:var(--bg-page);background:var(--grad-3);border-color:var(--grad-3)}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(10,6,24,0.75);backdrop-filter:blur(4px);z-index:100;align-items:flex-start;justify-content:center;padding-top:5vh;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{
+  background:var(--bg-card);
+  border:1.5px solid var(--border-primary);
+  border-radius:var(--radius-lg);
+  width:min(640px,92vw);max-height:84vh;overflow-y:auto;
+  padding:1.7rem;
+  box-shadow:0 20px 60px rgba(124,92,255,0.35), 0 0 0 1px rgba(255,255,255,0.05) inset;
+}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:1.1rem}
+.modal-title{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--text-primary)}
+.modal-close{background:var(--bg-chip);border:none;cursor:pointer;color:var(--text-secondary);font-size:18px;line-height:1;padding:6px 11px;border-radius:var(--radius-pill);transition:all .15s}
+.modal-close:hover{color:#fff;background:var(--grad-1)}
+.prompt-box{
+  background:#0a0717;
+  border:1.5px solid var(--border-secondary);
+  border-radius:var(--radius-md);
+  padding:1.2rem;font-size:13px;line-height:1.75;
+  white-space:pre-wrap;font-family:var(--font-mono);
+  color:var(--grad-3);margin-bottom:1.2rem;overflow-x:auto;
+}
+.modal-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.1rem}
+.modal-actions{display:flex;gap:10px}
+.modal-actions button{
+  font-family:var(--font-sans);
+  font-size:14px;font-weight:700;
+  padding:10px 22px;
+  border:1.5px solid var(--border-secondary);
+  border-radius:var(--radius-pill);
+  background:transparent;cursor:pointer;
+  color:var(--text-secondary);
+  display:flex;align-items:center;gap:7px;
+  transition:all .18s;
+}
+.modal-actions button:hover{background:var(--bg-chip);color:var(--text-primary)}
+.modal-actions .primary-btn{
+  background:linear-gradient(95deg, var(--grad-1), var(--grad-2));
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 16px rgba(255,95,162,0.35);
+}
+.modal-actions .primary-btn:hover{opacity:.9;color:#fff;transform:translateY(-1px)}
+
+.empty{text-align:center;padding:3.5rem;color:var(--text-tertiary);font-size:15px;font-family:var(--font-display);font-weight:600}
+.footer-note{text-align:center;font-size:12.5px;color:var(--text-tertiary);margin-top:3rem;font-family:var(--font-mono)}
+.footer-note span{color:var(--grad-4)}
+</style>
+</head>
+<body>
+
+<h1 class="sr-only">Org Prompt Library — token-optimized prompts by role, SDLC phase, project iteration mode, and GitHub Copilot</h1>
+
+<div class="page">
+  <div class="top-bar">
+    <div>
+      <h1><i class="ti ti-books" aria-hidden="true"></i>Org Prompt Library <span class="count-badge" id="total-count"></span></h1>
+      <div class="subtitle">Token-optimized, reusable prompts for SDLC, engineering roles, and Copilot</div>
+    </div>
+    <div class="search-wrap"><i class="ti ti-search" aria-hidden="true" style="color:var(--text-tertiary);font-size:16px"></i><input id="search" placeholder="Search prompts…" oninput="render()"></div>
+  </div>
+  <div class="role-tabs" id="role-tabs"></div>
+  <div class="note-banner" id="note-banner"></div>
+  <div class="prompt-grid" id="grid"></div>
+  <div class="footer-note">Click any card to view, copy, or use the full prompt.</div>
+</div>
+
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="m-title"></div>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-tags" id="m-tags"></div>
+    <div class="prompt-box" id="m-body"></div>
+    <div class="modal-actions">
+      <button class="primary-btn" onclick="copyModal()"><i class="ti ti-copy"></i> Copy prompt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROLES={
+  "All":"ti-layout-grid",
+  "Copilot":"ti-brand-github",
+  "SDLC Phase":"ti-recycle",
+  "Project Mode":"ti-refresh-alert",
+  "Developer":"ti-code",
+  "Tester":"ti-test-pipe",
+  "Scrum Master":"ti-refresh",
+  "Product Owner":"ti-target",
+  "Architect":"ti-components",
+  "DevOps":"ti-server",
+  "Tech Lead":"ti-crown"
+};
+
+const COLORS={
+  "Developer":"#185FA5","Tester":"#0F6E56","Scrum Master":"#533AB7",
+  "Product Owner":"#D85A30","Architect":"#993556","DevOps":"#BA7517",
+  "Tech Lead":"#639922","Project Mode":"#993556","SDLC Phase":"#185FA5","Copilot":"#0F6E56"
+};
+const BG={
+  "Developer":"#E6F1FB","Tester":"#E1F5EE","Scrum Master":"#EEEDFE",
+  "Product Owner":"#FAECE7","Architect":"#FBEAF0","DevOps":"#FAEEDA",
+  "Tech Lead":"#EAF3DE","Project Mode":"#FBEAF0","SDLC Phase":"#E6F1FB","Copilot":"#E1F5EE"
+};
+
+const NOTES={
+  "Copilot":"Designed for GitHub Copilot Chat (VS Code / JetBrains). Uses #file, #selection, #codebase, @workspace, and slash commands. Copy directly into Copilot Chat — context comes from the editor, not placeholders."
+};
+
+const PROMPTS=[
+// ── COPILOT — 12 ──────────────────────────────────────────────────────
+{role:"Copilot",isNew:true,title:"Review selection — diff-equivalent",tags:["review","#selection"],desc:"Review only the highlighted code, not the whole file — mirrors diff-only review for Copilot.",prompt:`Review #selection only.
+Check for: bugs, null/edge cases, security issues, naming clarity, missing test coverage.
+Label each finding: [critical] [warning] [suggestion]
+Output: Finding → location → issue → one-line fix.
+Do not comment on unchanged code outside the selection or restate the whole file.`},
+{role:"Copilot",isNew:true,title:"Implement from spec — scoped file",tags:["implement","#file"],desc:"Implement a feature in a named file only, matching existing style from one reference file.",prompt:`Implement this in #file:<target-file>.
+Spec: [2-3 sentence feature description]
+Match the style/patterns used in #file:<reference-file>.
+Constraints: no new dependencies unless I confirm. Don't touch other files.
+Output code only, with inline comments for non-obvious logic.`},
+{role:"Copilot",isNew:true,title:"/fix with root-cause explanation",tags:["debug","/fix"],desc:"Use Copilot's /fix on a selection but force a root-cause explanation before the patch.",prompt:`/fix #selection
+Before patching: state the root cause in 1 sentence.
+Then: the fix.
+Then: one risk the fix could introduce.
+Keep total response under 6 lines outside the code block.`},
+{role:"Copilot",isNew:true,title:"/tests — edge-case focused",tags:["testing","/tests"],desc:"Generate unit tests for the selected function, explicitly prioritizing edge cases over happy path.",prompt:`/tests #selection
+Prioritize: null/empty inputs, boundary values, type mismatches, error/exception paths.
+Include happy path only once, briefly.
+Use the testing framework already in this repo (infer from existing test files via #codebase if unsure).`},
+{role:"Copilot",isNew:true,title:"@workspace — repo-wide impact check",tags:["impact","@workspace"],desc:"Check what else in the codebase touches a function/symbol before renaming or changing its signature.",prompt:`@workspace Find all usages of <function/symbol name>.
+List: file + line + how it's used (call, import, override).
+Flag any usage that would break if I change its signature to: [describe new signature].
+Do not modify anything yet — impact list only.`},
+{role:"Copilot",isNew:true,title:"/explain — onboarding to unfamiliar code",tags:["explain","/explain"],desc:"Explain a selected block of unfamiliar code in plain terms before modifying it.",prompt:`/explain #selection
+Explain in plain language: what it does, why it likely exists, what would break if removed.
+Flag anything that looks like a workaround or non-obvious dependency.
+Keep it under 8 lines.`},
+{role:"Copilot",isNew:true,title:"Commit message from staged changes",tags:["git","commit"],desc:"Generate a conventional commit message from the actual diff, not a guess.",prompt:`Using the current git diff (staged changes), write a conventional commit message.
+Format: <type>(<scope>): <summary>
+Body: 2-3 bullets max, only for non-obvious changes.
+Do not invent changes not present in the diff.`},
+{role:"Copilot",isNew:true,title:"PR description generator",tags:["git","pull-request"],desc:"Generate a PR description from the diff between current branch and main.",prompt:`@workspace Compare current branch against main.
+Generate a PR description:
+- Summary (2-3 sentences)
+- Changes (bullet list, grouped by file/module)
+- Testing done (infer from test file changes, else mark "manual verification needed")
+- Risk/rollback note if changes touch shared/critical paths
+Do not pad with generic boilerplate.`},
+{role:"Copilot",isNew:true,title:"Inline doc generator — function scope",tags:["docs","#selection"],desc:"Generate docstring/JSDoc for the selected function only, matching repo convention.",prompt:`Add documentation to #selection only.
+Match the doc style already used elsewhere in #codebase (JSDoc / docstring / etc — infer, don't ask).
+Include: params, return, exceptions/errors, one usage example if non-trivial.
+Do not add documentation to other functions in the file.`},
+{role:"Copilot",isNew:true,title:"Security review — changed files only",tags:["security","@workspace"],desc:"Run a security pass limited to files changed in the current branch, not the full repo.",prompt:`@workspace List files changed in this branch vs main.
+For each changed file: review for injection, broken auth, hardcoded secrets, unsafe deserialization, missing input validation.
+Output: File → Issue → Severity → Fix.
+Skip files with no changes. Skip generated/vendor files.`},
+{role:"Copilot",isNew:true,title:"Custom instructions file — repo setup",tags:["setup","copilot-instructions"],desc:"Generate a .github/copilot-instructions.md so Copilot stops needing repeated context per session.",prompt:`@workspace Analyze this repo's structure, language, framework, and naming conventions.
+Generate the content for .github/copilot-instructions.md covering:
+- Project summary (2-3 sentences)
+- Coding conventions to follow (naming, error handling, testing pattern)
+- Things to avoid (deprecated patterns, files not to touch)
+- Preferred libraries already in use — don't suggest alternatives
+Output: file content only, ready to save.`},
+{role:"Copilot",isNew:true,title:"Refactor with test safety net",tags:["refactor","/tests"],desc:"Refactor a selection only after confirming test coverage exists, generating tests first if missing.",prompt:`@workspace Check if #selection has existing test coverage.
+If no coverage: /tests #selection first, output those tests.
+Then refactor #selection for [readability/performance — specify].
+Confirm: refactored version must pass the same tests unchanged.
+Output: tests (if generated) + refactored code + 3-bullet change summary.`},
+
+// ── SDLC PHASE — 12 ───────────────────────────────────────────────────
+{role:"SDLC Phase",title:"Requirements elicitation",tags:["requirements","discovery"],desc:"Turn a raw business problem into structured requirements before design starts.",prompt:`BUSINESS PROBLEM: [describe in plain language]
+STAKEHOLDERS: [who's involved]
+KNOWN CONSTRAINTS: [budget, time, tech, compliance]
+
+EXTRACT:
+- Functional requirements (numbered)
+- Non-functional requirements
+- Assumptions
+- Open questions to validate with stakeholders
+OUTPUT: Structured list only. No solutioning yet.`},
+{role:"SDLC Phase",title:"Feasibility & risk brief",tags:["feasibility","planning"],desc:"Assess technical/business feasibility before committing to a project.",prompt:`PROPOSED PROJECT: [1-2 sentence description]
+REQUIREMENTS: [list key ones]
+CONSTRAINTS: [team, budget, timeline, tech stack]
+
+ASSESS:
+- Technical feasibility [Confident/Probable/Speculative]
+- Business feasibility
+- Top 3 risks
+- Effort signal: [S/M/L/XL]
+VERDICT: Go / Go with conditions / No-go + reason.`},
+{role:"SDLC Phase",title:"Estimation — story/effort sizing",tags:["estimation","planning"],desc:"Size a set of requirements into effort estimates without full design docs.",prompt:`REQUIREMENTS / STORIES: [list]
+TEAM CONTEXT: [size, familiarity with domain/tech]
+REFERENCE: [past similar work + actual effort, if known]
+
+FOR EACH ITEM:
+- Size: [S/M/L/XL or story points]
+- Key uncertainty driving the estimate
+- Dependency that could blow the estimate
+OUTPUT: Table. Flag items needing spike/discovery before sizing.`},
+{role:"SDLC Phase",title:"High-level design (HLD)",tags:["design","HLD"],desc:"Produce a high-level design from requirements before detailed design.",prompt:`REQUIREMENTS: [list functional + key NFRs]
+EXISTING SYSTEM CONTEXT: [what it integrates with]
+CONSTRAINTS: [tech stack, team skills]
+
+PRODUCE HLD:
+- Components and responsibilities
+- Data flow (text description)
+- Integration points
+- Key design decisions + alternatives rejected
+SKIP: implementation detail, code, low-level schema.`},
+{role:"SDLC Phase",title:"Low-level design (LLD) from HLD",tags:["design","LLD"],desc:"Expand one HLD component into low-level design without re-deriving the whole system.",prompt:`HLD CONTEXT: [paste only the relevant component description]
+COMPONENT TO DETAIL: [name]
+INTERFACES IT MUST EXPOSE: [list]
+
+PRODUCE LLD:
+- Class/module breakdown
+- Method signatures (no implementation)
+- Data structures
+- Error handling approach
+SCOPE: This component only. Do not redesign other components.`},
+{role:"SDLC Phase",title:"Build readiness checklist",tags:["build","gate"],desc:"Verify a story/feature is ready to start development — gate before build phase.",prompt:`STORY/FEATURE: [paste title + AC]
+DESIGN ARTIFACT: [link or 1-line confirm exists]
+DEPENDENCIES: [list]
+
+CHECK:
+- AC clear and testable? [yes/no + gap]
+- Design approved? [yes/no]
+- Dependencies resolved or mocked? [yes/no]
+- Test data/environment ready? [yes/no]
+VERDICT: Ready / Blocked — list blockers only.`},
+{role:"SDLC Phase",title:"UAT scenario builder",tags:["UAT","acceptance"],desc:"Generate user acceptance test scenarios from acceptance criteria for business sign-off.",prompt:`FEATURE: [describe]
+ACCEPTANCE CRITERIA: [paste]
+BUSINESS USER PROFILE: [who will test — role, technical level]
+
+GENERATE:
+- UAT scenarios in plain business language (no technical jargon)
+- Pass/fail criteria per scenario
+- Sign-off checklist
+SKIP: technical test cases, automation scripts.`},
+{role:"SDLC Phase",title:"Go-live / release checklist",tags:["release","go-live"],desc:"Build a go-live checklist for a release without re-describing the whole project.",prompt:`RELEASE: [name/version]
+SCOPE: [what's shipping]
+ENVIRONMENTS: [staging → prod path]
+ROLLBACK PLAN: [exists? describe or TBD]
+
+CHECKLIST:
+- Pre-release (tests passed, approvals, comms sent)
+- Release steps (deploy order, feature flags, migrations)
+- Post-release verification (smoke tests, monitoring)
+- Rollback trigger conditions
+OUTPUT: Checklist only, no narrative.`},
+{role:"SDLC Phase",title:"Cutover plan — migration/release",tags:["cutover","migration"],desc:"Plan a cutover window for a major release or migration with minimal downtime.",prompt:`CUTOVER SCOPE: [what's switching — system, data, traffic]
+DOWNTIME TOLERANCE: [acceptable window]
+DEPENDENCIES: [systems/teams involved]
+ROLLBACK WINDOW: [how long we can still revert]
+
+PLAN:
+- Sequence of steps with owner per step
+- Go/no-go checkpoints
+- Communication plan (who's notified, when)
+- Rollback trigger + procedure
+OUTPUT: Timeline table. No background context.`},
+{role:"SDLC Phase",title:"Post-release health check",tags:["post-release","monitoring"],desc:"Assess a release's health in the first 24-72 hours using only delta signals.",prompt:`RELEASE: [name/version, deployed when]
+BASELINE METRICS (pre-release): [error rate, latency, usage]
+CURRENT METRICS (post-release): [same metrics now]
+ALERTS FIRED: [list, if any]
+
+ASSESS:
+- Deviation from baseline [significant/normal] per metric
+- Correlation with release vs unrelated
+VERDICT: Healthy / Watch / Rollback recommended — with reason.`},
+{role:"SDLC Phase",title:"Maintenance triage — production issue",tags:["maintenance","support"],desc:"Triage a production support ticket into severity and next action.",prompt:`ISSUE REPORTED: [describe]
+SYSTEM: [affected component]
+USERS AFFECTED: [count/scope]
+WORKAROUND AVAILABLE: [yes/no]
+
+TRIAGE:
+- Severity: [P1/P2/P3/P4] + justification
+- Likely root cause area (not full RCA yet)
+- Immediate action (hotfix / workaround / monitor)
+- Owner type to assign
+OUTPUT: 4 lines max.`},
+{role:"SDLC Phase",title:"Decommission / EOL plan",tags:["decommission","EOL"],desc:"Plan retirement of a system or feature with dependency and data handling in scope.",prompt:`SYSTEM/FEATURE TO RETIRE: [name]
+CURRENT USAGE: [who/what still depends on it]
+DATA INVOLVED: [retention requirement, if any]
+TARGET EOL DATE: [date]
+
+PLAN:
+- Dependency migration steps (what must move first)
+- Data retention/archival/deletion approach
+- Communication timeline to affected users
+- Final shutdown checklist
+RISK: What breaks if a dependency is missed.`},
+
+// ── PROJECT MODE — 12 ─────────────────────────────────────────────────
+{role:"Project Mode",title:"Change intake — diff only",tags:["change","diff","token-saver"],desc:"Tell Claude exactly what changed and what to re-do. No re-reading unchanged output.",prompt:`PROJECT CONTEXT: Already shared in this project. Do not re-read unchanged files.
+WHAT CHANGED: [describe only the delta — e.g. "column X renamed to Y in schema"]
+AFFECTED OUTPUT SECTIONS: [list only the sections that need updating]
+UNCHANGED: [list sections to leave untouched]
+
+TASK: Apply change to affected sections only.
+OUTPUT: Changed sections only — label each with section name.
+DO NOT: restate unchanged content, re-summarize the full project, re-read context you already have.`},
+{role:"Project Mode",title:"Multi-change batch",tags:["batch","changes","efficiency"],desc:"Queue multiple changes in one prompt to avoid back-and-forth token waste.",prompt:`PROJECT CONTEXT: Already shared. Skip rediscovery.
+CHANGES BATCH:
+1. [Change 1 — what + where]
+2. [Change 2 — what + where]
+3. [Change 3 — what + where]
+[add more as needed]
+
+DEPENDENCIES: [list if any change depends on another — process in order]
+OUTPUT: Process all changes. For each:
+  CHANGE [N]: [section/file name]
+  RESULT: [updated content only]
+SKIP: changes not listed, unchanged sections, summaries.`},
+{role:"Project Mode",title:"Output section regenerate",tags:["regen","section","targeted"],desc:"Regenerate one specific section of the output without touching the rest.",prompt:`PROJECT CONTEXT: Already shared.
+SECTION TO REGENERATE: [exact section name or heading]
+REASON FOR REGEN: [what was wrong or what new input changes it]
+NEW INPUT FOR THIS SECTION: [paste only what's new or different]
+OTHER SECTIONS: Do not touch.
+
+OUTPUT: Regenerated section only. Same format as original unless format itself is the issue.`},
+{role:"Project Mode",title:"Conflict resolver — two versions",tags:["conflict","merge","delta"],desc:"Two versions of output conflict after separate changes. Pick the right one or merge.",prompt:`PROJECT CONTEXT: Already shared.
+VERSION A: [paste or describe section]
+VERSION B: [paste or describe section]
+WHAT CHANGED BETWEEN THEM: [explain the change that caused the split]
+GROUND TRUTH: [which input/requirement takes precedence]
+
+TASK: Resolve conflict.
+OUTPUT:
+- Winner: A / B / Merged
+- Merged result (if applicable)
+- Reason: [1-2 sentences]
+- Risk: [what the losing version got right that we're now dropping]`},
+{role:"Project Mode",title:"Cascading impact check",tags:["impact","cascade","dependencies"],desc:"A change was made — identify everything else in the output that breaks or needs updating.",prompt:`PROJECT CONTEXT: Already shared.
+CHANGE MADE: [describe what was just changed]
+FULL OUTPUT STRUCTURE: [list all sections/components by name only — no content needed]
+
+TASK: Impact analysis only. Do not regenerate content yet.
+OUTPUT:
+- Directly affected: [sections that reference the changed element]
+- Indirectly affected: [sections that depend on directly affected ones]
+- Safe to leave: [sections with no dependency]
+NEXT STEP RECOMMENDATION: Which to fix first and why.`},
+{role:"Project Mode",title:"State snapshot — context compressor",tags:["state","compression","reuse"],desc:"Compress current project state into a reusable summary before a long change cycle.",prompt:`PROJECT CONTEXT: Already shared.
+CURRENT OUTPUT: [paste or confirm it's in project]
+CHANGES APPLIED SO FAR: [list briefly]
+OPEN CHANGES PENDING: [list]
+
+GENERATE: project-state.md snapshot.
+INCLUDE:
+- Current output structure (section names + 1-line status each)
+- Decisions made and rationale
+- Pending changes queue
+- Known risks or open questions
+FORMAT: Markdown. Optimized for reuse as context in next session — not for human reading.`},
+{role:"Project Mode",title:"Change validation — before apply",tags:["validation","pre-change"],desc:"Validate a proposed change against existing output before applying it.",prompt:`PROJECT CONTEXT: Already shared.
+PROPOSED CHANGE: [describe the change]
+SECTION TO CHANGE: [name]
+CURRENT CONTENT OF THAT SECTION: [paste only that section]
+
+VALIDATE:
+- Is the change consistent with other sections? [yes / conflict — list conflicts]
+- Does it break any dependency? [yes / no — list if yes]
+- Is the change complete or does it require follow-on changes elsewhere?
+VERDICT: Safe to apply / Needs adjustment / Requires cascade update
+DO NOT apply the change yet — validation only.`},
+{role:"Project Mode",title:"Rollback — undo last change",tags:["rollback","undo"],desc:"Revert the last applied change and restore the prior state of a section.",prompt:`PROJECT CONTEXT: Already shared.
+SECTION AFFECTED: [name]
+CHANGE THAT WAS APPLIED: [describe what was changed]
+PRIOR STATE: [paste previous version of the section OR describe it]
+REASON FOR ROLLBACK: [why it didn't work]
+
+TASK: Restore section to prior state.
+OUTPUT: Restored section content only.
+FLAG: Any downstream sections that referenced the rolled-back content and now need review.`},
+{role:"Project Mode",title:"Change log updater",tags:["changelog","tracking"],desc:"Update the project change log after a batch of changes — minimal, structured.",prompt:`PROJECT CONTEXT: Already shared.
+CHANGES APPLIED THIS SESSION:
+[list each — what changed, which section, why]
+
+UPDATE: CHANGELOG.md
+FORMAT PER ENTRY:
+- [DATE] [SECTION] [CHANGE TYPE: added/modified/removed] — [1-line description] — [rationale in ≤8 words]
+SKIP: Internal reasoning, unchanged sections, process notes.
+OUTPUT: New changelog entries only — append-ready.`},
+{role:"Project Mode",title:"Output consistency audit",tags:["audit","consistency"],desc:"Audit all sections of the output for internal consistency after many changes.",prompt:`PROJECT CONTEXT: Already shared.
+ALL OUTPUT SECTIONS: [list section names — Claude already has content]
+RECENT CHANGES: [list what was changed this session]
+
+AUDIT FOR:
+- Naming inconsistencies (same thing called different names across sections)
+- Contradictions between sections
+- Orphaned references (section references something that was removed)
+- Format drift (sections that diverged from the agreed format)
+OUTPUT: Issue | Section(s) | Type | Fix needed
+PRIORITY: Contradictions first, then naming, then format.`},
+{role:"Project Mode",title:"New requirement — impact-first",tags:["new-req","impact"],desc:"A new requirement arrived mid-project. Assess impact before touching any output.",prompt:`PROJECT CONTEXT: Already shared.
+NEW REQUIREMENT: [describe]
+SOURCE: [stakeholder / tech constraint / discovery]
+CURRENT OUTPUT STRUCTURE: [list section names only]
+
+STEP 1 — IMPACT: Which sections are affected and how?
+STEP 2 — EFFORT: Small tweak / section rewrite / structural change?
+STEP 3 — RISK: What existing decisions conflict with this requirement?
+STEP 4 — RECOMMENDATION: Sequence of changes to apply.
+DO NOT make any changes yet — assessment only.`},
+{role:"Project Mode",title:"Final output assembler",tags:["assembly","final","delivery"],desc:"Assemble all changed sections into the final coherent output after a change cycle.",prompt:`PROJECT CONTEXT: Already shared.
+SECTIONS WITH APPROVED CHANGES: [list section names that were updated this session]
+SECTIONS UNCHANGED: [list]
+FINAL FORMAT REQUIREMENT: [document type, heading structure, any formatting rules]
+
+TASK: Assemble final output.
+RULES:
+- Use approved changed versions for updated sections
+- Use existing content for unchanged sections (do not rewrite)
+- Apply consistent formatting throughout
+- Flag any section where content is missing or marked TBD
+OUTPUT: Full assembled document. No commentary — content only.`},
+
+// ── DEVELOPER — 10 ────────────────────────────────────────────────────
+{role:"Developer",title:"Code review — diff only",tags:["token-saver","git"],desc:"Review only changed lines for bugs, edge cases, and style violations.",prompt:`CONTEXT: [paste git diff or changed function only — no full file]
+TASK: Review the provided diff/function.
+CHECK: bugs, null/edge cases, security issues, naming clarity, test coverage gaps.
+LABEL findings: [critical] [warning] [suggestion]
+OUTPUT FORMAT:
+- Finding: <label> <location> <issue>
+- Fix: <one-liner or code snippet>
+SKIP: unchanged code, formatting nits, praise.`},
+{role:"Developer",title:"Implement feature — spec-first",tags:["spec","incremental"],desc:"Generate implementation from a spec without scanning the repo.",prompt:`CONTEXT (provide all that apply):
+- Feature spec: [describe in 2-3 sentences]
+- Affected files/functions: [list only]
+- Constraints: [language, framework, pattern to follow]
+- Existing similar code snippet: [optional — paste 1 example for style reference]
+
+TASK: Implement the feature.
+RULES: Only touch listed files. No new dependencies unless flagged. Match existing code style.
+OUTPUT: Code only + inline comments for non-obvious logic. No explanation blocks.`},
+{role:"Developer",title:"Debug — error-first",tags:["debug","minimal-context"],desc:"Diagnose a bug with minimum context — error message + relevant snippet only.",prompt:`ERROR: [paste exact error message + stack trace]
+RELEVANT CODE: [paste only the function/block throwing the error]
+WHAT I TRIED: [list attempts]
+
+TASK: Diagnose root cause.
+OUTPUT:
+1. Root cause: [1 sentence]
+2. Fix: [code snippet]
+3. Why it works: [1-2 sentences]
+4. Risk: [what could break]`},
+{role:"Developer",title:"Refactor — function scope",tags:["refactor","scoped"],desc:"Refactor a single function for readability, performance, or testability.",prompt:`FUNCTION TO REFACTOR: [paste function]
+GOAL: [pick one — readability / performance / testability / all]
+CONSTRAINTS: [same interface? same language? no new deps?]
+
+OUTPUT:
+- Refactored function
+- Change summary (bullet list, max 5 items)
+- Breaking change risk: [none / low / medium — explain if medium+]`},
+{role:"Developer",title:"Write unit tests — function scope",tags:["testing","tdd"],desc:"Generate unit tests for a single function covering happy path, edge cases, and failures.",prompt:`FUNCTION: [paste function signature + body]
+FRAMEWORK: [Jest / pytest / JUnit / etc.]
+CONTEXT: [any mocks or fixtures already available]
+
+GENERATE:
+- Happy path tests
+- Edge cases (null, empty, boundary)
+- Error/exception cases
+SKIP: integration tests, test infrastructure setup.`},
+{role:"Developer",title:"API design review",tags:["api","design"],desc:"Review an API contract for consistency, REST compliance, and security issues.",prompt:`API SPEC: [paste endpoint definitions — routes, methods, request/response shapes]
+CONTEXT: [public API? internal? auth method?]
+
+REVIEW FOR:
+- REST violations
+- Inconsistent naming or versioning
+- Missing error responses
+- Security gaps (auth, rate limit, input validation)
+OUTPUT: Table — Issue | Severity | Fix recommendation`},
+{role:"Developer",title:"Performance bottleneck analysis",tags:["perf","analysis"],desc:"Identify performance issues in a given code block or query.",prompt:`CODE / QUERY: [paste the slow block]
+RUNTIME CONTEXT: [language, DB, typical input size, observed latency]
+
+FIND: Top 3 bottlenecks.
+FOR EACH: Root cause + fix + expected gain.
+LABEL: [quick win] [medium effort] [major refactor]
+DO NOT: suggest profiling tools — assume profiling was done, this is the hot path.`},
+{role:"Developer",title:"Documentation — function/module",tags:["docs","minimal"],desc:"Generate concise docstrings and README snippet for a function or module.",prompt:`CODE: [paste function or module]
+AUDIENCE: [internal devs / public API consumers]
+FORMAT: [JSDoc / Python docstring / Markdown]
+
+GENERATE:
+- Docstring (params, return, raises, example)
+- One-paragraph README entry
+SKIP: tutorials, background theory, links.`},
+{role:"Developer",title:"Dependency upgrade impact",tags:["deps","risk"],desc:"Assess risk of upgrading a dependency before touching package files.",prompt:`DEPENDENCY: [name + current version → target version]
+USAGE: [how we use it — paste import/usage snippet]
+CHANGELOG / BREAKING CHANGES: [paste relevant section or summarize]
+
+ASSESS:
+- Breaking changes that affect our usage
+- Migration steps required
+- Risk: [low / medium / high] — justify
+OUTPUT: Go / No-go recommendation + action list.`},
+{role:"Developer",title:"Security audit — code block",tags:["security","audit"],desc:"Audit a function or endpoint for OWASP Top 10 vulnerabilities.",prompt:`CODE: [paste function or route handler]
+CONTEXT: [user input? DB access? auth check present?]
+
+AUDIT FOR: injection, broken auth, sensitive data exposure, broken access control, security misconfiguration.
+OUTPUT: Vulnerability | OWASP category | Severity | Fix
+SKIP: theoretical risks not applicable to this code.`},
+
+// ── TESTER — 10 ───────────────────────────────────────────────────────
+{role:"Tester",title:"Test plan from user story",tags:["planning","story"],desc:"Generate a test plan from a user story without needing full spec docs.",prompt:`USER STORY: [paste story + acceptance criteria]
+SCOPE: [UI / API / integration / all]
+
+GENERATE:
+- Test scenarios (happy path, alternate, negative)
+- Entry/exit criteria
+- Data requirements (describe only, no scripts)
+SKIP: test case IDs, formal template fields.`},
+{role:"Tester",title:"Edge case generator",tags:["edge-cases","coverage"],desc:"Generate edge cases for a function or feature from its description alone.",prompt:`FEATURE / FUNCTION: [describe behavior in 2-3 sentences]
+INPUT TYPES: [list expected inputs]
+
+GENERATE: Edge cases only — boundary values, null/empty, invalid types, concurrency, overflow.
+FORMAT: Input | Expected behavior | Risk if missed
+DO NOT: include happy path cases.`},
+{role:"Tester",title:"Bug report — structured",tags:["bug","reporting"],desc:"Structure a raw bug observation into a clean, reproducible report.",prompt:`RAW OBSERVATION: [describe what you saw]
+ENV: [OS, browser, version, env — dev/staging/prod]
+
+STRUCTURE INTO:
+- Title: [1 line, verb-first]
+- Steps to reproduce: [numbered]
+- Expected: [1 sentence]
+- Actual: [1 sentence]
+- Severity: [critical/major/minor/cosmetic] + justification
+- Attachments needed: [list]`},
+{role:"Tester",title:"Automation script review",tags:["automation","review"],desc:"Review a test automation script for flakiness, maintainability, and coverage gaps.",prompt:`SCRIPT: [paste test file or key test block]
+FRAMEWORK: [Selenium / Cypress / Playwright / pytest / etc.]
+
+REVIEW FOR:
+- Flaky patterns (hard waits, brittle selectors, order dependency)
+- Missing assertions
+- Maintainability issues (magic strings, no page objects)
+OUTPUT: Issue | Type | Fix recommendation
+LABEL: [flaky risk] [missing coverage] [maintainability]`},
+{role:"Tester",title:"Regression test selection",tags:["regression","risk-based"],desc:"Identify which existing tests to run based on a code change — risk-based selection.",prompt:`CHANGED FILES / COMPONENTS: [list]
+CHANGE SUMMARY: [what was changed — 2-3 sentences]
+TEST SUITE INVENTORY: [paste test file names or modules]
+
+SELECT: Tests to run for this change.
+RATIONALE: For each selected area — why it's at risk.
+OUTPUT: Run / Skip / Monitor — with reason.`},
+{role:"Tester",title:"API test cases from contract",tags:["api","contract"],desc:"Generate API test cases from an endpoint contract without implementation details.",prompt:`ENDPOINT: [method + path]
+REQUEST SCHEMA: [params, headers, body shape]
+RESPONSE SCHEMA: [expected fields + status codes]
+
+GENERATE:
+- Positive cases (valid inputs → expected response)
+- Negative cases (invalid input, missing fields, wrong types)
+- Auth cases (missing token, expired, insufficient scope)
+FORMAT: Case name | Input | Expected status | Expected response field check`},
+{role:"Tester",title:"Performance test scenario",tags:["perf","load"],desc:"Define load test scenarios for a feature from its usage description.",prompt:`FEATURE: [describe the feature and typical user flow]
+EXPECTED LOAD: [concurrent users / requests per second]
+SLA: [response time target, error rate threshold]
+
+DEFINE:
+- Baseline scenario
+- Stress scenario
+- Spike scenario
+FOR EACH: user actions, data volume, ramp-up, pass/fail criteria.
+SKIP: tool configuration, scripts.`},
+{role:"Tester",title:"Acceptance criteria validation",tags:["AC","coverage"],desc:"Map acceptance criteria to test scenarios and flag gaps.",prompt:`ACCEPTANCE CRITERIA: [paste AC list]
+EXISTING TEST SCENARIOS (if any): [paste or describe]
+
+MAP: Each AC → test scenarios that cover it.
+FLAG: ACs with no coverage, ambiguous ACs, testability issues.
+OUTPUT: AC | Covered by | Gap / Risk`},
+{role:"Tester",title:"Test data design",tags:["test-data","design"],desc:"Design test data sets for a feature without generating actual SQL or scripts.",prompt:`FEATURE: [describe]
+DATA ENTITIES INVOLVED: [list tables/objects]
+KEY SCENARIOS TO COVER: [list]
+
+DESIGN:
+- Minimal dataset to cover all scenarios
+- Boundary and edge values per field
+- Dependencies between data records
+OUTPUT: Dataset description table — no SQL, no scripts.`},
+{role:"Tester",title:"Exploratory test charter",tags:["exploratory","charter"],desc:"Create a focused exploratory testing charter for a feature or change.",prompt:`FEATURE / CHANGE: [describe]
+RISK AREAS (if known): [list]
+TIME BUDGET: [e.g. 90 minutes]
+
+CHARTER:
+- Mission: [1 sentence]
+- Areas to explore: [3-5 focus areas]
+- Attack angles: [input manipulation, state changes, concurrency, etc.]
+- Oracles: [how to recognize a bug]
+- Out of scope: [what to skip]`},
+
+// ── SCRUM MASTER — 8 ──────────────────────────────────────────────────
+{role:"Scrum Master",title:"Sprint retrospective facilitator",tags:["retro","facilitation"],desc:"Generate a structured retro agenda and probing questions from sprint notes.",prompt:`SPRINT SUMMARY: [what was planned vs delivered, key incidents]
+TEAM SIZE: [number]
+FORMAT: [remote / in-person]
+TIME BOX: [e.g. 60 min]
+
+GENERATE:
+- Retro structure with time allocations
+- 3 probing questions per section (went well, improve, action)
+- One action item template
+AVOID: generic feel-good questions. Push for root cause.`},
+{role:"Scrum Master",title:"Impediment escalation brief",tags:["impediment","escalation"],desc:"Convert a team impediment into a concise escalation brief for stakeholders.",prompt:`IMPEDIMENT: [describe the blocker]
+IMPACT: [which stories/teams blocked, since when]
+ATTEMPTED RESOLUTIONS: [list]
+ESCALATE TO: [role/team]
+
+WRITE: 1-paragraph escalation brief.
+INCLUDE: impact, urgency, specific ask.
+TONE: factual, no blame.`},
+{role:"Scrum Master",title:"Sprint goal writer",tags:["sprint","goal"],desc:"Craft a focused sprint goal from a backlog of selected stories.",prompt:`SELECTED STORIES: [list titles or summaries]
+BUSINESS CONTEXT: [what matters this sprint — release? milestone? customer need?]
+
+WRITE: 1-2 sentence sprint goal.
+CRITERIA: Specific, outcome-focused, testable by end of sprint.
+GENERATE 3 OPTIONS — label each with its strategic emphasis.`},
+{role:"Scrum Master",title:"Velocity & capacity analysis",tags:["metrics","capacity"],desc:"Analyze velocity trend and flag capacity risks for sprint planning.",prompt:`VELOCITY (last 3-5 sprints): [points completed per sprint]
+CAPACITY THIS SPRINT: [team members × available days]
+PLANNED POINTS: [proposed sprint backlog size]
+KNOWN RISKS: [leave, dependencies, tech debt work]
+
+ANALYZE:
+- Velocity trend (improving / declining / stable)
+- Capacity vs planned — over/under commit signal
+- Top risks
+RECOMMENDATION: Adjust load or flag concern.`},
+{role:"Scrum Master",title:"Daily standup anti-pattern detector",tags:["standup","coaching"],desc:"Review standup notes and identify dysfunctional patterns with coaching advice.",prompt:`STANDUP NOTES (last 3-5 days): [paste or summarize]
+TEAM SIZE: [number]
+STANDUP DURATION: [actual time]
+
+IDENTIFY: Anti-patterns (status reporting, problem-solving in standup, low engagement, missing blockers).
+FOR EACH: Pattern name + evidence + coaching suggestion.
+PRIORITY: Most harmful first.`},
+{role:"Scrum Master",title:"Definition of Done review",tags:["DoD","quality"],desc:"Evaluate a team's Definition of Done for completeness and enforceability.",prompt:`CURRENT DOD: [paste]
+TEAM CONTEXT: [product type, release cadence, quality incidents]
+
+EVALUATE:
+- Missing criteria (common gaps: performance, security, observability, documentation)
+- Vague/unenforceable criteria
+- Criteria too heavy for team stage
+OUTPUT: Keep / Improve / Add / Remove — with rationale for each item.`},
+{role:"Scrum Master",title:"Backlog health check",tags:["backlog","grooming"],desc:"Assess backlog quality and flag items that will cause sprint planning problems.",prompt:`BACKLOG (top 20-30 items): [paste titles and brief descriptions]
+SPRINT CADENCE: [1 or 2 weeks]
+
+FLAG:
+- Stories too large for one sprint
+- Missing acceptance criteria signals
+- Unclear or duplicate items
+- Dependency risks
+OUTPUT: Item | Issue type | Recommended action`},
+{role:"Scrum Master",title:"Team health pulse",tags:["health","morale"],desc:"Design a quick team health check from recent sprint observations.",prompt:`OBSERVATIONS: [describe recent team dynamics — communication, energy, conflict signals]
+LAST RETRO ACTIONS: [what was agreed]
+FOLLOW-THROUGH: [done / partial / ignored]
+
+GENERATE:
+- 5-question anonymous pulse survey
+- 2 facilitated discussion questions for next retro
+- Red flags to monitor`},
+
+// ── PRODUCT OWNER — 10 ────────────────────────────────────────────────
+{role:"Product Owner",title:"User story writer",tags:["story","AC"],desc:"Convert a feature idea into a well-formed user story with acceptance criteria.",prompt:`FEATURE IDEA: [describe in plain language]
+USER TYPE: [who benefits]
+BUSINESS GOAL: [why this matters now]
+
+WRITE:
+- User story: As a [user] I want [action] so that [benefit]
+- Acceptance criteria: [Given/When/Then — 3-5 scenarios]
+- Out of scope: [explicit exclusions]
+- Open questions: [what needs clarification before dev starts]`},
+{role:"Product Owner",title:"Backlog prioritization — WSJF",tags:["prioritization","WSJF"],desc:"Apply Weighted Shortest Job First scoring to a list of candidate features.",prompt:`FEATURES: [list with 1-line description each]
+CONTEXT: [business stage, constraints, strategic goals]
+
+SCORE EACH (1-10):
+- Business value
+- Time criticality
+- Risk reduction / opportunity enablement
+- Job size (inverse — smaller = higher score)
+
+CALCULATE: WSJF = (BV + TC + RR) / Job Size
+OUTPUT: Ranked table + top 3 recommendation with rationale.`},
+{role:"Product Owner",title:"Stakeholder ask → requirement",tags:["requirements","translation"],desc:"Convert a vague stakeholder request into a structured requirement.",prompt:`STAKEHOLDER ASK: [paste verbatim request]
+SOURCE: [who asked — role, not name]
+BUSINESS CONTEXT: [what problem they're solving]
+
+EXTRACT:
+- Underlying need (vs stated want)
+- Functional requirement (what system must do)
+- Non-functional requirements (performance, security, usability)
+- Assumptions made
+- Questions to validate with stakeholder`},
+{role:"Product Owner",title:"Release notes writer",tags:["release","communication"],desc:"Write user-facing release notes from a list of shipped stories.",prompt:`SHIPPED ITEMS: [list story titles or summaries]
+AUDIENCE: [end users / internal / developers]
+TONE: [formal / conversational]
+VERSION: [version number or sprint/date]
+
+WRITE:
+- 1-paragraph summary (what changed and why it matters)
+- Feature highlights (3-5 items, user benefit focused)
+- Bug fixes (brief list)
+- Known issues (if any)
+SKIP: technical implementation details, ticket IDs.`},
+{role:"Product Owner",title:"MVP scope definition",tags:["MVP","scope"],desc:"Define MVP scope from a product vision by applying must/should/won't framing.",prompt:`PRODUCT VISION: [2-3 sentences]
+CANDIDATE FEATURES: [list]
+CONSTRAINTS: [timeline, team size, budget signal]
+TARGET USER: [describe]
+
+DEFINE MVP:
+- Must have (core value delivery)
+- Should have (enhances value, deferrable)
+- Won't have in MVP (explicit exclusion + reason)
+SUCCESS METRIC: How to know the MVP worked.`},
+{role:"Product Owner",title:"Feature vs bug triage",tags:["triage","prioritization"],desc:"Triage incoming requests as bugs, features, or tech debt with priority recommendation.",prompt:`INCOMING ITEMS: [list with brief description each]
+PRODUCT STAGE: [early / growth / mature]
+CURRENT SPRINT LOAD: [% capacity remaining]
+
+FOR EACH ITEM:
+- Classification: Bug / Feature / Tech Debt / Won't Do
+- Priority: Critical / High / Medium / Low
+- Rationale: [1 sentence]
+- Suggested sprint: This / Next / Backlog / Never`},
+{role:"Product Owner",title:"OKR → feature mapping",tags:["OKR","alignment"],desc:"Map product features to OKRs to verify strategic alignment.",prompt:`OKRS: [list objectives and key results]
+PROPOSED FEATURES: [list]
+
+MAP: Each feature → OKR it supports.
+FLAG:
+- Features with no OKR alignment (cut candidates)
+- OKRs with no feature support (coverage gaps)
+- Features supporting multiple OKRs (high leverage)
+OUTPUT: Alignment matrix + top 3 investment recommendations.`},
+{role:"Product Owner",title:"Hypothesis-driven story",tags:["hypothesis","validation"],desc:"Reframe a feature as a testable hypothesis for build-measure-learn cycle.",prompt:`FEATURE IDEA: [describe]
+ASSUMPTION: [what must be true for this to create value]
+TARGET METRIC: [what would move if assumption is correct]
+
+REFRAME AS:
+- Hypothesis: We believe [feature] will [outcome] for [user] because [reason].
+- Minimum experiment: Smallest thing we can build to test it.
+- Success signal: [metric + threshold + time box]
+- Failure signal: [what tells us to pivot]`},
+{role:"Product Owner",title:"Competitive gap analysis brief",tags:["competitive","strategy"],desc:"Structure a competitive gap analysis from raw observations into a decision brief.",prompt:`COMPETITOR OBSERVATIONS: [list features/behaviors you've noticed]
+OUR PRODUCT STRENGTHS: [list]
+TARGET USER SEGMENT: [describe]
+
+ANALYZE:
+- Gaps where competitors lead
+- Areas where we lead
+- Gaps that matter most to target segment
+OUTPUT: Priority gap | User impact | Build/Buy/Partner/Ignore recommendation`},
+{role:"Product Owner",title:"Stakeholder update — sprint",tags:["communication","stakeholders"],desc:"Write a concise sprint update email for non-technical stakeholders.",prompt:`SPRINT OUTCOMES: [what shipped, what didn't, why]
+NEXT SPRINT FOCUS: [top 2-3 items]
+RISKS / DECISIONS NEEDED: [list]
+AUDIENCE: [exec / customer / cross-functional partner]
+
+WRITE: 200-word max update.
+STRUCTURE: Progress → Next → Needs/Risks.
+TONE: Confident, direct, no jargon.`},
+
+// ── ARCHITECT — 10 ────────────────────────────────────────────────────
+{role:"Architect",title:"Architecture decision record (ADR)",tags:["ADR","decision"],desc:"Document an architecture decision in standard ADR format.",prompt:`DECISION: [what are we deciding]
+CONTEXT: [why this decision is needed now]
+OPTIONS CONSIDERED: [list with 1-line description each]
+CHOSEN OPTION: [which one]
+RATIONALE: [why chosen over alternatives]
+CONSTRAINTS: [tech, team, time, cost]
+
+WRITE: ADR in format — Title / Status / Context / Decision / Consequences / Alternatives rejected.
+BE EXPLICIT about tradeoffs accepted.`},
+{role:"Architect",title:"System design review — RFC",tags:["design","RFC"],desc:"Review a system design proposal and identify risks before implementation.",prompt:`DESIGN SUMMARY: [describe proposed system — components, data flow, tech choices]
+SCALE TARGET: [users, requests/sec, data volume]
+CONSTRAINTS: [budget, team expertise, existing stack]
+
+REVIEW FOR:
+- Single points of failure
+- Scalability bottlenecks
+- Data consistency risks
+- Security boundary gaps
+- Operational complexity
+OUTPUT: Risk | Severity | Mitigation option
+VERDICT: Approve / Approve with conditions / Reject + reason`},
+{role:"Architect",title:"Tech debt impact assessment",tags:["tech-debt","risk"],desc:"Assess the business impact of known tech debt before a roadmap planning session.",prompt:`TECH DEBT ITEMS: [list with brief description]
+SYSTEM CONTEXT: [what's affected — service name, criticality]
+UPCOMING ROADMAP: [features planned in next quarter]
+
+ASSESS EACH ITEM:
+- Current pain (engineering velocity impact)
+- Future risk (how it blocks roadmap items)
+- Fix effort: [S/M/L]
+- Priority: Now / Next Quarter / Backlog / Accept
+OUTPUT: Ranked list with rationale.`},
+{role:"Architect",title:"Service boundary design",tags:["microservices","domain"],desc:"Define service boundaries for a domain using domain-driven design principles.",prompt:`DOMAIN: [describe the business domain]
+ENTITIES: [list main data entities]
+OPERATIONS: [list key operations/use cases]
+TEAM STRUCTURE: [how teams are organized]
+
+IDENTIFY:
+- Bounded contexts
+- Service boundaries (what belongs together, what separates)
+- Integration points (sync vs async)
+- Shared vs separate data stores
+OUTPUT: Service map description + rationale for key boundaries.`},
+{role:"Architect",title:"Non-functional requirements extractor",tags:["NFR","requirements"],desc:"Extract NFRs from a feature description that stakeholders forgot to mention.",prompt:`FEATURE: [describe the feature]
+SYSTEM CONTEXT: [existing tech stack, user base size, criticality]
+
+EXTRACT NFRs:
+- Performance: response time, throughput, resource limits
+- Availability: uptime SLA, degradation behavior
+- Security: auth, data protection, audit
+- Scalability: growth headroom
+- Observability: logging, metrics, alerting
+- Maintainability: deployment complexity, runbook needs
+FLAG: Any NFR that could be a project risk if ignored.`},
+{role:"Architect",title:"Integration pattern selection",tags:["integration","patterns"],desc:"Select the right integration pattern for connecting two systems.",prompt:`SYSTEM A: [describe — type, tech, data it owns]
+SYSTEM B: [describe — type, tech, data it owns]
+USE CASE: [what needs to flow between them and when]
+CONSTRAINTS: [latency needs, consistency requirements, team ownership]
+
+EVALUATE:
+- Sync REST/gRPC
+- Async event/message queue
+- Batch/ETL
+- Webhook/callback
+RECOMMEND: Best fit + rationale + failure mode to design for.`},
+{role:"Architect",title:"Capacity planning brief",tags:["capacity","scaling"],desc:"Estimate infrastructure capacity needs from usage projections.",prompt:`SYSTEM: [describe service/component]
+CURRENT METRICS: [requests/sec, data volume, response times]
+GROWTH PROJECTION: [expected user/load growth — 3-6-12 months]
+CURRENT INFRA: [describe briefly]
+
+ESTIMATE:
+- Where current setup breaks (bottleneck threshold)
+- Resource scaling needed per milestone
+- Cost implication signal (relative — not exact $)
+- Top 2 architecture changes to enable scaling`},
+{role:"Architect",title:"Security threat model — component",tags:["security","threat-model"],desc:"Run a lightweight STRIDE threat model on a system component.",prompt:`COMPONENT: [describe — what it does, inputs, outputs, data it handles]
+TRUST BOUNDARIES: [what's inside vs outside the trust boundary]
+ACTORS: [who/what interacts with it]
+
+STRIDE ANALYSIS:
+- Spoofing: [threats + mitigations]
+- Tampering: [threats + mitigations]
+- Repudiation: [threats + mitigations]
+- Information disclosure: [threats + mitigations]
+- DoS: [threats + mitigations]
+- Elevation of privilege: [threats + mitigations]
+TOP 3 RISKS: priority order with recommended control.`},
+{role:"Architect",title:"Build vs buy decision",tags:["build-buy","strategy"],desc:"Evaluate a build vs buy decision for a capability with strategic framing.",prompt:`CAPABILITY NEEDED: [describe what's needed]
+BUSINESS CONTEXT: [core differentiator or commodity?]
+OPTIONS: [list tools/vendors considered vs building in-house]
+CONSTRAINTS: [budget, timeline, team skills, data sensitivity]
+
+EVALUATE ON:
+- Strategic fit (differentiator vs commodity)
+- TCO signal (build cost + maintain vs license)
+- Time to value
+- Lock-in risk
+- Control needs (security, customization)
+RECOMMENDATION: Build / Buy / Buy and extend + rationale.`},
+{role:"Architect",title:"Migration risk assessment",tags:["migration","risk"],desc:"Assess risks of a system migration before committing to a plan.",prompt:`MIGRATION: [from what to what — system, DB, platform, cloud]
+SCOPE: [what's being migrated — data volume, services, users affected]
+TIMELINE: [proposed]
+ROLLBACK PLAN: [described or TBD]
+
+ASSESS:
+- Data integrity risks
+- Downtime risk
+- Dependency risks (what breaks if migration stalls)
+- Team readiness
+- Rollback feasibility
+OUTPUT: Risk matrix — Risk | Likelihood | Impact | Mitigation
+GO / NO-GO recommendation with conditions.`},
+
+// ── DEVOPS — 8 ─────────────────────────────────────────────────────────
+{role:"DevOps",title:"Pipeline review",tags:["CI/CD","review"],desc:"Review a CI/CD pipeline config for speed, reliability, and security gaps.",prompt:`PIPELINE CONFIG: [paste YAML or describe stages]
+CURRENT BUILD TIME: [minutes]
+FAILURE RATE: [% of builds failing]
+STACK: [GitHub Actions / GitLab / Jenkins / etc.]
+
+REVIEW FOR:
+- Unnecessary sequential stages (parallelize candidates)
+- Missing caching
+- Secret handling issues
+- Missing failure notifications
+- Flaky test stage isolation
+OUTPUT: Issue | Impact | Fix`},
+{role:"DevOps",title:"Incident response runbook",tags:["incident","runbook"],desc:"Generate a runbook for a specific failure scenario.",prompt:`FAILURE SCENARIO: [describe what breaks and symptoms]
+SYSTEM: [service name, dependencies]
+ON-CALL CONTEXT: [who gets paged, escalation path]
+MONITORING: [what alerts fire]
+
+RUNBOOK:
+1. Detect: [signals to confirm the incident]
+2. Triage: [severity determination steps]
+3. Mitigate: [fastest path to restore service]
+4. Investigate: [root cause steps]
+5. Communicate: [what to say to stakeholders and when]
+6. Resolve & review: [close criteria + post-mortem trigger]`},
+{role:"DevOps",title:"Infrastructure cost audit",tags:["cost","cloud"],desc:"Identify cost optimization opportunities from an infra description.",prompt:`INFRA SUMMARY: [describe services, instance types, regions, approximate usage patterns]
+CLOUD PROVIDER: [AWS / GCP / Azure]
+CURRENT MONTHLY COST SIGNAL: [high/medium/low or approximate]
+
+IDENTIFY:
+- Over-provisioned resources
+- Idle or underused services
+- Reserved instance / savings plan opportunities
+- Architecture changes for cost reduction
+OUTPUT: Opportunity | Estimated saving signal | Effort | Risk`},
+{role:"DevOps",title:"Container security review",tags:["security","containers"],desc:"Review a Dockerfile and deployment config for security issues.",prompt:`DOCKERFILE: [paste]
+DEPLOYMENT CONFIG (k8s/compose): [paste or describe]
+BASE IMAGE: [name + version]
+
+REVIEW FOR:
+- Running as root
+- Unnecessary packages / large attack surface
+- Hardcoded secrets
+- Missing health checks
+- Overly permissive network policies
+- Image version pinning
+OUTPUT: Issue | Severity | Fix`},
+{role:"DevOps",title:"Observability gap analysis",tags:["observability","monitoring"],desc:"Identify monitoring and observability gaps in a service before it goes to prod.",prompt:`SERVICE: [describe what it does]
+CURRENT MONITORING: [list existing metrics, logs, traces]
+ALERTING: [what alerts exist]
+LAST INCIDENT: [what happened and how it was detected]
+
+GAPS:
+- Missing metrics (RED: Rate, Errors, Duration)
+- Log coverage gaps
+- Missing alerts (latency, error rate, saturation)
+- Trace coverage
+PRIORITY ORDER: What to add first to reduce MTTD.`},
+{role:"DevOps",title:"Deployment strategy selection",tags:["deployment","strategy"],desc:"Select the right deployment strategy for a change based on risk and rollback needs.",prompt:`CHANGE TYPE: [describe what's being deployed]
+USER IMPACT IF BROKEN: [how many users, severity]
+ROLLBACK TIME ACCEPTABLE: [seconds / minutes / hours]
+INFRA CAPABILITY: [k8s? canary support? feature flags?]
+
+EVALUATE:
+- Blue/green
+- Canary
+- Rolling update
+- Feature flag
+- Big bang
+RECOMMEND: Best fit + rollback procedure + go/no-go signal to watch.`},
+{role:"DevOps",title:"On-call rotation health check",tags:["on-call","toil"],desc:"Assess on-call toil and sustainability from alert/incident data.",prompt:`ALERT VOLUME (last 30 days): [approximate count]
+ACTIONABLE VS NOISE RATIO: [if known]
+INCIDENTS REQUIRING WAKE-UP: [count]
+TEAM SIZE: [engineers in rotation]
+CURRENT PAIN POINTS: [describe]
+
+ASSESS:
+- Toil level (sustainable / high / unsustainable)
+- Top alert noise sources
+- Automation opportunities
+- Rotation adjustment recommendations
+TARGET: < X pages/week per engineer threshold signal.`},
+{role:"DevOps",title:"Disaster recovery test plan",tags:["DR","resilience"],desc:"Design a DR test scenario to validate recovery capabilities.",prompt:`SYSTEM: [describe critical components]
+RTO TARGET: [recovery time objective]
+RPO TARGET: [recovery point objective]
+LAST DR TEST: [when / outcome]
+
+DESIGN TEST:
+- Failure scenario to simulate
+- Pre-test state capture
+- Test steps (inject failure → observe → recover)
+- Success criteria (RTO/RPO met?)
+- Rollback if test causes real impact
+- Post-test actions`},
+
+// ── TECH LEAD — 8 ─────────────────────────────────────────────────────
+{role:"Tech Lead",title:"Technical roadmap review",tags:["roadmap","strategy"],desc:"Review a technical roadmap for feasibility, risk, and dependency conflicts.",prompt:`ROADMAP: [list initiatives with rough timeline]
+TEAM CAPACITY: [engineers, skill profile]
+KNOWN DEPENDENCIES: [list]
+STRATEGIC GOALS: [what the business needs this year]
+
+REVIEW:
+- Feasibility signal per initiative (realistic / tight / unrealistic)
+- Dependency conflicts
+- Sequencing issues
+- Missing foundational work that blocks later items
+OUTPUT: Initiative | Feasibility | Risk | Recommendation`},
+{role:"Tech Lead",title:"Engineering hiring brief",tags:["hiring","team"],desc:"Write a technical hiring brief for a role from team gap analysis.",prompt:`TEAM GAP: [what skills/capacity is missing]
+CURRENT TEAM PROFILE: [brief — size, seniority mix, tech stack]
+PROJECTS UPCOMING: [what this hire will work on]
+SENIORITY TARGET: [junior / mid / senior / staff]
+
+WRITE:
+- Role summary (2-3 sentences)
+- Must-have technical skills (max 5)
+- Nice-to-have (max 3)
+- Key responsibilities (5 bullets)
+- What good looks like in 90 days`},
+{role:"Tech Lead",title:"Code standard — decision doc",tags:["standards","decision"],desc:"Document a coding standard decision with rationale for the team.",prompt:`TOPIC: [naming convention / error handling / testing policy / etc.]
+CURRENT SITUATION: [what inconsistency or problem exists]
+PROPOSED STANDARD: [describe the rule]
+ALTERNATIVES CONSIDERED: [list]
+
+WRITE:
+- Standard (clear rule statement)
+- Rationale (why this over alternatives)
+- Examples: good vs bad
+- Exceptions (if any)
+- Enforcement (linting / review / honor system)`},
+{role:"Tech Lead",title:"1:1 coaching agenda",tags:["1:1","coaching"],desc:"Build a focused 1:1 agenda based on an engineer's recent work and growth areas.",prompt:`ENGINEER CONTEXT: [seniority, recent projects, known growth areas]
+LAST 1:1 ACTIONS: [what was agreed — done / not done]
+RECENT SIGNALS: [performance, attitude, blockers you've noticed]
+MY FOCUS THIS MONTH: [what I'm coaching toward]
+
+GENERATE:
+- 3 discussion topics (prioritized)
+- 1-2 probing questions per topic
+- Suggested action to assign
+DO NOT: make it a status report agenda.`},
+{role:"Tech Lead",title:"Incident post-mortem facilitator",tags:["post-mortem","learning"],desc:"Structure a blameless post-mortem from an incident timeline.",prompt:`INCIDENT SUMMARY: [what broke, when, impact]
+TIMELINE: [key events with timestamps]
+CONTRIBUTING FACTORS: [what conditions enabled the incident]
+MITIGATION TAKEN: [what resolved it]
+
+STRUCTURE POST-MORTEM:
+- Impact summary (users affected, duration)
+- Root cause (5-why analysis)
+- Contributing factors
+- What went well
+- Action items: [each with owner type + urgency]
+TONE: Blameless, system-focused.`},
+{role:"Tech Lead",title:"Technical interview scorecard",tags:["interview","hiring"],desc:"Design a structured technical interview scorecard for a role.",prompt:`ROLE: [title + seniority]
+KEY SKILLS TO ASSESS: [list 4-5]
+INTERVIEW FORMAT: [coding / system design / both + duration]
+
+GENERATE:
+- Evaluation dimensions (per skill)
+- Scoring guide: 1-4 scale with behavioral anchors
+- Red flags to watch for
+- Green flags (signs of exceptional candidate)
+- Debrief discussion questions`},
+{role:"Tech Lead",title:"Sprint capacity planning",tags:["planning","capacity"],desc:"Plan sprint capacity accounting for meetings, context switching, and known absences.",prompt:`TEAM: [list members + available days this sprint]
+OVERHEAD ESTIMATE: [ceremonies, reviews, support rotation hours]
+KNOWN RISKS: [oncall load, external dependencies]
+VELOCITY REFERENCE: [last 3 sprints average]
+
+CALCULATE:
+- Effective engineering hours
+- Story point capacity (using reference velocity)
+- Risk-adjusted capacity (conservative estimate)
+RECOMMENDATION: Target points + buffer rationale.`},
+{role:"Tech Lead",title:"Cross-team dependency negotiation brief",tags:["dependencies","negotiation"],desc:"Prepare a dependency negotiation brief before a cross-team planning session.",prompt:`WHAT WE NEED: [describe the dependency — API, infra, data, review]
+FROM WHICH TEAM: [team/system]
+BY WHEN: [our deadline]
+IMPACT IF DELAYED: [what we can't ship / what breaks]
+OUR OFFER: [what we can do to help them prioritize]
+
+WRITE:
+- 1-paragraph context summary
+- Specific ask (what, by when, quality bar)
+- Escalation path if no agreement
+TONE: Collaborative, not demanding.`}
+];
+
+let activeRole="All", currentPrompt=null;
+
+function roleColor(r){return COLORS[r]||"#888"}
+function roleBG(r){return BG[r]||"#f5f5f5"}
+
+function initTabs(){
+  const el=document.getElementById("role-tabs");
+  Object.entries(ROLES).forEach(([r,icon])=>{
+    const btn=document.createElement("button");
+    btn.className="role-tab"+(r===activeRole?" active":"");
+    btn.innerHTML=`<i class="ti ${icon}" aria-hidden="true" style="margin-right:4px;font-size:13px;vertical-align:-1px"></i>${r}`;
+    btn.onclick=()=>{activeRole=r;document.querySelectorAll(".role-tab").forEach(b=>b.classList.remove("active"));btn.classList.add("active");render();};
+    el.appendChild(btn);
+  });
+}
+
+function render(){
+  const q=(document.getElementById("search").value||"").toLowerCase();
+  const filtered=PROMPTS.filter(p=>{
+    const matchRole=activeRole==="All"||p.role===activeRole;
+    const matchQ=!q||p.title.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||(p.tags||[]).some(t=>t.toLowerCase().includes(q))||p.role.toLowerCase().includes(q);
+    return matchRole&&matchQ;
+  });
+  document.getElementById("total-count").textContent=filtered.length;
+
+  const banner=document.getElementById("note-banner");
+  if(NOTES[activeRole]){banner.textContent=NOTES[activeRole];banner.classList.add("show");}
+  else{banner.classList.remove("show");}
+
+  const grid=document.getElementById("grid");
+  if(!filtered.length){grid.innerHTML='<div class="empty"><i class="ti ti-mood-empty" style="font-size:32px;display:block;margin-bottom:8px"></i>No prompts match.</div>';return;}
+  grid.innerHTML=filtered.map(p=>{
+    const idx=PROMPTS.indexOf(p);
+    return`<div class="prompt-card${p.isNew?' highlight':''}" onclick="openModal(${idx})">
+      <div class="card-header">
+        <div class="card-icon" style="background:${roleBG(p.role)};color:${roleColor(p.role)}"><i class="ti ${ROLES[p.role]||'ti-file'}" aria-hidden="true"></i></div>
+        <div class="card-meta">
+          <div class="card-title">${p.title}</div>
+          <div class="card-role">${p.role}</div>
+        </div>
+      </div>
+      <div class="card-desc">${p.desc}</div>
+      <div class="card-footer">
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+        <button class="copy-btn" id="cpbtn-${idx}" onclick="event.stopPropagation();copyCard(${idx})"><i class="ti ti-copy" aria-hidden="true"></i> Copy</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openModal(idx){
+  currentPrompt=idx;
+  const p=PROMPTS[idx];
+  document.getElementById("m-title").textContent=p.title;
+  document.getElementById("m-body").textContent=p.prompt;
+  document.getElementById("m-tags").innerHTML=`<span class="tag" style="background:${roleBG(p.role)};color:${roleColor(p.role)};border-color:${roleColor(p.role)}44">${p.role}</span>`+(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join("");
+  document.getElementById("modal-bg").classList.add("open");
+}
+function closeModal(){document.getElementById("modal-bg").classList.remove("open");currentPrompt=null;}
+function copyText(text,btn){
+  function done(){
+    if(btn){const orig=btn.innerHTML;btn.innerHTML='<i class="ti ti-check"></i> Copied';btn.classList.add("copied");setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove("copied");},1500);}
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  } else {
+    fallbackCopy(text,done);
+  }
+}
+function fallbackCopy(text,cb){
+  const ta=document.createElement("textarea");
+  ta.value=text;ta.style.position="fixed";ta.style.left="-9999px";
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");}catch(e){}
+  document.body.removeChild(ta);
+  if(cb)cb();
+}
+function copyCard(idx){copyText(PROMPTS[idx].prompt, document.getElementById("cpbtn-"+idx));}
+function copyModal(){
+  if(currentPrompt===null)return;
+  copyText(PROMPTS[currentPrompt].prompt, document.querySelector(".modal-actions .primary-btn"));
+}
+
+document.addEventListener("keydown",(e)=>{if(e.key==="Escape")closeModal();});
+
+initTabs();render();
+</script>
+</body>
+</html>
