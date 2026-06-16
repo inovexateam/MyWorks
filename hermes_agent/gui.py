@@ -317,17 +317,9 @@ class HermesGUI:
                                       bg=C["bg4"], fg=C["muted"], font=("Helvetica",8))
         self.status_label.pack(side="right")
 
-        # Panel container (main body + right panel)
-        body = tk.Frame(self.content, bg=C["bg"])
-        body.pack(fill="both", expand=True, padx=0)
-
-        panel_area = tk.Frame(body, bg=C["bg"])
-        panel_area.pack(side="left", fill="both", expand=True)
-
-        # Right panel area (fixed width)
-        right_area = tk.Frame(body, bg=C["bg"], width=320)
-        right_area.pack(side="right", fill="y")
-        right_area.pack_propagate(False)
+        # Panel container
+        panel_area = tk.Frame(self.content, bg=C["bg"])
+        panel_area.pack(fill="both", expand=True, padx=0)
 
         self.panels = {}
         sections = [
@@ -348,9 +340,6 @@ class HermesGUI:
             panel = tk.Frame(panel_area, bg=C["bg"])
             self.panels[key] = panel
             builder(panel)
-
-        # Build right panel widgets (market status, triggers, schedule)
-        self._build_right_panel(right_area)
 
         # Show dashboard first
         self._nav("dashboard")
@@ -401,6 +390,11 @@ class HermesGUI:
                       highlightbackground=C["border"], highlightthickness=1,
                       font=font, padx=10, pady=4 if not small else 2,
                       cursor="hand2")
+        # Add set_busy method so all buttons work the same as HermesButton
+        def _set_busy(busy: bool, _b=b, _col=col):
+            _b.config(state="disabled" if busy else "normal",
+                      fg=C["dim"] if busy else _col)
+        b.set_busy = _set_busy
         return b
 
     def _tree(self, parent, cols, heights=8, col_widths=None):
