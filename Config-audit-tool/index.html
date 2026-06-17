@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Config Audit — Dead Config &amp; Drift Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ============ LEFT RAIL ============ -->
+  <aside class="rail">
+    <div class="rail-brand">
+      <span class="rail-brand-mark">&gt;_</span>
+      <div class="rail-brand-text">
+        <strong>Config Audit</strong>
+        <span>dead config &amp; env drift</span>
+      </div>
+    </div>
+
+    <!-- Connection panel -->
+    <section class="rail-section" id="auth-panel">
+      <h2 class="rail-h">GitHub session</h2>
+      <div id="auth-disconnected">
+        <p class="rail-hint">Your org's token expires in ~24h. Paste it here — it's held in memory for this session only and never written to disk.</p>
+        <input type="password" id="token-input" placeholder="ghp_••••••••••••••••••••" autocomplete="off" spellcheck="false">
+        <button class="btn btn-primary" id="connect-btn">Connect</button>
+        <p class="rail-error" id="auth-error"></p>
+      </div>
+      <div id="auth-connected" class="hidden">
+        <div class="auth-chip">
+          <span class="status-dot status-live"></span>
+          <span id="auth-username">—</span>
+        </div>
+        <button class="btn btn-ghost btn-small" id="disconnect-btn">Disconnect</button>
+      </div>
+    </section>
+
+    <!-- Repo inputs -->
+    <section class="rail-section" id="repo-panel">
+      <h2 class="rail-h">Repositories</h2>
+
+      <label class="field-label" for="code-url">Code repo</label>
+      <input type="text" id="code-url" class="field-input" placeholder="https://github.com/org/service-code">
+
+      <label class="field-label" for="component-cd-url">Component-cd repo</label>
+      <input type="text" id="component-cd-url" class="field-input" placeholder="https://github.com/org/service-cd">
+
+      <label class="field-label" for="app-cd-url">App-cd repo</label>
+      <input type="text" id="app-cd-url" class="field-input" placeholder="https://github.com/org/app-cd">
+
+      <button class="btn btn-accent" id="scan-btn" disabled>Run audit</button>
+      <p class="rail-error" id="scan-error"></p>
+    </section>
+
+    <section class="rail-section rail-section--summary hidden" id="summary-panel">
+      <h2 class="rail-h">Findings summary</h2>
+      <div class="summary-grid" id="summary-grid"></div>
+      <div class="summary-roles">
+        <span class="rail-hint">By key role</span>
+        <div id="role-breakdown" class="role-breakdown"></div>
+      </div>
+      <div class="summary-envs">
+        <span class="rail-hint">Environments detected</span>
+        <div id="env-chips" class="env-chips"></div>
+      </div>
+    </section>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <div class="main-empty" id="empty-state">
+      <div class="empty-mark">⌁</div>
+      <h1>No audit run yet</h1>
+      <p>Connect with your PAT, paste the three repo URLs for one service, and run an audit. You'll get every config key classified as live, dead, or drifted — with file and line references back to the source.</p>
+    </div>
+
+    <div class="main-loading hidden" id="loading-state">
+      <div class="spinner"></div>
+      <p id="loading-text">Scanning repositories…</p>
+    </div>
+
+    <div class="main-results hidden" id="results-state">
+
+      <div class="toolbar">
+        <div class="tabs" id="category-tabs">
+          <button class="tab tab-active" data-filter="ALL">All</button>
+          <button class="tab" data-filter="FULLY_DEAD">Fully dead</button>
+          <button class="tab" data-filter="DEAD_HELM">Dead in Helm</button>
+          <button class="tab" data-filter="DEAD_CODE">Dead in code</button>
+          <button class="tab" data-filter="LIVE">Live</button>
+          <button class="tab" data-filter="DRIFT">Env drift</button>
+        </div>
+        <div class="tabs tabs-role" id="role-tabs">
+          <button class="tab tab-role tab-active" data-role="ALL">All roles</button>
+          <button class="tab tab-role" data-role="APP_CONFIG">App config</button>
+          <button class="tab tab-role" data-role="INFRA">Infra</button>
+        </div>
+        <input type="text" id="search-input" class="search-input" placeholder="Filter by key name…">
+      </div>
+
+      <div class="findings-list" id="findings-list"></div>
+      <div class="drift-list hidden" id="drift-list"></div>
+
+    </div>
+  </main>
+
+  <!-- ============ EVIDENCE DRAWER ============ -->
+  <div class="drawer-overlay hidden" id="drawer-overlay"></div>
+  <aside class="drawer hidden" id="evidence-drawer">
+    <div class="drawer-head">
+      <span class="badge" id="drawer-badge">LIVE</span>
+      <button class="drawer-close" id="drawer-close">✕</button>
+    </div>
+    <h2 class="drawer-key" id="drawer-key">key.path</h2>
+    <p class="drawer-env" id="drawer-env">env: dev</p>
+
+    <h3 class="trace-label">Evidence trace</h3>
+    <div class="trace-chain" id="trace-chain"></div>
+
+    <div class="drawer-section">
+      <h3 class="trace-label">Defined</h3>
+      <div class="evidence-row" id="evidence-defined"></div>
+    </div>
+    <div class="drawer-section">
+      <h3 class="trace-label">Templated in Helm chart <span class="count-pill" id="template-count">0</span></h3>
+      <div id="evidence-template"></div>
+    </div>
+    <div class="drawer-section">
+      <h3 class="trace-label">Read in application code <span class="count-pill" id="code-count">0</span></h3>
+      <div id="evidence-code"></div>
+    </div>
+  </aside>
+
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
