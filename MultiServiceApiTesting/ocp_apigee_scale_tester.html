@@ -1,0 +1,804 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg0:var(--color-background-tertiary);
+--bg1:var(--color-background-primary);
+--bg2:var(--color-background-secondary);
+--t1:var(--color-text-primary);
+--t2:var(--color-text-secondary);
+--t3:var(--color-text-tertiary);
+--b1:var(--color-border-tertiary);
+--b2:var(--color-border-secondary);
+--b3:var(--color-border-primary);
+--acc:#0F6E56;--acc2:#1D9E75;--acc3:#E1F5EE;--acc4:#9FE1CB;
+--r:var(--border-radius-md);--rl:var(--border-radius-lg);
+--mono:var(--font-mono,'Courier New',monospace);
+}
+body{font-family:var(--font-sans,system-ui);font-size:13px;color:var(--t1);background:var(--bg0);height:640px;overflow:hidden;display:flex;flex-direction:column}
+
+.GET{background:#E1F5EE;color:#085041;border:0.5px solid #5DCAA5}
+.POST{background:#E6F1FB;color:#042C53;border:0.5px solid #85B7EB}
+.PUT{background:#FAEEDA;color:#412402;border:0.5px solid #EF9F27}
+.DELETE{background:#FCEBEB;color:#501313;border:0.5px solid #F09595}
+.PATCH{background:#EEEDFE;color:#26215C;border:0.5px solid #AFA9EC}
+
+/* ── TOPBAR ── */
+.topbar{height:44px;background:var(--bg1);border-bottom:0.5px solid var(--b1);display:flex;align-items:center;gap:10px;padding:0 14px;flex-shrink:0;z-index:50}
+.tb-logo{font-size:13px;font-weight:500;color:var(--t1);display:flex;align-items:center;gap:7px}
+.tb-logo i{color:var(--acc2);font-size:15px}
+.tb-divider{width:0.5px;height:18px;background:var(--b2);margin:0 4px}
+.env-seg{display:flex;gap:1px;background:var(--b1);border-radius:20px;padding:2px;border:0.5px solid var(--b1)}
+.env-o{font-size:10px;font-weight:500;padding:3px 10px;border-radius:16px;border:none;background:transparent;color:var(--t3);cursor:pointer;letter-spacing:.3px;font-family:var(--mono)}
+.env-o.on{background:var(--bg1);color:var(--t1);border:0.5px solid var(--b2)}
+.env-o.prod.on{background:#FCEBEB;color:#A32D2D}
+.cmd-btn{margin-left:auto;display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--r);border:0.5px solid var(--b2);background:var(--bg2);color:var(--t2);font-size:11px;cursor:pointer;font-family:var(--font-sans)}
+.cmd-btn:hover{border-color:var(--b3);color:var(--t1)}
+.cmd-btn kbd{font-size:10px;background:var(--bg1);border:0.5px solid var(--b2);border-radius:3px;padding:1px 4px;font-family:var(--mono);color:var(--t3)}
+.tok-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;border:0.5px solid var(--b1);background:var(--bg2);font-size:11px;color:var(--t3)}
+.tok-dot{width:5px;height:5px;border-radius:50%;background:var(--b2)}
+.tok-dot.ok{background:#1D9E75}
+.tok-dot.spin{background:#BA7517;animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── LAYOUT ── */
+.app-shell{display:flex;flex:1;overflow:hidden}
+
+/* ── LEFT RAIL (apps) ── */
+.left-rail{width:52px;background:var(--bg1);border-right:0.5px solid var(--b1);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;overflow:hidden;flex-shrink:0}
+.rail-app{width:36px;height:36px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;font-weight:500;color:var(--t2);border:0.5px solid transparent;transition:all .15s;position:relative}
+.rail-app:hover{background:var(--bg2);border-color:var(--b1);color:var(--t1)}
+.rail-app.active{background:var(--acc3);border-color:var(--acc4);color:var(--acc)}
+.rail-app[data-badge]::after{content:attr(data-badge);position:absolute;bottom:-3px;right:-3px;font-size:9px;background:var(--acc2);color:#fff;border-radius:8px;padding:0 4px;min-width:14px;text-align:center;line-height:14px}
+.rail-sep{width:24px;height:0.5px;background:var(--b1);margin:4px 0}
+.rail-all{width:36px;height:28px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:var(--t3);border:0.5px solid transparent}
+.rail-all:hover{color:var(--t2);background:var(--bg2)}
+
+/* ── APP PANEL ── */
+.app-panel{width:220px;background:var(--bg1);border-right:0.5px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.ap-head{padding:10px 12px 8px;border-bottom:0.5px solid var(--b1)}
+.ap-app-name{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-meta{font-size:11px;color:var(--t3)}
+.ap-search{margin:0;padding:8px 10px;border-bottom:0.5px solid var(--b1);position:relative}
+.ap-search input{width:100%;font-size:12px;padding:6px 8px 6px 26px;border-radius:var(--r);border:0.5px solid var(--b1);background:var(--bg2);color:var(--t1);outline:none;font-family:var(--font-sans)}
+.ap-search input:focus{border-color:var(--b3)}
+.ap-search i{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--t3);pointer-events:none}
+.svc-group-label{padding:10px 12px 4px;font-size:10px;font-weight:500;color:var(--t3);letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.svc-group-label span{font-size:10px;color:var(--t3);background:var(--bg2);border-radius:8px;padding:0 5px;font-weight:400}
+.svc-vp{flex:1;overflow:hidden;position:relative}
+.svc-scroll{height:100%;overflow-y:auto;padding-bottom:8px}
+.svc-scroll::-webkit-scrollbar{width:3px}
+.svc-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.svc-row{display:flex;align-items:center;gap:7px;padding:7px 12px;cursor:pointer;border-left:2px solid transparent;transition:all .1s}
+.svc-row:hover{background:var(--bg2)}
+.svc-row.active{background:var(--bg2);border-left-color:var(--acc2)}
+.svc-row.active .svc-name{color:var(--t1)}
+.svc-name{font-size:12px;color:var(--t2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svc-row:hover .svc-name{color:var(--t1)}
+.m-pill{font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;letter-spacing:.3px;font-family:var(--mono);flex-shrink:0}
+.svc-dot{width:5px;height:5px;border-radius:50%;background:var(--b1);flex-shrink:0}
+.svc-dot.ok{background:#1D9E75}
+.svc-dot.err{background:#E24B4A}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* HOME VIEW */
+.home-view{flex:1;overflow-y:auto;padding:20px}
+.home-view::-webkit-scrollbar{width:3px}
+.home-view::-webkit-scrollbar-thumb{background:var(--b2)}
+.hv-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.hv-title{font-size:16px;font-weight:500;color:var(--t1);flex:1}
+.hv-stats{display:flex;gap:8px}
+.stat-chip{font-size:11px;padding:4px 10px;border-radius:var(--r);background:var(--bg1);border:0.5px solid var(--b1);color:var(--t2)}
+.stat-chip b{color:var(--t1);font-weight:500}
+.domain-section{margin-bottom:20px}
+.domain-label{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--b1)}
+.app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.app-card{background:var(--bg1);border:0.5px solid var(--b1);border-radius:var(--rl);padding:14px;cursor:pointer;transition:all .15s}
+.app-card:hover{border-color:var(--b3);background:var(--bg2)}
+.app-card:hover .ac-arrow{color:var(--acc2)}
+.ac-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.ac-icon{width:32px;height:32px;border-radius:var(--r);background:var(--bg2);border:0.5px solid var(--b1);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t2)}
+.ac-arrow{font-size:13px;color:var(--t3);transition:color .15s}
+.ac-name{font-size:12px;font-weight:500;color:var(--t1);margin-bottom:3px}
+.ac-ns{font-size:11px;color:var(--t3)}
+.ac-count{font-size:11px;color:var(--acc);font-weight:500;margin-top:6px}
+
+/* REQUEST VIEW */
+.req-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.req-scroll{flex:1;overflow-y:auto;padding:16px}
+.req-scroll::-webkit-scrollbar{width:3px}
+.req-scroll::-webkit-scrollbar-thumb{background:var(--b2)}
+
+.empty-req{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--t3)}
+.empty-req i{font-size:28px;opacity:.3}
+.empty-req p{font-size:12px;text-align:center}
+
+.url-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--rl);border:0.5px solid var(--b1);margin-bottom:12px}
+.ub-method{font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;letter-spacing:.5px;font-family:var(--mono)}
+.ub-url{flex:1;font-size:11px;font-family:var(--mono);color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ub-url .ub-base{color:var(--t3)}
+.ub-url .ub-path{color:var(--t1)}
+.exec-btn{display:flex;align-items:center;gap:5px;padding:7px 16px;border-radius:var(--r);background:var(--acc2);color:#fff;border:none;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;flex-shrink:0}
+.exec-btn:hover{background:var(--acc)}
+.exec-btn:disabled{opacity:.5;cursor:not-allowed}
+.exec-spin{width:10px;height:10px;border:1.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.tok-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#E1F5EE;border:0.5px solid #9FE1CB;border-radius:var(--r);margin-bottom:12px;font-size:11px;color:#085041}
+.tok-bar.loading{background:#FAEEDA;border-color:#FAC775;color:#633806}
+.tok-bar.err{background:#FCEBEB;border-color:#F7C1C1;color:#791F1F}
+.tok-val{font-family:var(--mono);opacity:.6;margin-left:auto;font-size:10px}
+
+.section{margin-bottom:14px}
+.sec-label{font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec-label::after{content:'';flex:1;height:0.5px;background:var(--b1)}
+.svc-desc{font-size:12px;color:var(--t2);line-height:1.7;padding:10px 12px;background:var(--bg2);border-radius:var(--r);border-left:2px solid var(--b2)}
+
+.param-table{width:100%;border-collapse:collapse}
+.param-table tr:not(:last-child) td{border-bottom:0.5px solid var(--b1)}
+.param-table td{padding:6px 4px;vertical-align:middle}
+.param-table td:first-child{width:140px;padding-left:0}
+.plabel{font-size:12px;color:var(--t2);display:flex;align-items:center;gap:4px}
+.preq{color:#E24B4A;font-size:13px}
+.popt{font-size:10px;color:var(--t3)}
+.param-table input,.param-table select,.param-table textarea{width:100%;font-size:12px;padding:6px 8px;border-radius:var(--r);border:0.5px solid var(--b1);background:var(--bg2);color:var(--t1);outline:none;font-family:var(--mono);transition:border-color .15s}
+.param-table input:focus,.param-table select:focus,.param-table textarea:focus{border-color:var(--b3);background:var(--bg1)}
+.param-table textarea{resize:vertical;min-height:60px;font-family:var(--mono)}
+
+/* RESPONSE */
+.res-block{background:var(--bg1);border:0.5px solid var(--b1);border-radius:var(--rl);overflow:hidden;margin-top:14px}
+.res-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);border-bottom:0.5px solid var(--b1)}
+.res-status{font-size:13px;font-weight:500;font-family:var(--mono)}
+.s2{color:#085041}.s4{color:#633806}.s5{color:#791F1F}.serr{color:#791F1F}
+.res-pill{font-size:10px;padding:2px 7px;border-radius:10px;border:0.5px solid}
+.rp2{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.rp4{background:#FAEEDA;color:#633806;border-color:#FAC775}
+.rp5{background:#FCEBEB;color:#791F1F;border-color:#F7C1C1}
+.res-meta{font-size:11px;color:var(--t3);font-family:var(--mono)}
+.res-copy{margin-left:auto;font-size:11px;padding:4px 8px;border-radius:var(--r);border:0.5px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font-sans)}
+.res-copy:hover{border-color:var(--b2);color:var(--t1)}
+.res-tabs{display:flex;border-bottom:0.5px solid var(--b1)}
+.rt{font-size:11px;padding:7px 14px;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent}
+.rt.on{color:var(--t1);border-bottom-color:var(--acc2)}
+.res-body{font-size:11px;font-family:var(--mono);line-height:1.8;white-space:pre-wrap;padding:12px 14px;max-height:180px;overflow-y:auto;color:var(--t1)}
+.res-body::-webkit-scrollbar{width:3px}
+.res-body::-webkit-scrollbar-thumb{background:var(--b2)}
+
+/* COMMAND PALETTE */
+.cmd-overlay{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding-top:80px}
+.cmd-box{width:520px;background:var(--bg1);border:0.5px solid var(--b2);border-radius:var(--rl);overflow:hidden;max-height:420px;display:flex;flex-direction:column}
+.cmd-input-wrap{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:0.5px solid var(--b1)}
+.cmd-input-wrap i{font-size:16px;color:var(--t3)}
+.cmd-input{flex:1;font-size:14px;border:none;background:transparent;color:var(--t1);outline:none;font-family:var(--font-sans)}
+.cmd-esc{font-size:10px;padding:2px 6px;border:0.5px solid var(--b2);border-radius:3px;color:var(--t3);font-family:var(--mono)}
+.cmd-results{overflow-y:auto;max-height:320px}
+.cmd-results::-webkit-scrollbar{width:3px}
+.cmd-results::-webkit-scrollbar-thumb{background:var(--b2)}
+.cmd-section{padding:6px 0}
+.cmd-sec-label{padding:4px 14px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+.cmd-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;transition:background .1s}
+.cmd-item:hover,.cmd-item.focused{background:var(--bg2)}
+.cmd-item-icon{width:28px;height:28px;border-radius:var(--r);background:var(--bg2);border:0.5px solid var(--b1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.cmd-item-icon i{font-size:13px;color:var(--t2)}
+.cmd-item-name{font-size:13px;color:var(--t1);flex:1}
+.cmd-item-meta{font-size:11px;color:var(--t3)}
+.cmd-item-right{display:flex;align-items:center;gap:6px}
+.cmd-empty{padding:32px;text-align:center;color:var(--t3);font-size:12px}
+
+/* BREADCRUMB */
+.breadcrumb{display:flex;align-items:center;gap:4px;padding:8px 14px;border-bottom:0.5px solid var(--b1);font-size:11px;color:var(--t3);background:var(--bg1);flex-shrink:0}
+.bc-home{cursor:pointer;color:var(--t3);display:flex;align-items:center;gap:4px}
+.bc-home:hover{color:var(--acc2)}
+.bc-sep{color:var(--b3)}
+.bc-app{color:var(--t2)}
+.bc-svc{color:var(--t1);font-weight:500}
+
+/* RECENTS */
+.recents-row{display:flex;align-items:center;gap:6px;padding:8px 12px 0;flex-wrap:wrap}
+.rec-chip{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:14px;border:0.5px solid var(--b1);background:var(--bg1);cursor:pointer;font-size:11px;color:var(--t2);transition:all .15s}
+.rec-chip:hover{border-color:var(--b2);color:var(--t1)}
+.rec-chip .m-pill{font-size:8px;padding:1px 4px}
+</style>
+
+<div style="position:relative;height:640px;overflow:hidden;display:flex;flex-direction:column">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-logo"><i class="ti ti-topology-star-3" aria-hidden="true"></i> OCP / APIGEE Tester</div>
+  <div class="tb-divider"></div>
+  <div class="env-seg">
+    <button class="env-o on" onclick="setEnv('dev',this)">DEV</button>
+    <button class="env-o" onclick="setEnv('uat',this)">UAT</button>
+    <button class="env-o prod" onclick="setEnv('prod',this)">PROD</button>
+  </div>
+  <button class="cmd-btn" onclick="openCmd()">
+    <i class="ti ti-search" aria-hidden="true"></i> Search apps & services
+    <kbd>⌘K</kbd>
+  </button>
+  <div class="tok-chip" id="tokChip">
+    <div class="tok-dot" id="tokDot"></div>
+    <span id="tokLabel">no app</span>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div class="app-shell" id="appShell">
+
+  <!-- LEFT RAIL -->
+  <div class="left-rail" id="leftRail">
+    <div class="rail-all" onclick="goHome()" title="All apps"><i class="ti ti-layout-grid" aria-hidden="true"></i></div>
+    <div class="rail-sep"></div>
+    <div id="railPins"></div>
+  </div>
+
+  <!-- APP PANEL (hidden until app selected) -->
+  <div class="app-panel" id="appPanel" style="display:none">
+    <div class="ap-head">
+      <div class="ap-app-name" id="apName">—</div>
+      <div class="ap-meta" id="apMeta">—</div>
+    </div>
+    <div class="ap-search">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input id="svcSearchInput" placeholder="Search services..." oninput="filterSvcs()">
+    </div>
+    <div class="svc-group-label">Services <span id="svcCount">0</span></div>
+    <div class="svc-vp">
+      <div class="svc-scroll" id="svcScroll"></div>
+    </div>
+    <div class="recents-row" id="recentsRow" style="display:none;padding-bottom:8px;border-top:0.5px solid var(--b1);margin-top:4px"></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main" id="mainContent">
+
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb" id="breadcrumb" style="display:none">
+      <span class="bc-home" onclick="goHome()"><i class="ti ti-home" aria-hidden="true"></i> Apps</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-app" id="bcApp" style="cursor:pointer" onclick="clearSvc()"></span>
+      <span class="bc-sep" id="bcSep2" style="display:none">›</span>
+      <span class="bc-svc" id="bcSvc"></span>
+    </div>
+
+    <!-- HOME VIEW -->
+    <div class="home-view" id="homeView">
+      <div class="hv-top">
+        <div class="hv-title">Applications</div>
+        <div class="hv-stats">
+          <div class="stat-chip"><b id="statApps">0</b> apps</div>
+          <div class="stat-chip"><b id="statSvcs">0</b> services</div>
+        </div>
+      </div>
+      <div id="domainSections"></div>
+    </div>
+
+    <!-- REQUEST VIEW -->
+    <div class="req-view" id="reqView" style="display:none">
+      <div class="req-scroll" id="reqScroll">
+        <div class="empty-req" id="emptyReq">
+          <i class="ti ti-plug" aria-hidden="true"></i>
+          <p>Select a service from the left panel</p>
+        </div>
+        <div id="reqForm" style="display:none"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- COMMAND PALETTE OVERLAY -->
+<div class="cmd-overlay" id="cmdOverlay" style="display:none" onclick="maybeCloseCmd(event)">
+  <div class="cmd-box" id="cmdBox">
+    <div class="cmd-input-wrap">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input class="cmd-input" id="cmdInput" placeholder="Search apps, services, methods…" oninput="cmdSearch()" onkeydown="cmdKey(event)">
+      <span class="cmd-esc" onclick="closeCmd()">esc</span>
+    </div>
+    <div class="cmd-results" id="cmdResults"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const ENV_CFG = {
+  dev: {label:'DEV', base:'https://apigee-dev.corp.internal', tok:'https://auth-dev.corp.internal/oauth2/token'},
+  uat: {label:'UAT', base:'https://apigee-uat.corp.internal', tok:'https://auth-uat.corp.internal/oauth2/token'},
+  prod:{label:'PROD',base:'https://apigee.corp.internal',     tok:'https://auth.corp.internal/oauth2/token'}
+};
+let ENV = 'dev';
+let activeApp = null;
+let activeSvc = null;
+let tokenCache = {};
+let recents = [];
+let cmdFocusIdx = -1;
+let cmdItems = [];
+
+/* ═══════════════════════════════
+   SYNTHETIC CATALOG GENERATOR
+   Produces 100 apps × ~10 svcs = 1000 services
+   In prod: replace with fetch('/catalog.json')
+═══════════════════════════════ */
+const DOMAINS = {
+  'Commerce':['OrderMgmt','CartService','CatalogSvc','PricingEngine','PromotionSvc','CheckoutSvc','WishlistSvc','ReviewsSvc'],
+  'Customer':['CustomerProfile','LoyaltyPoints','KYCService','AddressBook','PreferencesSvc','ConsentMgmt','CustomerSearch'],
+  'Payments':['PaymentGateway','RefundService','WalletService','EMIService','PayoutSvc','ReconcileSvc','FraudDetect'],
+  'Logistics':['ShippingService','TrackingService','WarehouseMgmt','InventorySvc','ReturnsSvc','CourierAlloc','SlotBooking'],
+  'Notifications':['EmailEngine','SMSGateway','PushNotify','WhatsAppSvc','AlertManager','TemplateStore','ChannelRouter'],
+  'Platform':['AuthService','ConfigSvc','FeatureFlags','SecretsMgmt','AuditLog','RateLimiter','APIRegistry'],
+  'Data':['ReportingSvc','AnalyticsSvc','DataExport','EventStream','MetricsSvc','SearchIndex','CDPConnector'],
+  'Integration':['ERPConnector','CRMBridge','PaymentPSP','TaxEngine','SMSProvider','CourierAPI','MapService'],
+};
+
+const METHOD_VERBS = [
+  {m:'GET',    n:'Get',      p:'/{id}',         d:'Fetch a single record by ID'},
+  {m:'GET',    n:'List',     p:'',               d:'List records with optional filters'},
+  {m:'POST',   n:'Create',   p:'',               d:'Create a new record'},
+  {m:'PUT',    n:'Update',   p:'/{id}',          d:'Full update of a record by ID'},
+  {m:'PATCH',  n:'Patch',    p:'/{id}',          d:'Partial update of a record'},
+  {m:'DELETE', n:'Delete',   p:'/{id}',          d:'Delete a record by ID'},
+  {m:'POST',   n:'Validate', p:'/validate',      d:'Validate a payload without persisting'},
+  {m:'GET',    n:'Health',   p:'/health',        d:'Health check endpoint'},
+  {m:'POST',   n:'Bulk',     p:'/bulk',          d:'Bulk operation on multiple records'},
+  {m:'GET',    n:'Export',   p:'/export',        d:'Export data as structured payload'},
+];
+
+function buildCatalog() {
+  const catalog = [];
+  let svcTotal = 0;
+  let domIdx = 0;
+  for(const [domain, apps] of Object.entries(DOMAINS)) {
+    for(const appName of apps) {
+      const svcCount = 6 + Math.floor(Math.random()*6);
+      const svcs = [];
+      for(let i=0;i<svcCount;i++) {
+        const mv = METHOD_VERBS[i % METHOD_VERBS.length];
+        const entity = appName.replace(/Svc|Service|Mgmt|Engine|Gateway|Bridge|Store|Index|Log|Manager|Router|Connector|API|Flags|Points|Mgmt/g,'').trim();
+        svcs.push({
+          id: appName.toLowerCase().replace(/\s/g,'-')+'-'+mv.n.toLowerCase()+'-'+i,
+          name: mv.n+' '+entity,
+          method: mv.m,
+          path: '/'+appName.toLowerCase().replace(/svc|service/gi,'')+'/v1'+mv.p,
+          desc: mv.d+' for '+appName,
+          pathParams: mv.p.includes('{id}') ? [{key:'id',label:'Record ID',required:true,placeholder:'Enter ID'}] : [],
+          queryParams: mv.n==='List' ? [{key:'page',label:'Page',required:false,placeholder:'1'},{key:'size',label:'Size',required:false,placeholder:'20'},{key:'status',label:'Status filter',required:false,placeholder:'ACTIVE'}] : [],
+          bodyParams: ['POST','PUT','PATCH'].includes(mv.m) && mv.n!=='Health' ? [
+            {key:'payload',label:'Request Payload (JSON)',type:'textarea',required:true,placeholder:'{\n  "key": "value"\n}'}
+          ] : []
+        });
+      }
+      catalog.push({
+        id: appName.toLowerCase().replace(/\s/g,'-'),
+        name: appName,
+        domain,
+        icon: domIdx % 8,
+        namespace: appName.toLowerCase().replace(/svc|service|mgmt/gi,'')+'-ns',
+        proxy: '/api/'+appName.toLowerCase().replace(/svc|service/gi,''),
+        clientId: appName.toLowerCase()+'-client',
+        services: svcs
+      });
+      svcTotal += svcCount;
+      domIdx++;
+    }
+  }
+  return {catalog, svcTotal};
+}
+
+const ICONS = ['ti-cube','ti-users','ti-credit-card','ti-truck','ti-bell','ti-server','ti-chart-bar','ti-plug'];
+const {catalog: CATALOG, svcTotal: SVC_TOTAL} = buildCatalog();
+
+/* ═══ RENDER HOME ═══ */
+function renderHome() {
+  document.getElementById('statApps').textContent = CATALOG.length;
+  document.getElementById('statSvcs').textContent = SVC_TOTAL.toLocaleString();
+
+  const byDomain = {};
+  CATALOG.forEach(a=>{if(!byDomain[a.domain])byDomain[a.domain]=[];byDomain[a.domain].push(a);});
+
+  let html = '';
+  for(const [domain, apps] of Object.entries(byDomain)) {
+    html += `<div class="domain-section"><div class="domain-label">${domain}</div><div class="app-grid">`;
+    apps.forEach(app=>{
+      html += `<div class="app-card" onclick="openApp('${app.id}')">
+        <div class="ac-top">
+          <div class="ac-icon"><i class="ti ${ICONS[app.icon]}" aria-hidden="true"></i></div>
+          <i class="ti ti-arrow-right ac-arrow" aria-hidden="true"></i>
+        </div>
+        <div class="ac-name">${app.name}</div>
+        <div class="ac-ns">${app.namespace}</div>
+        <div class="ac-count"><i class="ti ti-plug" aria-hidden="true" style="font-size:11px"></i> ${app.services.length} services</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+  document.getElementById('domainSections').innerHTML = html;
+  renderRailPins();
+}
+
+/* ═══ RAIL PINS (recent apps) ═══ */
+function renderRailPins() {
+  const recent = recents.map(r=>r.appId).filter((v,i,a)=>a.indexOf(v)===i).slice(0,8);
+  const el = document.getElementById('railPins');
+  el.innerHTML = recent.map(aid=>{
+    const app = CATALOG.find(a=>a.id===aid);
+    if(!app) return '';
+    const initials = app.name.replace(/[^A-Z]/g,'').substring(0,2)||app.name.substring(0,2).toUpperCase();
+    return `<div class="rail-app${activeApp&&activeApp.id===aid?' active':''}" onclick="openApp('${app.id}')" title="${app.name}" data-badge="${app.services.length}">${initials}</div>`;
+  }).join('');
+}
+
+/* ═══ OPEN APP ═══ */
+function openApp(appId) {
+  activeApp = CATALOG.find(a=>a.id===appId);
+  activeSvc = null;
+  tokenCache[appId] = null;
+
+  document.getElementById('homeView').style.display='none';
+  document.getElementById('reqView').style.display='flex';
+  document.getElementById('appPanel').style.display='flex';
+  document.getElementById('breadcrumb').style.display='flex';
+  document.getElementById('bcApp').textContent = activeApp.name;
+  document.getElementById('bcSep2').style.display='none';
+  document.getElementById('bcSvc').textContent='';
+  document.getElementById('apName').textContent = activeApp.name;
+  document.getElementById('apMeta').textContent = activeApp.namespace+' · '+activeApp.services.length+' services';
+  document.getElementById('svcCount').textContent = activeApp.services.length;
+  document.getElementById('emptyReq').style.display='flex';
+  document.getElementById('reqForm').style.display='none';
+  document.getElementById('svcSearchInput').value='';
+  renderRailPins();
+  renderSvcList(activeApp.services);
+  renderRecents();
+  acquireToken(appId);
+}
+
+/* ═══ TOKEN ACQUIRE (simulated) ═══ */
+function acquireToken(appId) {
+  setTokStatus('loading','acquiring token...');
+  setTimeout(()=>{
+    tokenCache[appId]='eyJhbGciOiJSUzI1NiIsImtpZCI6ImtleS0wMSJ9.'+btoa(appId+':'+Date.now()).replace(/=/g,'');
+    setTokStatus('ok',activeApp.clientId+' · secured');
+    const bar=document.getElementById('tokBarEl');
+    if(bar){bar.className='tok-bar';bar.querySelector('.tv').textContent=tokenCache[appId].substring(0,22)+'…';}
+  }, 700 + Math.random()*400);
+}
+
+function setTokStatus(state, msg) {
+  const dot=document.getElementById('tokDot');
+  const lbl=document.getElementById('tokLabel');
+  dot.className='tok-dot'+(state==='ok'?' ok':state==='loading'?' spin':'');
+  lbl.textContent=msg;
+}
+
+/* ═══ RENDER SERVICE LIST (virtual — only renders visible slice) ═══ */
+let allSvcs = [];
+function renderSvcList(svcs) {
+  allSvcs = svcs;
+  const el = document.getElementById('svcScroll');
+  el.innerHTML = svcs.map(s=>`
+    <div class="svc-row" id="sr-${s.id}" onclick="selectSvc('${s.id}')">
+      <span class="m-pill ${s.method}">${s.method}</span>
+      <span class="svc-name">${s.name}</span>
+      <span class="svc-dot" id="sd-${s.id}"></span>
+    </div>`).join('');
+  document.getElementById('svcCount').textContent = svcs.length;
+}
+
+function filterSvcs() {
+  const q = document.getElementById('svcSearchInput').value.toLowerCase();
+  const filtered = q ? activeApp.services.filter(s=>
+    s.name.toLowerCase().includes(q)||s.method.toLowerCase().includes(q)||s.path.toLowerCase().includes(q)
+  ) : activeApp.services;
+  renderSvcList(filtered);
+}
+
+/* ═══ SELECT SERVICE ═══ */
+function selectSvc(svcId) {
+  activeSvc = activeApp.services.find(s=>s.id===svcId);
+  document.querySelectorAll('.svc-row').forEach(r=>r.classList.remove('active'));
+  const el=document.getElementById('sr-'+svcId);
+  if(el) el.classList.add('active');
+  document.getElementById('emptyReq').style.display='none';
+  document.getElementById('reqForm').style.display='block';
+  document.getElementById('bcSep2').style.display='';
+  document.getElementById('bcSvc').textContent=activeSvc.name;
+  addRecent(activeApp.id, svcId);
+  renderForm(activeSvc);
+}
+
+function clearSvc() {
+  activeSvc=null;
+  document.querySelectorAll('.svc-row').forEach(r=>r.classList.remove('active'));
+  document.getElementById('emptyReq').style.display='flex';
+  document.getElementById('reqForm').style.display='none';
+  document.getElementById('bcSep2').style.display='none';
+  document.getElementById('bcSvc').textContent='';
+}
+
+/* ═══ RENDER FORM ═══ */
+function renderForm(svc) {
+  const envCfg = ENV_CFG[ENV];
+  const tok = tokenCache[activeApp&&activeApp.id]||'...';
+  const tokReady = !!tokenCache[activeApp&&activeApp.id];
+  const fullPath = activeApp.proxy + svc.path;
+
+  let html=`
+    <div class="url-bar">
+      <span class="ub-method m-pill ${svc.method}">${svc.method}</span>
+      <span class="ub-url" id="urlDisp"><span class="ub-base">${envCfg.base}</span><span class="ub-path">${fullPath}</span></span>
+      <button class="exec-btn" id="execBtn" onclick="doExecute()"><i class="ti ti-player-play" aria-hidden="true"></i> Execute</button>
+    </div>
+    <div class="tok-bar${tokReady?'':' loading'}" id="tokBarEl">
+      <i class="ti ti-lock" aria-hidden="true" style="font-size:12px"></i>
+      <span>${tokReady?'Bearer token auto-injected':'Acquiring bearer token…'}</span>
+      <span class="tok-val tv">${tokReady?tok.substring(0,22)+'…':'fetching…'}</span>
+    </div>
+    <div class="section"><div class="sec-label">Service info</div>
+      <div class="svc-desc">${svc.desc} &nbsp;·&nbsp; <span style="font-family:var(--mono);font-size:11px;color:var(--t3)">${activeApp.proxy}${svc.path}</span></div>
+    </div>`;
+
+  if(svc.pathParams&&svc.pathParams.length) {
+    html+=`<div class="section"><div class="sec-label">Path parameters</div><table class="param-table">`;
+    svc.pathParams.forEach(p=>{
+      html+=`<tr><td><span class="plabel">${p.label} <span class="preq">*</span></span></td>
+      <td><input id="pp-${p.key}" placeholder="${p.placeholder||''}" oninput="liveUrl()"></td></tr>`;
+    });
+    html+=`</table></div>`;
+  }
+
+  if(svc.queryParams&&svc.queryParams.length) {
+    html+=`<div class="section"><div class="sec-label">Query parameters</div><table class="param-table">`;
+    svc.queryParams.forEach(p=>{
+      html+=`<tr><td><span class="plabel">${p.label} ${p.required?'<span class="preq">*</span>':'<span class="popt">(opt)</span>'}</span></td>
+      <td><input id="qp-${p.key}" placeholder="${p.placeholder||''}" oninput="liveUrl()"></td></tr>`;
+    });
+    html+=`</table></div>`;
+  }
+
+  if(svc.bodyParams&&svc.bodyParams.length) {
+    html+=`<div class="section"><div class="sec-label">Request body</div><table class="param-table">`;
+    svc.bodyParams.forEach(p=>{
+      if(p.type==='textarea'){
+        html+=`<tr><td style="vertical-align:top;padding-top:8px"><span class="plabel">${p.label} ${p.required?'<span class="preq">*</span>':''}</span></td>
+        <td><textarea id="bp-${p.key}" placeholder="${p.placeholder||''}" style="min-height:80px"></textarea></td></tr>`;
+      } else {
+        html+=`<tr><td><span class="plabel">${p.label} ${p.required?'<span class="preq">*</span>':''}</span></td>
+        <td><input id="bp-${p.key}" placeholder="${p.placeholder||''}"></td></tr>`;
+      }
+    });
+    html+=`</table></div>`;
+  }
+
+  html+=`<div id="resArea"></div>`;
+  document.getElementById('reqForm').innerHTML=html;
+  document.getElementById('reqScroll').scrollTop=0;
+}
+
+function liveUrl() {
+  if(!activeSvc||!activeApp) return;
+  let path = activeApp.proxy + activeSvc.path;
+  (activeSvc.pathParams||[]).forEach(p=>{
+    const el=document.getElementById('pp-'+p.key);
+    if(el&&el.value) path=path.replace('{'+p.key+'}',el.value);
+  });
+  const qp=[];
+  (activeSvc.queryParams||[]).forEach(p=>{
+    const el=document.getElementById('qp-'+p.key);
+    if(el&&el.value) qp.push(p.key+'='+encodeURIComponent(el.value));
+  });
+  const disp=document.getElementById('urlDisp');
+  if(disp) disp.innerHTML=`<span class="ub-base">${ENV_CFG[ENV].base}</span><span class="ub-path">${path}${qp.length?'?'+qp.join('&'):''}</span>`;
+}
+
+/* ═══ EXECUTE ═══ */
+async function doExecute() {
+  const btn=document.getElementById('execBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="exec-spin"></span> Running';
+  const svc=activeSvc;
+  const app=activeApp;
+  const tok=tokenCache[app.id]||'';
+  const method=svc.method;
+  let path=app.proxy+svc.path;
+  (svc.pathParams||[]).forEach(p=>{const el=document.getElementById('pp-'+p.key);if(el&&el.value)path=path.replace('{'+p.key+'}',el.value);});
+  const qp=[];
+  (svc.queryParams||[]).forEach(p=>{const el=document.getElementById('qp-'+p.key);if(el&&el.value)qp.push(p.key+'='+encodeURIComponent(el.value));});
+  const url=ENV_CFG[ENV].base+path+(qp.length?'?'+qp.join('&'):'');
+  const headers={'Authorization':'Bearer '+tok,'Content-Type':'application/json','X-Correlation-Id':'corr-'+Date.now(),'X-App-Id':app.id};
+  let body=undefined;
+  if(!['GET','DELETE'].includes(method)&&svc.bodyParams&&svc.bodyParams.length){
+    const obj={};
+    svc.bodyParams.forEach(p=>{const el=document.getElementById('bp-'+p.key);if(el&&el.value.trim()){try{obj[p.key]=JSON.parse(el.value.trim());}catch{obj[p.key]=el.value.trim();}}});
+    body=JSON.stringify(obj);
+  }
+  const t0=Date.now();
+  let status=0,statusText='',resBody='',resHeaders={};
+  try{
+    const r=await fetch(url,{method,headers,body});
+    status=r.status;statusText=r.statusText;
+    resBody=await r.text();
+    r.headers.forEach((v,k)=>{resHeaders[k]=v;});
+  }catch(e){status=0;statusText='Network Error';resBody=e.message;}
+  const ms=Date.now()-t0;
+  let pretty=resBody;try{pretty=JSON.stringify(JSON.parse(resBody),null,2);}catch{}
+  const sc=status===0?'serr':status<300?'s2':status<500?'s4':'s5';
+  const pc=status===0?'rp5':status<300?'rp2':status<500?'rp4':'rp5';
+  const sdEl=document.getElementById('sd-'+svc.id);
+  if(sdEl){sdEl.className='svc-dot'+(status>=200&&status<300?' ok':' err');}
+  const srEl=document.getElementById('sr-'+svc.id);
+  if(srEl){srEl.classList.toggle('tested',status>=200&&status<300);srEl.classList.toggle('errored',status===0||status>=400);}
+  const reqHdr=Object.entries(headers).map(([k,v])=>k+': '+(k==='Authorization'?'Bearer ••••••':v)).join('\n');
+  const resHdr=Object.entries(resHeaders).map(([k,v])=>k+': '+v).join('\n')||'(none)';
+  document.getElementById('resArea').innerHTML=`
+    <div class="res-block">
+      <div class="res-head">
+        <span class="res-status ${sc}">${status||'ERR'}</span>
+        <span class="res-pill ${pc}">${statusText||'Failed'}</span>
+        <span class="res-meta">${ms}ms</span>
+        <span class="res-meta">${resBody.length} B</span>
+        <button class="res-copy" onclick="navigator.clipboard.writeText(document.getElementById('resBodyPre').textContent)">
+          <i class="ti ti-copy" aria-hidden="true"></i> copy
+        </button>
+      </div>
+      <div class="res-tabs">
+        <div class="rt on" onclick="showResTab('body',this)">Response body</div>
+        <div class="rt" onclick="showResTab('rheaders',this)">Response headers</div>
+        <div class="rt" onclick="showResTab('qheaders',this)">Request headers</div>
+      </div>
+      <pre class="res-body" id="resBodyPre">${pretty||'(empty)'}</pre>
+      <pre class="res-body" id="resResHeaders" style="display:none">${resHdr}</pre>
+      <pre class="res-body" id="resReqHeaders" style="display:none">${reqHdr}</pre>
+    </div>`;
+  btn.disabled=false;
+  btn.innerHTML='<i class="ti ti-player-play" aria-hidden="true"></i> Execute';
+  document.getElementById('resArea').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function showResTab(tab,el){
+  document.querySelectorAll('.rt').forEach(r=>r.classList.remove('on'));
+  el.classList.add('on');
+  ['resBodyPre','resResHeaders','resReqHeaders'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  const map={body:'resBodyPre',rheaders:'resResHeaders',qheaders:'resReqHeaders'};
+  const t=document.getElementById(map[tab]);if(t)t.style.display='block';
+}
+
+/* ═══ RECENTS ═══ */
+function addRecent(appId, svcId) {
+  recents=recents.filter(r=>!(r.appId===appId&&r.svcId===svcId));
+  recents.unshift({appId,svcId});
+  recents=recents.slice(0,5);
+  renderRecents();
+}
+
+function renderRecents() {
+  const row=document.getElementById('recentsRow');
+  const appRecents=recents.filter(r=>r.appId===activeApp.id).slice(0,4);
+  if(!appRecents.length){row.style.display='none';return;}
+  row.style.display='flex';
+  row.innerHTML='<span style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;width:100%;padding:4px 0 2px">Recent</span>'+
+    appRecents.map(r=>{
+      const s=activeApp.services.find(sv=>sv.id===r.svcId);
+      if(!s)return'';
+      return `<div class="rec-chip" onclick="selectSvc('${s.id}')"><span class="m-pill ${s.method}">${s.method}</span>${s.name}</div>`;
+    }).join('');
+}
+
+/* ═══ HOME ═══ */
+function goHome() {
+  activeApp=null;activeSvc=null;
+  document.getElementById('homeView').style.display='block';
+  document.getElementById('reqView').style.display='none';
+  document.getElementById('appPanel').style.display='none';
+  document.getElementById('breadcrumb').style.display='none';
+  setTokStatus('','no app');
+}
+
+function setEnv(e,btn){
+  ENV=e;
+  document.querySelectorAll('.env-o').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(activeSvc) renderForm(activeSvc);
+}
+
+/* ═══ COMMAND PALETTE ═══ */
+function openCmd(){document.getElementById('cmdOverlay').style.display='flex';document.getElementById('cmdInput').value='';cmdSearch();setTimeout(()=>document.getElementById('cmdInput').focus(),50);}
+function closeCmd(){document.getElementById('cmdOverlay').style.display='none';cmdFocusIdx=-1;}
+function maybeCloseCmd(e){if(e.target===document.getElementById('cmdOverlay'))closeCmd();}
+
+function cmdSearch(){
+  const q=document.getElementById('cmdInput').value.toLowerCase().trim();
+  const el=document.getElementById('cmdResults');
+  cmdItems=[];cmdFocusIdx=-1;
+  if(!q){
+    const recentApps=[...new Set(recents.map(r=>r.appId))].slice(0,6).map(id=>CATALOG.find(a=>a.id===id)).filter(Boolean);
+    let html='';
+    if(recentApps.length){
+      html+=`<div class="cmd-section"><div class="cmd-sec-label">Recent apps</div>`;
+      recentApps.forEach(app=>{
+        html+=`<div class="cmd-item" onclick="openApp('${app.id}');closeCmd()">
+          <div class="cmd-item-icon"><i class="ti ${ICONS[app.icon]}" aria-hidden="true"></i></div>
+          <span class="cmd-item-name">${app.name}</span>
+          <div class="cmd-item-right"><span class="cmd-item-meta">${app.domain}</span><span class="cmd-item-meta">${app.services.length} svcs</span></div>
+        </div>`;
+        cmdItems.push({type:'app',id:app.id});
+      });
+      html+='</div>';
+    }
+    const recentSvcs=recents.slice(0,5);
+    if(recentSvcs.length){
+      html+=`<div class="cmd-section"><div class="cmd-sec-label">Recent services</div>`;
+      recentSvcs.forEach(r=>{
+        const app=CATALOG.find(a=>a.id===r.appId);
+        const svc=app&&app.services.find(s=>s.id===r.svcId);
+        if(!app||!svc)return;
+        html+=`<div class="cmd-item" onclick="openApp('${app.id}');setTimeout(()=>selectSvc('${svc.id}'),50);closeCmd()">
+          <div class="cmd-item-icon"><span class="m-pill ${svc.method}" style="font-size:9px">${svc.method}</span></div>
+          <span class="cmd-item-name">${svc.name}</span>
+          <div class="cmd-item-right"><span class="cmd-item-meta">${app.name}</span></div>
+        </div>`;
+        cmdItems.push({type:'svc',appId:app.id,svcId:svc.id});
+      });
+      html+='</div>';
+    }
+    el.innerHTML=html||'<div class="cmd-empty">Start typing to search across all apps and services</div>';
+    return;
+  }
+
+  const appHits=CATALOG.filter(a=>a.name.toLowerCase().includes(q)||a.domain.toLowerCase().includes(q)||a.namespace.toLowerCase().includes(q)).slice(0,5);
+  const svcHits=[];
+  for(const app of CATALOG){
+    for(const svc of app.services){
+      if(svc.name.toLowerCase().includes(q)||svc.method.toLowerCase()===q||svc.path.toLowerCase().includes(q)){
+        svcHits.push({app,svc});
+        if(svcHits.length>=8)break;
+      }
+    }
+    if(svcHits.length>=8)break;
+  }
+
+  let html='';
+  if(appHits.length){
+    html+=`<div class="cmd-section"><div class="cmd-sec-label">Applications</div>`;
+    appHits.forEach(app=>{
+      html+=`<div class="cmd-item" onclick="openApp('${app.id}');closeCmd()">
+        <div class="cmd-item-icon"><i class="ti ${ICONS[app.icon]}" aria-hidden="true"></i></div>
+        <span class="cmd-item-name">${highlight(app.name,q)}</span>
+        <div class="cmd-item-right"><span class="cmd-item-meta">${app.domain}</span><span class="cmd-item-meta">${app.services.length} svcs</span></div>
+      </div>`;
+      cmdItems.push({type:'app',id:app.id});
+    });
+    html+='</div>';
+  }
+  if(svcHits.length){
+    html+=`<div class="cmd-section"><div class="cmd-sec-label">Services</div>`;
+    svcHits.forEach(({app,svc})=>{
+      html+=`<div class="cmd-item" onclick="openApp('${app.id}');setTimeout(()=>selectSvc('${svc.id}'),50);closeCmd()">
+        <div class="cmd-item-icon"><span class="m-pill ${svc.method}" style="font-size:9px">${svc.method}</span></div>
+        <span class="cmd-item-name">${highlight(svc.name,q)}</span>
+        <div class="cmd-item-right"><span class="cmd-item-meta">${app.name}</span><span class="cmd-item-meta" style="font-family:var(--mono);font-size:10px">${svc.path}</span></div>
+      </div>`;
+      cmdItems.push({type:'svc',appId:app.id,svcId:svc.id});
+    });
+    html+='</div>';
+  }
+  el.innerHTML=html||'<div class="cmd-empty">No results for "<b>'+q+'</b>"</div>';
+}
+
+function highlight(text,q){return text.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<b style="color:var(--acc2)">$1</b>');}
+
+function cmdKey(e){
+  const items=document.querySelectorAll('.cmd-item');
+  if(e.key==='ArrowDown'){e.preventDefault();cmdFocusIdx=Math.min(cmdFocusIdx+1,items.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();cmdFocusIdx=Math.max(cmdFocusIdx-1,0);}
+  else if(e.key==='Enter'){if(cmdFocusIdx>=0&&items[cmdFocusIdx])items[cmdFocusIdx].click();return;}
+  else if(e.key==='Escape'){closeCmd();return;}
+  items.forEach((it,i)=>it.classList.toggle('focused',i===cmdFocusIdx));
+  if(items[cmdFocusIdx])items[cmdFocusIdx].scrollIntoView({block:'nearest'});
+}
+
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openCmd();}if(e.key==='Escape'&&document.getElementById('cmdOverlay').style.display!=='none')closeCmd();});
+
+renderHome();
+</script>

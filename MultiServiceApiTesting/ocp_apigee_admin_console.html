@@ -1,0 +1,734 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg0:var(--color-background-tertiary);
+--bg1:var(--color-background-primary);
+--bg2:var(--color-background-secondary);
+--t1:var(--color-text-primary);
+--t2:var(--color-text-secondary);
+--t3:var(--color-text-tertiary);
+--b1:var(--color-border-tertiary);
+--b2:var(--color-border-secondary);
+--b3:var(--color-border-primary);
+--acc:#0F6E56;--acc2:#1D9E75;--acc3:#E1F5EE;--acc4:#9FE1CB;
+--r:var(--border-radius-md);--rl:var(--border-radius-lg);
+--mono:var(--font-mono,'Courier New',monospace);
+}
+body{font-family:var(--font-sans,system-ui);font-size:13px;color:var(--t1);background:var(--bg0);min-height:640px;overflow:hidden;display:flex;flex-direction:column}
+.GET{background:#E1F5EE;color:#085041;border:0.5px solid #5DCAA5}
+.POST{background:#E6F1FB;color:#042C53;border:0.5px solid #85B7EB}
+.PUT{background:#FAEEDA;color:#412402;border:0.5px solid #EF9F27}
+.DELETE{background:#FCEBEB;color:#501313;border:0.5px solid #F09595}
+.PATCH{background:#EEEDFE;color:#26215C;border:0.5px solid #AFA9EC}
+
+/* TOPBAR */
+.topbar{height:44px;background:var(--bg1);border-bottom:0.5px solid var(--b1);display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0}
+.tb-logo{font-size:13px;font-weight:500;color:var(--t1);display:flex;align-items:center;gap:7px}
+.tb-logo i{color:var(--acc2);font-size:15px}
+.tb-badge{font-size:10px;font-weight:500;padding:2px 8px;border-radius:12px;background:#FAEEDA;color:#633806;border:0.5px solid #FAC775;letter-spacing:.3px}
+.tb-spacer{flex:1}
+.nav-tabs{display:flex;height:100%;gap:0}
+.nav-tab{display:flex;align-items:center;gap:6px;padding:0 16px;font-size:12px;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.nav-tab:hover{color:var(--t2)}
+.nav-tab.on{color:var(--t1);border-bottom-color:var(--acc2)}
+.nav-tab i{font-size:14px}
+
+/* LAYOUT */
+.shell{display:flex;flex:1;overflow:hidden;height:calc(640px - 44px)}
+
+/* SIDEBAR */
+.sidebar{width:200px;background:var(--bg1);border-right:0.5px solid var(--b1);display:flex;flex-direction:column;padding:12px 0;flex-shrink:0}
+.sb-section{padding:0 10px 8px}
+.sb-label{font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;padding:6px 6px 4px}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r);cursor:pointer;font-size:12px;color:var(--t2);transition:all .1s}
+.sb-item:hover{background:var(--bg2);color:var(--t1)}
+.sb-item.on{background:var(--acc3);color:var(--acc);font-weight:500}
+.sb-item i{font-size:14px}
+.sb-item .sb-count{margin-left:auto;font-size:10px;background:var(--bg2);border:0.5px solid var(--b1);border-radius:8px;padding:1px 6px;color:var(--t3)}
+.sb-item.on .sb-count{background:var(--acc4);border-color:var(--acc2);color:var(--acc)}
+.sb-sep{height:0.5px;background:var(--b1);margin:6px 10px}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.main::-webkit-scrollbar{width:3px}
+.main::-webkit-scrollbar-thumb{background:var(--b2)}
+
+/* PAGE HEADER */
+.page-hdr{padding:16px 20px 12px;border-bottom:0.5px solid var(--b1);background:var(--bg1);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.page-title{font-size:15px;font-weight:500;color:var(--t1);margin-bottom:3px}
+.page-sub{font-size:11px;color:var(--t3);line-height:1.6}
+.page-actions{display:flex;gap:8px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);font-size:12px;cursor:pointer;transition:all .15s;border:0.5px solid var(--b2);background:var(--bg1);color:var(--t2);font-family:var(--font-sans)}
+.btn:hover{border-color:var(--b3);color:var(--t1);background:var(--bg2)}
+.btn.primary{background:var(--acc2);color:#fff;border-color:var(--acc)}
+.btn.primary:hover{background:var(--acc)}
+.btn.danger{background:#FCEBEB;color:#A32D2D;border-color:#F09595}
+.btn.danger:hover{background:#F7C1C1}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn i{font-size:14px}
+
+/* CARDS / PANELS */
+.content-body{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--bg1);border:0.5px solid var(--b1);border-radius:var(--rl);overflow:hidden}
+.card-head{padding:12px 16px;border-bottom:0.5px solid var(--b1);display:flex;align-items:center;gap:8px;background:var(--bg2)}
+.card-title{font-size:12px;font-weight:500;color:var(--t1);flex:1}
+.card-body{padding:14px 16px}
+
+/* STEPPER */
+.stepper{display:flex;align-items:center;gap:0;padding:14px 20px;border-bottom:0.5px solid var(--b1);background:var(--bg1);flex-shrink:0}
+.step{display:flex;align-items:center;gap:8px;flex:1}
+.step-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.step-num.done{background:var(--acc3);color:var(--acc);border:1px solid var(--acc4)}
+.step-num.active{background:var(--acc2);color:#fff}
+.step-num.todo{background:var(--bg2);color:var(--t3);border:0.5px solid var(--b2)}
+.step-label{font-size:11px;font-weight:500}
+.step-label.active{color:var(--t1)}
+.step-label.done{color:var(--acc)}
+.step-label.todo{color:var(--t3)}
+.step-line{flex:1;height:0.5px;background:var(--b1);margin:0 8px;max-width:40px}
+.step-line.done{background:var(--acc4)}
+
+/* FORM ELEMENTS */
+.form-row{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:4px}
+.form-req{color:#E24B4A}
+.form-hint{font-size:10px;color:var(--t3);margin-top:2px}
+input,select,textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:var(--r);border:0.5px solid var(--b1);background:var(--bg2);color:var(--t1);outline:none;font-family:var(--font-sans);transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--b3);background:var(--bg1)}
+input::placeholder,textarea::placeholder{color:var(--t3)}
+textarea{resize:vertical;font-family:var(--mono);font-size:11px;line-height:1.6}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* PROGRESS / STATUS */
+.status-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);font-size:12px;border:0.5px solid}
+.status-bar.info{background:#E6F1FB;color:#042C53;border-color:#85B7EB}
+.status-bar.success{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.status-bar.warn{background:#FAEEDA;color:#633806;border-color:#FAC775}
+.status-bar.error{background:#FCEBEB;color:#791F1F;border-color:#F7C1C1}
+.progress-bar{height:3px;background:var(--b1);border-radius:2px;overflow:hidden;margin:6px 0}
+.progress-fill{height:100%;background:var(--acc2);border-radius:2px;transition:width .4s ease}
+
+/* SERVICE TABLE */
+.svc-table{width:100%;border-collapse:collapse}
+.svc-table th{font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;border-bottom:0.5px solid var(--b1);text-align:left;white-space:nowrap}
+.svc-table td{padding:8px 10px;border-bottom:0.5px solid var(--b1);font-size:12px;color:var(--t2);vertical-align:middle}
+.svc-table tr:last-child td{border-bottom:none}
+.svc-table tr:hover td{background:var(--bg2)}
+.m-pill{font-size:9px;font-weight:500;padding:2px 6px;border-radius:3px;letter-spacing:.4px;font-family:var(--mono)}
+.path-cell{font-family:var(--mono);font-size:11px;color:var(--t1)}
+.inline-input{font-size:11px;padding:4px 7px;border-radius:4px;border:0.5px solid var(--b1);background:var(--bg2);color:var(--t1);outline:none;width:100%;font-family:var(--font-sans)}
+.inline-input:focus{border-color:var(--b3)}
+.check-col{width:32px;text-align:center}
+input[type=checkbox]{width:14px;height:14px;accent-color:var(--acc2);cursor:pointer}
+
+/* BADGES */
+.badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;border:0.5px solid}
+.badge-new{background:#E6F1FB;color:#042C53;border-color:#85B7EB}
+.badge-active{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.badge-draft{background:#FAEEDA;color:#633806;border-color:#FAC775}
+.badge-error{background:#FCEBEB;color:#791F1F;border-color:#F09595}
+
+/* CATALOG TABLE (overview) */
+.ov-table{width:100%;border-collapse:collapse}
+.ov-table th{font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;padding:7px 12px;border-bottom:0.5px solid var(--b1);text-align:left}
+.ov-table td{padding:9px 12px;border-bottom:0.5px solid var(--b1);font-size:12px;vertical-align:middle}
+.ov-table tr:last-child td{border-bottom:none}
+.ov-table tr:hover td{background:var(--bg2);cursor:pointer}
+.ov-app-name{font-weight:500;color:var(--t1)}
+.ov-ns{font-size:11px;color:var(--t3);font-family:var(--mono)}
+.ov-actions{display:flex;gap:6px;justify-content:flex-end}
+.icon-btn{width:28px;height:28px;border-radius:var(--r);border:0.5px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s}
+.icon-btn:hover{border-color:var(--b2);color:var(--t1);background:var(--bg2)}
+.icon-btn.danger:hover{border-color:#F09595;color:#A32D2D;background:#FCEBEB}
+
+/* SPIN */
+.spin{width:12px;height:12px;border:1.5px solid rgba(0,0,0,.1);border-top-color:var(--acc2);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+.spin-w{border-top-color:#fff;border-color:rgba(255,255,255,.2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:8px;color:var(--t3)}
+.empty i{font-size:28px;opacity:.3}
+.empty p{font-size:12px;text-align:center;line-height:1.8}
+
+/* IMPORT SOURCE CARDS */
+.src-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.src-card{border:0.5px solid var(--b1);border-radius:var(--rl);padding:14px;cursor:pointer;transition:all .15s;text-align:center;background:var(--bg1)}
+.src-card:hover{border-color:var(--b3);background:var(--bg2)}
+.src-card.on{border-color:var(--acc4);background:var(--acc3)}
+.src-card.on .src-name{color:var(--acc)}
+.src-icon{font-size:22px;margin-bottom:8px;color:var(--t2)}
+.src-card.on .src-icon{color:var(--acc2)}
+.src-name{font-size:12px;font-weight:500;color:var(--t1);margin-bottom:2px}
+.src-desc{font-size:11px;color:var(--t3)}
+
+/* TOGGLE */
+.toggle-wrap{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2)}
+.toggle{width:32px;height:18px;border-radius:9px;background:var(--b2);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--acc2)}
+.toggle::after{content:'';position:absolute;width:12px;height:12px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s}
+.toggle.on::after{left:17px}
+</style>
+
+<div style="display:flex;flex-direction:column;height:640px;overflow:hidden">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-logo"><i class="ti ti-shield-lock" aria-hidden="true"></i> OCP/APIGEE Admin Console</div>
+  <span class="tb-badge">ADMIN</span>
+  <div class="tb-spacer"></div>
+  <div class="nav-tabs">
+    <div class="nav-tab on" onclick="showPage('catalog',this)"><i class="ti ti-layout-grid" aria-hidden="true"></i> Catalog</div>
+    <div class="nav-tab" onclick="showPage('import',this)"><i class="ti ti-cloud-download" aria-hidden="true"></i> Import / Register</div>
+    <div class="nav-tab" onclick="showPage('auth',this)"><i class="ti ti-key" aria-hidden="true"></i> Auth Config</div>
+    <div class="nav-tab" onclick="showPage('audit',this)"><i class="ti ti-list-details" aria-hidden="true"></i> Audit Log</div>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Overview</div>
+      <div class="sb-item on" onclick="sbClick(this,'all')"><i class="ti ti-apps" aria-hidden="true"></i> All apps <span class="sb-count" id="sbAll">0</span></div>
+      <div class="sb-item" onclick="sbClick(this,'active')"><i class="ti ti-circle-check" aria-hidden="true"></i> Active <span class="sb-count" id="sbActive">0</span></div>
+      <div class="sb-item" onclick="sbClick(this,'draft')"><i class="ti ti-clock" aria-hidden="true"></i> Draft <span class="sb-count" id="sbDraft">0</span></div>
+    </div>
+    <div class="sb-sep"></div>
+    <div class="sb-section">
+      <div class="sb-label">Domains</div>
+      <div id="sbDomains"></div>
+    </div>
+    <div class="sb-sep"></div>
+    <div class="sb-section">
+      <div class="sb-label">Quick actions</div>
+      <div class="sb-item" onclick="showPage('import',document.querySelectorAll('.nav-tab')[1])"><i class="ti ti-plus" aria-hidden="true"></i> Add new app</div>
+      <div class="sb-item" onclick="showPage('auth',document.querySelectorAll('.nav-tab')[2])"><i class="ti ti-key" aria-hidden="true"></i> Manage tokens</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="mainArea">
+
+    <!-- ═══ CATALOG PAGE ═══ -->
+    <div id="pageCatalog">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Service Catalog</div>
+          <div class="page-sub">All registered applications and their APIGEE-proxied services</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn" onclick="void(0)"><i class="ti ti-search" aria-hidden="true"></i> Search</button>
+          <button class="btn primary" onclick="showPage('import',document.querySelectorAll('.nav-tab')[1])"><i class="ti ti-plus" aria-hidden="true"></i> Add App</button>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Registered Applications</span>
+            <span style="font-size:11px;color:var(--t3)" id="catTotal">—</span>
+          </div>
+          <div id="catalogTableWrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ IMPORT PAGE ═══ -->
+    <div id="pageImport" style="display:none">
+
+      <!-- STEPPER -->
+      <div class="stepper" id="stepper">
+        <div class="step"><div class="step-num active" id="sn1">1</div><span class="step-label active" id="sl1">Source</span></div>
+        <div class="step-line" id="line1"></div>
+        <div class="step"><div class="step-num todo" id="sn2">2</div><span class="step-label todo" id="sl2">Discover</span></div>
+        <div class="step-line" id="line2"></div>
+        <div class="step"><div class="step-num todo" id="sn3">3</div><span class="step-label todo" id="sl3">Review</span></div>
+        <div class="step-line" id="line3"></div>
+        <div class="step"><div class="step-num todo" id="sn4">4</div><span class="step-label todo" id="sl4">Configure</span></div>
+        <div class="step-line" id="line4"></div>
+        <div class="step"><div class="step-num todo" id="sn5">5</div><span class="step-label todo" id="sl5">Publish</span></div>
+      </div>
+
+      <!-- STEP CONTENT -->
+      <div class="content-body" id="stepContent"></div>
+    </div>
+
+    <!-- ═══ AUTH CONFIG PAGE ═══ -->
+    <div id="pageAuth" style="display:none">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Auth Configuration</div>
+          <div class="page-sub">OAuth2 client credentials per app per environment. Tokens auto-refreshed every 3550s.</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn primary"><i class="ti ti-refresh" aria-hidden="true"></i> Rotate all tokens</button>
+        </div>
+      </div>
+      <div class="content-body" id="authBody"></div>
+    </div>
+
+    <!-- ═══ AUDIT LOG PAGE ═══ -->
+    <div id="pageAudit" style="display:none">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Audit Log</div>
+          <div class="page-sub">All admin actions: imports, publishes, auth changes, and deletions</div>
+        </div>
+      </div>
+      <div class="content-body" id="auditBody"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+/* ═══════════════ STATE ═══════════════ */
+const DOMAINS_LIST=['Commerce','Customer','Payments','Logistics','Notifications','Platform'];
+let catalog=[
+  {id:'order-mgmt',name:'OrderManagement',domain:'Commerce',status:'active',namespace:'order-ns',proxy:'https://apigee-dev.corp.internal/api/order-management',clientId:'order-mgmt-client',svcCount:8,lastSync:'2 hrs ago'},
+  {id:'customer-svc',name:'CustomerProfile',domain:'Customer',status:'active',namespace:'crm-ns',proxy:'https://apigee-dev.corp.internal/api/customer',clientId:'crm-client',svcCount:6,lastSync:'1 day ago'},
+  {id:'payment-gw',name:'PaymentGateway',domain:'Payments',status:'active',namespace:'pay-ns',proxy:'https://apigee-dev.corp.internal/api/payments',clientId:'pay-client',svcCount:5,lastSync:'3 hrs ago'},
+  {id:'inventory',name:'InventoryService',domain:'Logistics',status:'draft',namespace:'inv-ns',proxy:'https://apigee-dev.corp.internal/api/inventory',clientId:'inv-client',svcCount:4,lastSync:'Pending'},
+  {id:'notify',name:'NotificationEngine',domain:'Notifications',status:'active',namespace:'notify-ns',proxy:'https://apigee-dev.corp.internal/api/notifications',clientId:'notify-client',svcCount:7,lastSync:'5 hrs ago'},
+];
+let importStep=1;
+let importData={source:'apigee-api',proxyUrl:'',orgName:'',appName:'',domain:'',clientId:'',clientSecret:'',discoveredSvcs:[],selectedSvcs:[]};
+let auditLog=[
+  {time:'10:42 AM',user:'admin@corp.in',action:'Published',target:'NotificationEngine',detail:'7 services imported from APIGEE proxy'},
+  {time:'09:15 AM',user:'admin@corp.in',action:'Auth rotated',target:'PaymentGateway',detail:'Client secret rotated for all envs'},
+  {time:'Yesterday',user:'devops@corp.in',action:'Imported',target:'InventoryService',detail:'4 services discovered via OpenAPI spec — draft'},
+  {time:'2 days ago',user:'admin@corp.in',action:'Deleted',target:'LegacyBillingAPI',detail:'App removed from catalog'},
+];
+
+/* ═══ NAV ═══ */
+function showPage(page,tab){
+  ['pageCatalog','pageImport','pageAuth','pageAudit'].forEach(p=>document.getElementById(p).style.display='none');
+  document.getElementById('page'+page.charAt(0).toUpperCase()+page.slice(1)).style.display='block';
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('on'));
+  if(tab) tab.classList.add('on');
+  if(page==='import'){importStep=1;importData={source:'apigee-api',proxyUrl:'',orgName:'',appName:'',domain:'',clientId:'',clientSecret:'',discoveredSvcs:[],selectedSvcs:[]};renderStep();}
+  if(page==='catalog') renderCatalog();
+  if(page==='auth') renderAuth();
+  if(page==='audit') renderAudit();
+}
+function sbClick(el,filter){document.querySelectorAll('.sb-item').forEach(e=>e.classList.remove('on'));el.classList.add('on');renderCatalog(filter);}
+
+/* ═══ CATALOG ═══ */
+function renderCatalog(filter='all'){
+  const filtered=filter==='all'?catalog:catalog.filter(a=>a.status===filter);
+  document.getElementById('sbAll').textContent=catalog.length;
+  document.getElementById('sbActive').textContent=catalog.filter(a=>a.status==='active').length;
+  document.getElementById('sbDraft').textContent=catalog.filter(a=>a.status==='draft').length;
+  document.getElementById('catTotal').textContent=filtered.length+' apps · '+filtered.reduce((s,a)=>s+a.svcCount,0)+' services';
+
+  // Domain sidebar
+  const byDomain={};catalog.forEach(a=>{if(!byDomain[a.domain])byDomain[a.domain]=0;byDomain[a.domain]++;});
+  document.getElementById('sbDomains').innerHTML=Object.entries(byDomain).map(([d,c])=>
+    `<div class="sb-item" onclick="sbClick(this,'${d}')"><i class="ti ti-folder" aria-hidden="true"></i> ${d} <span class="sb-count">${c}</span></div>`
+  ).join('');
+
+  if(!filtered.length){document.getElementById('catalogTableWrap').innerHTML='<div class="empty"><i class="ti ti-inbox" aria-hidden="true"></i><p>No apps in this view.<br>Import one to get started.</p></div>';return;}
+  document.getElementById('catalogTableWrap').innerHTML=`
+    <table class="ov-table">
+      <thead><tr>
+        <th>Application</th><th>Domain</th><th>Namespace</th><th>APIGEE Proxy</th><th style="text-align:center">Services</th><th>Status</th><th>Last Sync</th><th></th>
+      </tr></thead>
+      <tbody>${filtered.map(app=>`
+        <tr>
+          <td><span class="ov-app-name">${app.name}</span></td>
+          <td><span style="font-size:11px;color:var(--t2)">${app.domain}</span></td>
+          <td><span class="ov-ns">${app.namespace}</span></td>
+          <td><span style="font-family:var(--mono);font-size:11px;color:var(--t3);max-width:180px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${app.proxy}">${app.proxy.replace('https://apigee-dev.corp.internal','…')}</span></td>
+          <td style="text-align:center"><span style="font-weight:500;color:var(--t1)">${app.svcCount}</span></td>
+          <td><span class="badge ${app.status==='active'?'badge-active':'badge-draft'}">${app.status}</span></td>
+          <td style="color:var(--t3);font-size:11px">${app.lastSync}</td>
+          <td>
+            <div class="ov-actions">
+              <button class="icon-btn" title="Sync from APIGEE" onclick="syncApp('${app.id}',this)"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+              <button class="icon-btn" title="Edit" onclick="void(0)"><i class="ti ti-edit" aria-hidden="true"></i></button>
+              <button class="icon-btn danger" title="Remove" onclick="removeApp('${app.id}')"><i class="ti ti-trash" aria-hidden="true"></i></button>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function syncApp(id,btn){
+  const orig=btn.innerHTML;
+  btn.innerHTML='<span class="spin"></span>';
+  btn.disabled=true;
+  setTimeout(()=>{
+    const app=catalog.find(a=>a.id===id);
+    if(app){app.lastSync='Just now';app.status='active';}
+    btn.innerHTML=orig;btn.disabled=false;
+    renderCatalog();
+    auditLog.unshift({time:'Just now',user:'admin@corp.in',action:'Synced',target:catalog.find(a=>a.id===id)?.name||id,detail:'Re-synced from APIGEE proxy'});
+  },1200);
+}
+
+function removeApp(id){
+  if(!confirm('Remove this app from the catalog?')) return;
+  const app=catalog.find(a=>a.id===id);
+  catalog=catalog.filter(a=>a.id!==id);
+  auditLog.unshift({time:'Just now',user:'admin@corp.in',action:'Deleted',target:app?.name||id,detail:'App removed from catalog'});
+  renderCatalog();
+}
+
+/* ═══ STEPPER ═══ */
+function setStep(n){
+  for(let i=1;i<=5;i++){
+    const sn=document.getElementById('sn'+i);
+    const sl=document.getElementById('sl'+i);
+    if(!sn)continue;
+    if(i<n){sn.className='step-num done';sn.innerHTML='<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>';sl.className='step-label done';}
+    else if(i===n){sn.className='step-num active';sn.textContent=i;sl.className='step-label active';}
+    else{sn.className='step-num todo';sn.textContent=i;sl.className='step-label todo';}
+  }
+  for(let i=1;i<=4;i++){
+    const l=document.getElementById('line'+i);
+    if(l) l.className='step-line'+(i<n?' done':'');
+  }
+}
+
+function renderStep(){
+  setStep(importStep);
+  const el=document.getElementById('stepContent');
+  if(importStep===1) el.innerHTML=renderStep1();
+  else if(importStep===2) el.innerHTML=renderStep2();
+  else if(importStep===3) el.innerHTML=renderStep3();
+  else if(importStep===4) el.innerHTML=renderStep4();
+  else if(importStep===5) el.innerHTML=renderStep5();
+}
+
+/* ── STEP 1: Source ── */
+function renderStep1(){
+  return `
+    <div class="card">
+      <div class="card-head"><span class="card-title"><i class="ti ti-cloud-download" aria-hidden="true" style="color:var(--acc2)"></i> &nbsp;Select import source</span></div>
+      <div class="card-body">
+        <div class="src-grid">
+          <div class="src-card on" id="src-apigee-api" onclick="selectSrc('apigee-api')">
+            <div class="src-icon"><i class="ti ti-api" aria-hidden="true"></i></div>
+            <div class="src-name">APIGEE Management API</div>
+            <div class="src-desc">Auto-discover via org + proxy name</div>
+          </div>
+          <div class="src-card" id="src-proxy-url" onclick="selectSrc('proxy-url')">
+            <div class="src-icon"><i class="ti ti-link" aria-hidden="true"></i></div>
+            <div class="src-name">Proxy Base URL</div>
+            <div class="src-desc">Paste the APIGEE proxy URL directly</div>
+          </div>
+          <div class="src-card" id="src-openapi" onclick="selectSrc('openapi')">
+            <div class="src-icon"><i class="ti ti-file-description" aria-hidden="true"></i></div>
+            <div class="src-name">OpenAPI / Swagger</div>
+            <div class="src-desc">Upload spec file or paste JSON/YAML</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="srcFormCard">
+      <div class="card-head"><span class="card-title">Connection details</span></div>
+      <div class="card-body">
+        <div id="srcFormBody">${getSrcForm('apigee-api')}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn primary" onclick="goStep2()"><i class="ti ti-arrow-right" aria-hidden="true"></i> Discover services</button>
+    </div>`;
+}
+
+function selectSrc(src){
+  importData.source=src;
+  document.querySelectorAll('.src-card').forEach(c=>c.classList.remove('on'));
+  document.getElementById('src-'+src).classList.add('on');
+  document.getElementById('srcFormBody').innerHTML=getSrcForm(src);
+}
+
+function getSrcForm(src){
+  if(src==='apigee-api') return `
+    <div class="form-grid-2">
+      <div class="form-row"><label class="form-label">APIGEE Org name <span class="form-req">*</span></label>
+        <input id="f-org" placeholder="my-org" value="corp-apigee-prod"></div>
+      <div class="form-row"><label class="form-label">Proxy name <span class="form-req">*</span></label>
+        <input id="f-proxy" placeholder="order-management-proxy"></div>
+    </div>
+    <div class="form-grid-2" style="margin-top:10px">
+      <div class="form-row"><label class="form-label">Environment</label>
+        <select id="f-env"><option>dev</option><option>uat</option><option>prod</option></select></div>
+      <div class="form-row"><label class="form-label">APIGEE Mgmt API key <span class="form-req">*</span></label>
+        <input type="password" id="f-apikey" placeholder="••••••••••••"></div>
+    </div>`;
+  if(src==='proxy-url') return `
+    <div class="form-row"><label class="form-label">APIGEE Proxy base URL <span class="form-req">*</span></label>
+      <input id="f-proxyurl" placeholder="https://apigee-dev.corp.internal/api/order-management">
+      <div class="form-hint">The tester will auto-discover the OpenAPI spec from &lt;base&gt;/openapi.json or &lt;base&gt;/swagger.json</div>
+    </div>`;
+  if(src==='openapi') return `
+    <div class="form-row"><label class="form-label">Paste OpenAPI JSON / YAML</label>
+      <textarea rows="6" id="f-spec" placeholder='{"openapi":"3.0.0","paths":{"/orders":{"get":{},"post":{}}}}'></textarea></div>
+    <div style="text-align:center;padding:8px 0;font-size:11px;color:var(--t3)">— or —</div>
+    <button class="btn" style="width:100%"><i class="ti ti-upload" aria-hidden="true"></i> Upload .json / .yaml file</button>`;
+}
+
+function goStep2(){
+  importData.orgName=document.getElementById('f-org')?.value||'';
+  importData.proxyUrl=document.getElementById('f-proxyurl')?.value||'https://apigee-dev.corp.internal/api/new-service';
+  importStep=2;renderStep();
+  simulateDiscovery();
+}
+
+/* ── STEP 2: Discover ── */
+function renderStep2(){
+  return `
+    <div class="card">
+      <div class="card-head"><span class="card-title"><i class="ti ti-radar" aria-hidden="true" style="color:var(--acc2)"></i> &nbsp;Discovering services from APIGEE proxy…</span></div>
+      <div class="card-body">
+        <div class="status-bar info" id="discStatus"><span class="spin"></span> Connecting to APIGEE Management API…</div>
+        <div class="progress-bar"><div class="progress-fill" id="discProgress" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:6px;font-family:var(--mono)" id="discLog">Initializing…</div>
+      </div>
+    </div>`;
+}
+
+function simulateDiscovery(){
+  const steps=[
+    [5,'Authenticating with APIGEE Mgmt API…'],
+    [20,'Fetching proxy revision list…'],
+    [35,'Reading proxy bundle descriptor…'],
+    [55,'Parsing OpenAPI spec from proxy…'],
+    [70,'Extracting path definitions…'],
+    [85,'Inferring parameter schemas…'],
+    [95,'Resolving auth policy attachments…'],
+    [100,'Discovery complete'],
+  ];
+  let i=0;
+  const tick=setInterval(()=>{
+    if(i>=steps.length){clearInterval(tick);finishDiscovery();return;}
+    document.getElementById('discProgress').style.width=steps[i][0]+'%';
+    document.getElementById('discLog').textContent=steps[i][1];
+    i++;
+  },400);
+}
+
+function finishDiscovery(){
+  importData.discoveredSvcs=[
+    {id:'s1',method:'GET',path:'/v1/orders',name:'List Orders',desc:'Paginated order list with filters',params:['page','size','status'],selected:true},
+    {id:'s2',method:'GET',path:'/v1/orders/{orderId}',name:'Get Order',desc:'Fetch order by ID',params:['orderId'],selected:true},
+    {id:'s3',method:'POST',path:'/v1/orders',name:'Create Order',desc:'Submit a new order',params:['body'],selected:true},
+    {id:'s4',method:'PUT',path:'/v1/orders/{orderId}',name:'Update Order',desc:'Full update of order record',params:['orderId','body'],selected:true},
+    {id:'s5',method:'PATCH',path:'/v1/orders/{orderId}/status',name:'Update Status',desc:'Change fulfillment status',params:['orderId','status'],selected:true},
+    {id:'s6',method:'DELETE',path:'/v1/orders/{orderId}',name:'Cancel Order',desc:'Cancel and initiate refund',params:['orderId'],selected:false},
+    {id:'s7',method:'GET',path:'/v1/orders/{orderId}/items',name:'Get Line Items',desc:'Fetch all items in an order',params:['orderId'],selected:true},
+    {id:'s8',method:'POST',path:'/v1/orders/bulk',name:'Bulk Create',desc:'Create multiple orders in one call',params:['body'],selected:false},
+    {id:'s9',method:'GET',path:'/v1/orders/export',name:'Export Orders',desc:'Export to structured JSON payload',params:['dateFrom','dateTo'],selected:true},
+    {id:'s10',method:'GET',path:'/health',name:'Health Check',desc:'Liveness probe endpoint',params:[],selected:false},
+  ];
+  document.getElementById('discStatus').className='status-bar success';
+  document.getElementById('discStatus').innerHTML='<i class="ti ti-circle-check" aria-hidden="true"></i> Discovered <b>'+importData.discoveredSvcs.length+' services</b> from APIGEE proxy. Review and select below.';
+  setTimeout(()=>{importStep=3;renderStep();},600);
+}
+
+/* ── STEP 3: Review ── */
+function renderStep3(){
+  return `
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title"><i class="ti ti-list-check" aria-hidden="true" style="color:var(--acc2)"></i> &nbsp;Review discovered services</span>
+        <span style="font-size:11px;color:var(--t3)" id="selCount">${importData.discoveredSvcs.filter(s=>s.selected).length} of ${importData.discoveredSvcs.length} selected</span>
+        <button class="btn" style="margin-left:8px" onclick="toggleAll()">Toggle all</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="svc-table">
+          <thead><tr>
+            <th class="check-col"><input type="checkbox" id="chkAll" onchange="allCheck(this.checked)" checked></th>
+            <th>Method</th><th>Path</th><th>Service name (editable)</th><th>Description</th><th>Params detected</th>
+          </tr></thead>
+          <tbody id="svcReviewBody">${renderSvcRows()}</tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <button class="btn" onclick="importStep=1;renderStep()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back</button>
+      <button class="btn primary" onclick="importStep=4;renderStep()">Configure auth <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+    </div>`;
+}
+
+function renderSvcRows(){
+  return importData.discoveredSvcs.map(s=>`
+    <tr id="tr-${s.id}">
+      <td class="check-col"><input type="checkbox" ${s.selected?'checked':''} onchange="toggleSvc('${s.id}',this.checked)"></td>
+      <td><span class="m-pill ${s.method}">${s.method}</span></td>
+      <td class="path-cell">${s.path}</td>
+      <td><input class="inline-input" value="${s.name}" onchange="importData.discoveredSvcs.find(x=>x.id==='${s.id}').name=this.value"></td>
+      <td><input class="inline-input" value="${s.desc}" onchange="importData.discoveredSvcs.find(x=>x.id==='${s.id}').desc=this.value"></td>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--t3)">${s.params.join(', ')||'—'}</td>
+    </tr>`).join('');
+}
+
+function toggleSvc(id,val){
+  const s=importData.discoveredSvcs.find(x=>x.id===id);
+  if(s)s.selected=val;
+  document.getElementById('selCount').textContent=importData.discoveredSvcs.filter(s=>s.selected).length+' of '+importData.discoveredSvcs.length+' selected';
+}
+function allCheck(val){importData.discoveredSvcs.forEach(s=>s.selected=val);document.getElementById('svcReviewBody').innerHTML=renderSvcRows();document.getElementById('selCount').textContent=importData.discoveredSvcs.filter(s=>s.selected).length+' of '+importData.discoveredSvcs.length+' selected';}
+function toggleAll(){const chk=document.getElementById('chkAll');chk.checked=!chk.checked;allCheck(chk.checked);}
+
+/* ── STEP 4: Configure ── */
+function renderStep4(){
+  return `
+    <div class="card">
+      <div class="card-head"><span class="card-title"><i class="ti ti-settings" aria-hidden="true" style="color:var(--acc2)"></i> &nbsp;App & auth configuration</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-grid-2">
+          <div class="form-row"><label class="form-label">Application name <span class="form-req">*</span></label>
+            <input id="cfg-appname" placeholder="NewOrderService" value="${importData.appName||'NewOrderService'}"></div>
+          <div class="form-row"><label class="form-label">Domain / Category <span class="form-req">*</span></label>
+            <select id="cfg-domain">${DOMAINS_LIST.map(d=>`<option>${d}</option>`).join('')}</select></div>
+        </div>
+        <div class="form-row"><label class="form-label">APIGEE Proxy base URL <span class="form-req">*</span></label>
+          <input id="cfg-proxyurl" placeholder="https://apigee-dev.corp.internal/api/..." value="${importData.proxyUrl||'https://apigee-dev.corp.internal/api/new-order-service'}"></div>
+        <div class="form-row"><label class="form-label">OCP Namespace</label>
+          <input id="cfg-ns" placeholder="new-service-ns"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title"><i class="ti ti-key" aria-hidden="true" style="color:var(--acc2)"></i> &nbsp;OAuth2 client credentials</span>
+        <span style="font-size:11px;color:var(--t3);margin-left:auto">Stored encrypted · per-environment</span>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+        <div class="status-bar info" style="font-size:11px"><i class="ti ti-info-circle" aria-hidden="true"></i> Credentials are encrypted at rest and auto-rotated. Never exposed in UI or logs.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${['DEV','UAT','PROD'].map(e=>`
+          <div style="border:0.5px solid var(--b1);border-radius:var(--r);padding:10px 14px">
+            <div style="font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${e}</div>
+            <div class="form-grid-3">
+              <div class="form-row"><label class="form-label">Token URL</label><input placeholder="https://auth-${e.toLowerCase()}.corp.internal/oauth2/token" style="font-size:11px"></div>
+              <div class="form-row"><label class="form-label">Client ID</label><input placeholder="${e.toLowerCase()}-client-id" style="font-size:11px"></div>
+              <div class="form-row"><label class="form-label">Client secret</label><input type="password" placeholder="••••••••" style="font-size:11px"></div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <button class="btn" onclick="importStep=3;renderStep()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back</button>
+      <button class="btn primary" onclick="doPublish()">Publish to catalog <i class="ti ti-rocket" aria-hidden="true"></i></button>
+    </div>`;
+}
+
+/* ── STEP 5: Publish ── */
+function doPublish(){
+  const appName=document.getElementById('cfg-appname')?.value||'NewService';
+  importStep=5;
+  renderStep();
+  const steps=['Validating service definitions…','Encrypting auth credentials…','Registering in OCP service catalog…','Configuring APIGEE proxy policies…','Activating token auto-refresh…','Publishing to tester registry…'];
+  let i=0;
+  const tick=setInterval(()=>{
+    if(i>=steps.length){clearInterval(tick);finishPublish(appName);return;}
+    document.getElementById('pubProgress').style.width=((i+1)/steps.length*100)+'%';
+    document.getElementById('pubLog').textContent=steps[i];
+    i++;
+  },500);
+}
+
+function renderStep5(){
+  return `
+    <div class="card">
+      <div class="card-head"><span class="card-title"><i class="ti ti-rocket" aria-hidden="true" style="color:var(--acc2)"></i> &nbsp;Publishing to catalog…</span></div>
+      <div class="card-body">
+        <div class="status-bar info" id="pubStatus"><span class="spin"></span> Publishing in progress…</div>
+        <div class="progress-bar"><div class="progress-fill" id="pubProgress" style="width:0%"></div></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:6px;font-family:var(--mono)" id="pubLog">Starting…</div>
+      </div>
+    </div>`;
+}
+
+function finishPublish(appName){
+  const sel=importData.discoveredSvcs.filter(s=>s.selected).length;
+  catalog.push({id:appName.toLowerCase().replace(/\s/g,'-'),name:appName,domain:'Commerce',status:'active',namespace:appName.toLowerCase()+'-ns',proxy:'https://apigee-dev.corp.internal/api/'+appName.toLowerCase().replace(/\s/g,'-'),clientId:appName.toLowerCase()+'-client',svcCount:sel,lastSync:'Just now'});
+  auditLog.unshift({time:'Just now',user:'admin@corp.in',action:'Published',target:appName,detail:sel+' services imported and published to catalog'});
+  document.getElementById('pubStatus').className='status-bar success';
+  document.getElementById('pubStatus').innerHTML='<i class="ti ti-circle-check" aria-hidden="true"></i> <b>'+appName+'</b> published successfully — <b>'+sel+' services</b> now live in the tester.';
+  document.getElementById('pubProgress').style.width='100%';
+  document.getElementById('pubLog').textContent='All done. App is live.';
+  document.getElementById('stepContent').innerHTML+=`
+    <div class="card">
+      <div class="card-head"><span class="card-title">What was published</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+        ${importData.discoveredSvcs.filter(s=>s.selected).map(s=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--b1)">
+          <span class="m-pill ${s.method}">${s.method}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--t1);flex:1">${s.path}</span>
+          <span style="font-size:12px;color:var(--t2)">${s.name}</span>
+          <span class="badge badge-active">live</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="importStep=1;renderStep()"><i class="ti ti-plus" aria-hidden="true"></i> Import another</button>
+      <button class="btn primary" onclick="showPage('catalog',document.querySelectorAll('.nav-tab')[0])"><i class="ti ti-layout-grid" aria-hidden="true"></i> View catalog</button>
+    </div>`;
+}
+
+/* ═══ AUTH PAGE ═══ */
+function renderAuth(){
+  document.getElementById('authBody').innerHTML=`
+    <div class="card">
+      <div class="card-head"><span class="card-title">Auth credentials per app</span><span style="font-size:11px;color:var(--t3)">Tokens auto-refresh every 3550s</span></div>
+      <table class="ov-table">
+        <thead><tr><th>Application</th><th>Client ID</th><th>DEV</th><th>UAT</th><th>PROD</th><th>Actions</th></tr></thead>
+        <tbody>${catalog.map(app=>`
+          <tr>
+            <td><span class="ov-app-name">${app.name}</span></td>
+            <td><span style="font-family:var(--mono);font-size:11px">${app.clientId}</span></td>
+            ${['DEV','UAT','PROD'].map(e=>`<td><span class="badge badge-active">active</span></td>`).join('')}
+            <td><div class="ov-actions">
+              <button class="icon-btn" title="Rotate secret" onclick="void(0)"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+              <button class="icon-btn" title="Edit credentials" onclick="void(0)"><i class="ti ti-edit" aria-hidden="true"></i></button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">Token auto-refresh policy</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="toggle-wrap"><div class="toggle on" onclick="this.classList.toggle('on')"></div> Auto-refresh tokens before expiry</div>
+        <div class="toggle-wrap"><div class="toggle on" onclick="this.classList.toggle('on')"></div> Rotate secrets on 401 response</div>
+        <div class="toggle-wrap"><div class="toggle" onclick="this.classList.toggle('on')"></div> Notify on token refresh failure</div>
+      </div>
+    </div>`;
+}
+
+/* ═══ AUDIT PAGE ═══ */
+function renderAudit(){
+  document.getElementById('auditBody').innerHTML=`
+    <div class="card">
+      <div class="card-head"><span class="card-title">Recent activity</span></div>
+      <table class="ov-table">
+        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+        <tbody>${auditLog.map(e=>`
+          <tr>
+            <td style="font-size:11px;color:var(--t3);white-space:nowrap">${e.time}</td>
+            <td style="font-family:var(--mono);font-size:11px">${e.user}</td>
+            <td><span class="badge ${e.action==='Published'||e.action==='Synced'?'badge-active':e.action==='Deleted'?'badge-error':'badge-draft'}">${e.action}</span></td>
+            <td style="font-weight:500">${e.target}</td>
+            <td style="font-size:11px;color:var(--t2)">${e.detail}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* INIT */
+renderCatalog();
+</script>
