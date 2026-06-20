@@ -4,6 +4,11 @@
   "description": "AI-native visual flow diagram builder — generate from Copilot Chat or code, export SVG/PNG/GIF/WebM",
   "version": "2.0.0",
   "publisher": "inovexa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inovexa/flowbuilder-vscode"
+  },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Visualization", "Other", "Machine Learning"],
   "icon": "icon.png",
