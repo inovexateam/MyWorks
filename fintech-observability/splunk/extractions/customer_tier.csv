@@ -1,0 +1,4 @@
+customer_tier,tier_weight,tier_priority,sla_ms,revenue_multiplier
+HNI,3,P1,1000,3.0
+Corporate,2,P1,1500,2.0
+Retail,1,P2,2000,1.0

@@ -1,0 +1,139 @@
+-- ================================================================
+-- FINTECH BUSINESS OBSERVABILITY — SPLUNK SPL SEARCHES
+-- Index assumption: index=ocp_fintech  sourcetype=ocp_fintech_logs
+-- Replace index name to match your environment
+-- ================================================================
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 1: Transfer Success Rate (%) — timechart
+-- Panel: Line chart | Threshold line at 99%
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api endpoint=/api/v1/transfer
+| eval is_success=if(status_code="200", 1, 0)
+| timechart span=5m avg(is_success)*100 as success_rate
+| eval success_rate=round(success_rate, 2)
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 2: Revenue At Risk (₹) — single value
+-- Panel: Big number, red when > 0
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api endpoint=/api/v1/transfer earliest=-15m
+| eval is_failed=if(status_code!="200", 1, 0)
+| eval revenue_at_risk=if(is_failed=1, tonumber(amount), 0)
+| stats sum(revenue_at_risk) as total_revenue_at_risk
+| eval total_revenue_at_risk="₹" + tostring(round(total_revenue_at_risk/100000, 2)) + "L"
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 3: Impacted Customers — single value + breakdown
+-- Panel: Single value + supporting table
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200 earliest=-15m
+| stats dc(user_id) as impacted_customers
+        values(customer_tier) as tiers
+        sum(eval(if(customer_tier="HNI",1,0))) as hni_count
+        sum(eval(if(customer_tier="Corporate",1,0))) as corporate_count
+        sum(eval(if(customer_tier="Retail",1,0))) as retail_count
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 4: Failure by Workflow Step — bar chart
+-- Panel: Shows exactly where in the funnel failures occur
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200
+| stats count as failures
+        sum(eval(tonumber(amount))) as revenue_impacted
+        dc(user_id) as unique_users
+  by workflow_step
+| sort -failures
+| eval revenue_impacted="₹" + tostring(round(revenue_impacted/100000, 2)) + "L"
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 5: Guilty Service — which app is causing failures
+-- Panel: Table with error breakdown
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200
+| stats count as error_count
+        dc(user_id) as affected_users
+        avg(duration_ms) as avg_latency_ms
+        sum(eval(tonumber(amount))) as revenue_at_risk
+  by app, error_type, error_code
+| sort -error_count
+| eval avg_latency_ms=round(avg_latency_ms, 0)
+| eval revenue_at_risk="₹" + tostring(round(revenue_at_risk/100000, 2)) + "L"
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 6: SLA Breach by Customer Tier — heatmap data
+-- Panel: Shows HNI/Corporate SLA breaches most critically
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs
+| eval sla_breached=if(tonumber(duration_ms) > case(
+    customer_tier="HNI", 1000,
+    customer_tier="Corporate", 1500,
+    true(), 2000), 1, 0)
+| stats count as total
+        sum(sla_breached) as breaches
+  by customer_tier, app
+| eval breach_rate=round(breaches/total*100, 1)
+| sort -breach_rate
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 7: Blast Radius by Region — map + table
+-- Panel: Geographic + numeric view of impact
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200 earliest=-15m
+| stats dc(user_id) as impacted_customers
+        sum(eval(tonumber(amount))) as revenue_at_risk
+        count as error_count
+  by region
+| sort -revenue_at_risk
+| eval revenue_at_risk="₹" + tostring(round(revenue_at_risk/100000, 2)) + "L"
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 8: Auth Service P99 Latency Trend — for predictive alert
+-- Panel: Line chart — rising trend = leading indicator of failures
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs app=auth-service
+| timechart span=2m p99(duration_ms) as auth_p99_latency p95(duration_ms) as auth_p95_latency avg(duration_ms) as auth_avg_latency
+| eval sla_threshold=1000
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 9: End-to-End Workflow Funnel — conversion view
+-- Panel: Funnel showing drop-off at each step
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs
+| stats dc(correlation_id) as txn_count by workflow_step
+| eval step_order=case(
+    workflow_step="initiate", 1,
+    workflow_step="fraud_check", 2,
+    workflow_step="auth_verify", 3,
+    workflow_step="ledger_update", 4,
+    workflow_step="notify", 5,
+    true(), 99)
+| sort step_order
+| eval step_label=case(
+    workflow_step="initiate", "1. Initiate Transfer",
+    workflow_step="fraud_check", "2. Fraud Check",
+    workflow_step="auth_verify", "3. Auth Verify",
+    workflow_step="ledger_update", "4. Ledger Update",
+    workflow_step="notify", "5. SMS Notify",
+    true(), workflow_step)
+
+
+-- ----------------------------------------------------------------
+-- SEARCH 10: Real-time Transaction Feed — live table
+-- Panel: Last 20 transactions with status
+-- ----------------------------------------------------------------
+index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api endpoint=/api/v1/transfer
+| table _time, correlation_id, user_id, customer_tier, amount, region, status_code, duration_ms, error_type
+| eval status_label=if(status_code="200", "SUCCESS", "FAILED")
+| eval amount_fmt="₹" + tostring(amount)
+| sort -_time
+| head 20

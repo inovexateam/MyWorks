@@ -1,0 +1,75 @@
+-- ================================================================
+-- SPLUNK SAVED SEARCHES / ALERTS
+-- Add to: savedsearches.conf in your app
+-- ================================================================
+
+
+-- ----------------------------------------------------------------
+-- ALERT 1: Transfer Success Rate Below SLA
+-- Trigger: When success rate drops below 95% for 5 min
+-- Severity: P1
+-- ----------------------------------------------------------------
+[Fintech - Transfer Success Rate Below SLA]
+search = index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api endpoint=/api/v1/transfer \
+| eval is_success=if(status_code="200",1,0) \
+| timechart span=5m avg(is_success)*100 as success_rate \
+| where success_rate < 95
+dispatch.earliest_time = -10m
+dispatch.latest_time = now
+cron_schedule = */5 * * * *
+alert.condition = search_results_count > 0
+alert.severity = critical
+alert.actions = email,webhook
+action.email.subject = [P1] Fintech Transfer Success Rate Below SLA
+action.email.message = Transfer success rate has dropped below 95%. Immediate action required.
+
+
+-- ----------------------------------------------------------------
+-- ALERT 2: Auth Service P99 Rising — Predictive Warning
+-- Trigger: P99 > 1500ms (leading indicator — fires BEFORE failures)
+-- Severity: P2 — early warning
+-- ----------------------------------------------------------------
+[Fintech - Auth Service P99 Rising PREDICTIVE]
+search = index=ocp_fintech sourcetype=ocp_fintech_logs app=auth-service \
+| timechart span=2m p99(duration_ms) as p99 \
+| where p99 > 1500
+dispatch.earliest_time = -6m
+dispatch.latest_time = now
+cron_schedule = */2 * * * *
+alert.condition = search_results_count > 0
+alert.severity = high
+alert.actions = email,webhook
+action.email.subject = [P2 PREDICTIVE] Auth service P99 rising — transfer failures likely in ~3 min
+
+
+-- ----------------------------------------------------------------
+-- ALERT 3: High-Value Transaction Failures (HNI/Corporate)
+-- Trigger: Any HNI or Corporate transaction failure
+-- Severity: P1 — business critical
+-- ----------------------------------------------------------------
+[Fintech - High Value Transaction Failed]
+search = index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api status_code!=200 \
+(customer_tier=HNI OR customer_tier=Corporate) \
+| stats count as failures sum(eval(tonumber(amount))) as revenue dc(user_id) as customers
+dispatch.earliest_time = -5m
+dispatch.latest_time = now
+cron_schedule = */1 * * * *
+alert.condition = search_results_count > 0
+alert.severity = critical
+action.email.subject = [P1] HNI/Corporate transaction failure detected
+
+
+-- ----------------------------------------------------------------
+-- ALERT 4: Revenue At Risk Threshold
+-- Trigger: More than ₹10L at risk in 15 min window
+-- ----------------------------------------------------------------
+[Fintech - Revenue At Risk Exceeded 10L]
+search = index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api status_code!=200 earliest=-15m \
+| stats sum(eval(tonumber(amount))) as total_risk \
+| where total_risk > 1000000
+dispatch.earliest_time = -15m
+dispatch.latest_time = now
+cron_schedule = */5 * * * *
+alert.condition = search_results_count > 0
+alert.severity = critical
+action.email.subject = [P1] Revenue at risk exceeds ₹10L

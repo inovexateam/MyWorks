@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>AI Incident Brief — Fintech Observability</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d1a; color: #c2c0b6; font-family: 'Courier New', monospace; min-height: 100vh; padding: 24px; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .header h1 { color: #9b8fef; font-size: 18px; letter-spacing: 2px; }
+  .badge { background: #dc4e41; color: #fff; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi { background: #16213e; border: 1px solid #2a2a4a; border-radius: 8px; padding: 16px; text-align: center; }
+  .kpi.red { border-color: #dc4e41; }
+  .kpi.amber { border-color: #f8be34; }
+  .kpi.green { border-color: #53a051; }
+  .kpi-val { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .kpi.red .kpi-val { color: #dc4e41; }
+  .kpi.amber .kpi-val { color: #f8be34; }
+  .kpi.green .kpi-val { color: #53a051; }
+  .kpi-label { font-size: 11px; color: #888; line-height: 1.5; }
+  .brief { background: #16213e; border: 1px solid #533AB7; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+  .brief h2 { color: #9b8fef; font-size: 13px; letter-spacing: 1px; margin-bottom: 14px; }
+  .brief p { font-size: 13px; line-height: 2; }
+  .brief strong { color: #9b8fef; }
+  .btn { background: #533AB7; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 13px; cursor: pointer; margin-right: 10px; }
+  .btn:hover { background: #6a52d0; }
+  .btn.secondary { background: #2a2a4a; }
+  .timeline { margin-top: 20px; }
+  .timeline h2 { color: #9b8fef; font-size: 13px; letter-spacing: 1px; margin-bottom: 14px; }
+  .event { display: flex; gap: 16px; margin-bottom: 12px; font-size: 12px; }
+  .event-time { color: #533AB7; min-width: 80px; }
+  .event-dot { color: #dc4e41; }
+  .event-dot.warn { color: #f8be34; }
+  .event-dot.ok { color: #53a051; }
+  .loading { display: none; color: #9b8fef; font-size: 13px; margin-top: 10px; }
+  .loading.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ AI INCIDENT BRIEF</h1>
+  <span class="badge" id="status-badge">● ACTIVE INCIDENT</span>
+</div>
+
+<div class="kpis">
+  <div class="kpi red">
+    <div class="kpi-val" id="success-rate">79%</div>
+    <div class="kpi-label">Transfer Success Rate<br/><span style="color:#dc4e41">SLA: 99%</span></div>
+  </div>
+  <div class="kpi amber">
+    <div class="kpi-val" id="revenue-risk">₹50.2L</div>
+    <div class="kpi-label">Revenue At Risk<br/><span style="color:#f8be34">Last 15 min</span></div>
+  </div>
+  <div class="kpi amber">
+    <div class="kpi-val" id="customers">5</div>
+    <div class="kpi-label">Impacted Customers<br/><span style="color:#f8be34">HNI:2 Corp:2 Retail:1</span></div>
+  </div>
+  <div class="kpi red">
+    <div class="kpi-val" id="auth-p99">2,756ms</div>
+    <div class="kpi-label">Auth P99 Latency<br/><span style="color:#dc4e41">SLA: 1,000ms</span></div>
+  </div>
+</div>
+
+<div class="brief">
+  <h2>🤖 AI-GENERATED INCIDENT SUMMARY</h2>
+  <p id="brief-text">
+    <strong>Root Cause:</strong> auth-service P99 latency reached 2,756ms — 2.7× above SLA threshold of 1,000ms. Pod auth-service-5c6d7e showing memory pressure, likely OOMKill event.<br/>
+    <strong>Blast Radius:</strong> Hyderabad region primary (3 failures, ₹15L). Mumbai, Bangalore, Delhi secondary. HNI and Corporate tiers disproportionately impacted — ₹47.5L of ₹50.2L total at risk.<br/>
+    <strong>Workflow Impact:</strong> auth_verify step is the single point of failure — fraud_check passing, ledger_update unreachable. End-to-end funnel broken at step 3 of 5.<br/>
+    <strong>Recommendation:</strong> (1) Rollback auth-service to v2.2.9 immediately. (2) Scale auth pod replicas 2 → 4. (3) Activate circuit breaker on /api/v1/transfer. ETA to recovery: ~4 min.
+  </p>
+</div>
+
+<div style="margin-bottom:20px;">
+  <button class="btn" onclick="regenerateBrief()">🔄 Regenerate Brief</button>
+  <button class="btn secondary" onclick="injectChaos()">🔥 Inject Chaos (Demo)</button>
+  <button class="btn secondary" onclick="showHealthy()">✅ Show Healthy State</button>
+  <div class="loading" id="loading">⏳ Analyzing Splunk signals...</div>
+</div>
+
+<div class="timeline">
+  <h2>📋 INCIDENT TIMELINE</h2>
+  <div class="event"><span class="event-time">14:30 IST</span><span class="event-dot ok">●</span><span>System healthy. Transfer success rate 100%. Auth P99: 145ms.</span></div>
+  <div class="event"><span class="event-time">14:31 IST</span><span class="event-dot warn">●</span><span>[PREDICTIVE] Auth P99 rising to 890ms. Approaching SLA threshold. P2 alert fired.</span></div>
+  <div class="event"><span class="event-time">14:32 IST</span><span class="event-dot" style="color:#dc4e41">●</span><span>Auth P99 crossed 2,341ms. First transaction failure — U2891 (Retail, ₹15K, MUM).</span></div>
+  <div class="event"><span class="event-time">14:33 IST</span><span class="event-dot" style="color:#dc4e41">●</span><span>Cascade: Corporate ₹12L failure (BLR). P1 alert triggered. Success rate: 79%.</span></div>
+  <div class="event"><span class="event-time">14:35 IST</span><span class="event-dot" style="color:#dc4e41">●</span><span>HNI ₹5L + ₹7.5L failures (HYD). Revenue at risk: ₹50.2L. Incident declared.</span></div>
+  <div class="event"><span class="event-time">14:35 IST</span><span class="event-dot warn">●</span><span>AI Incident Brief generated. Rollback initiated by on-call SRE.</span></div>
+</div>
+
+<script>
+const briefs = [
+  {
+    rate:"79%", risk:"₹50.2L", customers:"5", p99:"2,756ms",
+    rateClass:"red", riskClass:"amber",
+    text:`<strong>Root Cause:</strong> auth-service P99 latency reached 2,756ms — 2.7× above SLA of 1,000ms. Pod memory pressure, likely OOMKill.<br/>
+<strong>Blast Radius:</strong> Hyderabad primary (3 failures, ₹15L). HNI and Corporate tiers bear ₹47.5L of ₹50.2L total at risk.<br/>
+<strong>Workflow Impact:</strong> Funnel broken at step 3 (auth_verify). Fraud check passing; ledger unreachable.<br/>
+<strong>Recommendation:</strong> (1) Rollback auth-service → v2.2.9. (2) Scale pods 2→4. (3) Activate circuit breaker. ETA: ~4 min.`
+  },
+  {
+    rate:"100%", risk:"₹0", customers:"0", p99:"145ms",
+    rateClass:"green", riskClass:"green",
+    text:`<strong>System Status:</strong> All services nominal. Transfer success rate 100%. Auth P99 within SLA (145ms).<br/>
+<strong>Revenue At Risk:</strong> ₹0 — no failed transactions in last 15 minutes.<br/>
+<strong>Workflow Health:</strong> All 5 steps (initiate → fraud_check → auth_verify → ledger_update → notify) passing.<br/>
+<strong>Recommendation:</strong> No action required. Continue monitoring auth P99 — it trended upward earlier today.`
+  }
+];
+
+let currentState = 0;
+
+function animateBrief(brief) {
+  const loading = document.getElementById('loading');
+  loading.classList.add('show');
+  setTimeout(() => {
+    loading.classList.remove('show');
+    document.getElementById('success-rate').textContent = brief.rate;
+    document.getElementById('revenue-risk').textContent = brief.risk;
+    document.getElementById('customers').textContent = brief.customers;
+    document.getElementById('auth-p99').textContent = brief.p99;
+    document.querySelector('.kpis .kpi:nth-child(1)').className = `kpi ${brief.rateClass}`;
+    document.querySelector('.kpis .kpi:nth-child(2)').className = `kpi ${brief.riskClass}`;
+    document.getElementById('brief-text').innerHTML = brief.text;
+    const badge = document.getElementById('status-badge');
+    badge.textContent = brief.rateClass === 'green' ? '● HEALTHY' : '● ACTIVE INCIDENT';
+    badge.style.background = brief.rateClass === 'green' ? '#53a051' : '#dc4e41';
+  }, 2000);
+}
+
+function regenerateBrief() { animateBrief(briefs[currentState]); }
+function injectChaos() { currentState = 0; animateBrief(briefs[0]); }
+function showHealthy() { currentState = 1; animateBrief(briefs[1]); }
+</script>
+</body>
+</html>

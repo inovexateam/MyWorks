@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FINTECH BUSINESS OBSERVABILITY DASHBOARD
+  Splunk Dashboard Studio (Classic XML)
+  Import via: Settings > User Interface > Dashboards > Import
+  Replace index=ocp_fintech with your actual index name
+-->
+<dashboard version="1.1" theme="dark">
+  <label>Fintech — Business Observability</label>
+  <description>Transfer &amp; Pay workflow: business KPIs mapped to technical signals | OCP Apps</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="time_range" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default><earliest>-60m</earliest><latest>now</latest></default>
+    </input>
+    <input type="dropdown" token="customer_tier_filter" searchWhenChanged="true">
+      <label>Customer Tier</label>
+      <choice value="*">All Tiers</choice>
+      <choice value="HNI">HNI</choice>
+      <choice value="Corporate">Corporate</choice>
+      <choice value="Retail">Retail</choice>
+      <default>*</default>
+    </input>
+    <input type="dropdown" token="region_filter" searchWhenChanged="true">
+      <label>Region</label>
+      <choice value="*">All Regions</choice>
+      <choice value="HYD">Hyderabad</choice>
+      <choice value="MUM">Mumbai</choice>
+      <choice value="BLR">Bangalore</choice>
+      <choice value="DEL">Delhi</choice>
+      <choice value="CHN">Chennai</choice>
+      <default>*</default>
+    </input>
+  </fieldset>
+
+  <!-- ========== ROW 1: AI INCIDENT BRIEF ========== -->
+  <row>
+    <panel>
+      <html>
+        <![CDATA[
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 1px solid #533AB7; border-radius: 8px; padding: 16px; font-family: monospace;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="color:#9b8fef; font-size:11px; font-weight:600; letter-spacing:1px;">⚡ AI INCIDENT BRIEF — AUTO-GENERATED 14:35 IST</span>
+            <span style="background:#533AB7; color:#EEEDFE; padding:3px 10px; border-radius:12px; font-size:10px;">ACTIVE INCIDENT</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:16px; margin-bottom:12px;">
+            <div style="text-align:center;">
+              <div style="color:#e24b4a; font-size:22px; font-weight:700;">79%</div>
+              <div style="color:#888; font-size:11px;">Transfer Success Rate<br/><span style="color:#e24b4a;">SLA: 99%</span></div>
+            </div>
+            <div style="text-align:center;">
+              <div style="color:#ef9f27; font-size:22px; font-weight:700;">₹50.2L</div>
+              <div style="color:#888; font-size:11px;">Revenue At Risk<br/><span style="color:#ef9f27;">Last 15 min</span></div>
+            </div>
+            <div style="text-align:center;">
+              <div style="color:#ef9f27; font-size:22px; font-weight:700;">5</div>
+              <div style="color:#888; font-size:11px;">Impacted Customers<br/><span style="color:#ef9f27;">HNI: 2 | Corp: 2</span></div>
+            </div>
+            <div style="text-align:center;">
+              <div style="color:#e24b4a; font-size:22px; font-weight:700;">2,756ms</div>
+              <div style="color:#888; font-size:11px;">Auth P99 Latency<br/><span style="color:#e24b4a;">SLA: 1,000ms</span></div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #333; padding-top:10px; color:#c2c0b6; font-size:12px; line-height:1.7;">
+            <strong style="color:#9b8fef;">Root Cause:</strong> auth-service P99 latency crossed 2,756ms (SLA: 1,000ms) — pod auth-service-5c6d7e under memory pressure.<br/>
+            <strong style="color:#9b8fef;">Blast Radius:</strong> HYD region primary (3 failures), MUM + BLR + DEL secondary. HNI &amp; Corporate tiers most affected.<br/>
+            <strong style="color:#9b8fef;">Recommendation:</strong> Rollback auth-service to v2.2.9. Scale auth pod replicas from 2 → 4. ETA to recovery: ~4 min.
+          </div>
+        </div>
+        ]]>
+      </html>
+    </panel>
+  </row>
+
+  <!-- ========== ROW 2: KPI SINGLES ========== -->
+  <row>
+    <panel>
+      <title>Transfer Success Rate</title>
+      <single>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api endpoint=/api/v1/transfer customer_tier=$customer_tier_filter$ region=$region_filter$
+| eval is_success=if(status_code="200", 1, 0)
+| stats avg(is_success)*100 as success_rate
+| eval success_rate=round(success_rate, 1)
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="unit">%</option>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[95,99]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+
+    <panel>
+      <title>Revenue At Risk (Last 15 min)</title>
+      <single>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api status_code!=200 customer_tier=$customer_tier_filter$ region=$region_filter$ earliest=-15m
+| stats sum(eval(tonumber(amount))) as rev
+| eval display="₹" + tostring(round(rev/100000, 1)) + "L"
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="field">display</option>
+        <option name="colorMode">block</option>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,10]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+
+    <panel>
+      <title>Impacted Customers</title>
+      <single>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200 customer_tier=$customer_tier_filter$ region=$region_filter$ earliest=-15m
+| stats dc(user_id) as impacted
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,5]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+
+    <panel>
+      <title>Auth Service P99 Latency</title>
+      <single>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs app=auth-service
+| stats p99(duration_ms) as p99_latency
+| eval p99_latency=round(p99_latency, 0) + "ms"
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="field">p99_latency</option>
+        <option name="colorMode">block</option>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1000,2000]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+
+    <panel>
+      <title>SLA Breaches</title>
+      <single>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs customer_tier=$customer_tier_filter$ region=$region_filter$
+| eval breached=if(tonumber(duration_ms) > case(customer_tier="HNI",1000,customer_tier="Corporate",1500,true(),2000),1,0)
+| stats sum(breached) as sla_breaches
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[1,5]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- ========== ROW 3: TREND + FUNNEL ========== -->
+  <row>
+    <panel>
+      <title>Transfer Success Rate Over Time</title>
+      <chart>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api endpoint=/api/v1/transfer customer_tier=$customer_tier_filter$ region=$region_filter$
+| eval is_success=if(status_code="200", 1, 0)
+| timechart span=5m avg(is_success)*100 as "Success Rate (%)"
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Success Rate (%)</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+        <option name="charting.chart.overlayFields">Success Rate (%)</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>Auth Service Latency Trend (Predictive Signal)</title>
+      <chart>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs app=auth-service
+| timechart span=2m p99(duration_ms) as "P99 Latency" p95(duration_ms) as "P95 Latency" avg(duration_ms) as "Avg Latency"
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisTitleY.text">Latency (ms)</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ========== ROW 4: BLAST RADIUS ========== -->
+  <row>
+    <panel>
+      <title>Failure by Workflow Step (Where in funnel?)</title>
+      <chart>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200 customer_tier=$customer_tier_filter$ region=$region_filter$
+| stats count as failures dc(user_id) as users sum(eval(tonumber(amount))) as revenue by workflow_step
+| eval revenue_L=round(revenue/100000,1)
+| sort -failures
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.axisTitleX.text">Workflow Step</option>
+        <option name="charting.axisTitleY.text">Failure Count</option>
+        <option name="charting.drilldown">all</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>Blast Radius by Region (₹ At Risk)</title>
+      <chart>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200 customer_tier=$customer_tier_filter$ region=$region_filter$
+| stats dc(user_id) as customers sum(eval(tonumber(amount))) as revenue by region
+| eval revenue_L=round(revenue/100000,1)
+| sort -revenue
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.fieldColors">{"HYD": 0xdc4e41, "MUM": 0xf8be34, "BLR": 0xf8be34, "DEL": 0x53a051}</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>Guilty Service + Error Breakdown</title>
+      <table>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200 customer_tier=$customer_tier_filter$ region=$region_filter$
+| stats count as errors dc(user_id) as users avg(duration_ms) as avg_ms sum(eval(tonumber(amount))) as revenue by app, error_type
+| eval avg_ms=round(avg_ms,0)
+| eval revenue="₹" + tostring(round(revenue/100000,1)) + "L"
+| sort -errors
+| rename app as "Service" error_type as "Error Type" errors as "Error Count" users as "Users Affected" avg_ms as "Avg Latency (ms)" revenue as "Revenue At Risk"
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="dataOverlayMode">heatmap</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ========== ROW 5: CUSTOMER TIER IMPACT ========== -->
+  <row>
+    <panel>
+      <title>Revenue At Risk by Customer Tier</title>
+      <chart>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs status_code!=200 region=$region_filter$
+| stats sum(eval(tonumber(amount))) as revenue dc(user_id) as customers count as errors by customer_tier
+| eval revenue_L=round(revenue/100000,1)
+| sort -revenue
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.axisTitleY.text">Revenue At Risk (₹L)</option>
+        <option name="charting.fieldColors">{"HNI": 0xdc4e41, "Corporate": 0xf8be34, "Retail": 0x53a051}</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>SLA Breach Rate by Tier</title>
+      <table>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs region=$region_filter$
+| eval sla_ms=case(customer_tier="HNI",1000,customer_tier="Corporate",1500,true(),2000)
+| eval breached=if(tonumber(duration_ms) > sla_ms, 1, 0)
+| stats count as total sum(breached) as breaches by customer_tier, app
+| eval breach_rate=round(breaches/total*100,1) + "%"
+| sort -breaches
+| rename customer_tier as "Tier" app as "Service" total as "Total Requests" breaches as "SLA Breaches" breach_rate as "Breach Rate"
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+
+    <panel>
+      <title>Live Transaction Feed</title>
+      <table>
+        <search>
+          <query>
+index=ocp_fintech sourcetype=ocp_fintech_logs app=payment-api endpoint=/api/v1/transfer customer_tier=$customer_tier_filter$ region=$region_filter$
+| eval Status=if(status_code="200", "✅ SUCCESS", "❌ FAILED")
+| eval Amount="₹" + tostring(amount)
+| table _time, correlation_id, user_id, customer_tier, Amount, region, Status, duration_ms
+| sort -_time
+| head 15
+| rename _time as "Time" correlation_id as "TXN ID" user_id as "User" customer_tier as "Tier" region as "Region" duration_ms as "Latency (ms)"
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <option name="refresh.time">30</option>
+      </table>
+    </panel>
+  </row>
+
+</dashboard>
