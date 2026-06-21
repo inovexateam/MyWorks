@@ -430,6 +430,8 @@ canvas#cv{position:absolute;top:0;left:0;display:block}
       <div class="dsl-ex" onclick="setDSL('json')">→ JSON graph</div>
       <div class="dsl-ex" onclick="setDSL('md')">→ Markdown list</div>
       <div class="dsl-ex" onclick="setDSL('yaml')">→ YAML flow</div>
+      <div class="dsl-ex" onclick="setDSL('state')">→ State diagram</div>
+      <div class="dsl-ex" onclick="setDSL('er')">→ ER diagram</div>
     </div>
     <div class="psec" style="margin-top:4px;flex-shrink:0">Syntax</div>
     <div class="hint">
@@ -713,6 +715,7 @@ function drawShape(oc,sh,hw,hh,z){
   else if(sh==='offpage'){oc.moveTo(-hw,-hh);oc.lineTo(hw,-hh);oc.lineTo(hw,hh*.35);oc.lineTo(0,hh);oc.lineTo(-hw,hh*.35);oc.closePath();}
   else if(sh==='delay'){oc.moveTo(-hw,-hh);oc.lineTo(0,-hh);oc.arc(0,0,hh,Math.PI*1.5,Math.PI*.5);oc.lineTo(-hw,hh);oc.closePath();}
   else if(sh==='merge'){oc.moveTo(-hw,-hh);oc.lineTo(hw,-hh);oc.lineTo(0,hh);oc.closePath();}
+  else if(sh==='entity'){rr(oc,-hw,-hh,hw*2,hh*2,4*z);oc.closePath();}
   else{rr(oc,-hw,-hh,hw*2,hh*2,6*z);}
 }
 
@@ -765,6 +768,33 @@ function drawNode(n,phase){
   if(n.shape==='note'){const f=sh*.28;ctx.beginPath();ctx.moveTo(sw/2-f,-sh/2);ctx.lineTo(sw/2-f,-sh/2+f);ctx.lineTo(sw/2,-sh/2+f);ctx.strokeStyle=c.s+'88';ctx.lineWidth=.75;ctx.stroke();}
   if(n.shape==='subroutine'){const bw=5*zoom;ctx.strokeStyle=isSel?c.s:c.s+'88';ctx.lineWidth=isSel?1.5:.75;ctx.beginPath();ctx.moveTo(-sw/2+bw,-sh/2);ctx.lineTo(-sw/2+bw,sh/2);ctx.moveTo(sw/2-bw,-sh/2);ctx.lineTo(sw/2-bw,sh/2);ctx.stroke();}
   if(n.shape==='component'){const bw=5*zoom,bh=3.5*zoom;[-sh/2+sh*.28,-sh/2+sh*.56].forEach(by=>{ctx.beginPath();rr(ctx,-sw/2-bw/2,by,bw,bh,1);ctx.fillStyle=c.f;ctx.fill();ctx.strokeStyle=c.s+'88';ctx.lineWidth=.75;ctx.stroke();});}
+
+  // ER entity: header + attribute rows (genuinely new layout, short-circuits generic label code)
+  if(n.shape==='entity'){
+    const headerH=26*zoom,rowH=18*zoom;
+    // Header divider line
+    ctx.beginPath();ctx.moveTo(-sw/2,-sh/2+headerH);ctx.lineTo(sw/2,-sh/2+headerH);
+    ctx.strokeStyle=c.s+'88';ctx.lineWidth=.75;ctx.stroke();
+    // Header label (entity name, bold)
+    ctx.font=`700 ${Math.max(10,11*zoom)}px -apple-system,Inter,sans-serif`;
+    ctx.fillStyle=c.t;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(clipText(n.label,sw*.85,ctx.font),0,-sh/2+headerH/2);
+    // Attribute rows
+    const attrs=n.attrs||[];
+    ctx.font=`500 ${Math.max(8,9.5*zoom)}px -apple-system,Inter,sans-serif`;
+    ctx.textAlign='left';
+    attrs.forEach((a,i)=>{
+      const ry=-sh/2+headerH+rowH*i+rowH/2;
+      const keyTag=a.key?` ${a.key}`:'';
+      ctx.fillStyle=a.key==='PK'?'#fcd34d':(a.key==='FK'?'#93c5fd':c.t);
+      ctx.fillText(clipText(`${a.type} ${a.name}${keyTag}`,sw-16,ctx.font),-sw/2+8,ry);
+      if(i>0){
+        ctx.beginPath();ctx.moveTo(-sw/2,ry-rowH/2);ctx.lineTo(sw/2,ry-rowH/2);
+        ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=.5;ctx.stroke();
+      }
+    });
+    ctx.restore();return;
+  }
 
   // Highlight line
   if(!['diamond','cloud','oval','merge'].includes(n.shape)){
@@ -1263,7 +1293,9 @@ const DSL_EX={
   mermaid:`graph TD\n  A[Start] --> B{Logged in?}\n  B -- Yes --> C[Dashboard]\n  B -- No --> D[Login page]\n  D --> E[Submit]\n  E --> B`,
   json:`{"nodes":[{"id":"a","label":"Client","shape":"actor","color":"gray"},{"id":"b","label":"API Gateway","shape":"rect","color":"blue"},{"id":"c","label":"Auth","shape":"hexagon","color":"purple"},{"id":"d","label":"Database","shape":"cylinder","color":"coral"}],"edges":[{"src":"a","tgt":"b","label":"HTTP"},{"src":"b","tgt":"c","label":"Verify"},{"src":"c","tgt":"d","label":"Query"}]}`,
   md:`# Payment Flow\n- Checkout\n  - Enter card\n    - Card valid\n      - Charge success\n      - Charge failed\n  - Apply coupon\n    - Valid\n    - Invalid`,
-  yaml:`nodes:\n  - id: web\n    label: Web App\n    shape: rect\n    color: blue\n  - id: db\n    label: Postgres\n    shape: cylinder\n    color: coral\nedges:\n  - src: web\n    tgt: db\n    label: Query`
+  yaml:`nodes:\n  - id: web\n    label: Web App\n    shape: rect\n    color: blue\n  - id: db\n    label: Postgres\n    shape: cylinder\n    color: coral\nedges:\n  - src: web\n    tgt: db\n    label: Query`,
+  state:`stateDiagram-v2\n  [*] --> Pending\n  Pending --> Approved : approve\n  Pending --> Rejected : reject\n  Approved --> Shipped : dispatch\n  Shipped --> Delivered : confirm\n  Delivered --> [*]\n  Rejected --> [*]`,
+  er:`erDiagram\n  CUSTOMER {\n    int id PK\n    string name\n    string email\n  }\n  ORDER {\n    int id PK\n    int customer_id FK\n    decimal total\n    string status\n  }\n  PRODUCT {\n    int id PK\n    string name\n    decimal price\n  }\n  CUSTOMER ||--o{ ORDER : places\n  ORDER }o--o{ PRODUCT : contains`
 };
 function setDSL(t){document.getElementById('dsl-input').value=DSL_EX[t]||'';}
 function addLaneViaPrompt(){
@@ -1282,13 +1314,15 @@ function addLaneViaPrompt(){
 window.__flowAPI={
   loadMermaid:(text)=>{
     snap();nodes=[];edges=[];sel=null;selE=null;selSet.clear();
-    let isSeq=/^\s*sequenceDiagram/m.test(text)||/->.*:\s/.test(text);
+    let skipAutoLayout=/^\s*sequenceDiagram/m.test(text)||/->.*:\s/.test(text);
     try{
       if(/^\s*sequenceDiagram/m.test(text))parseMermaid(text);
+      else if(/^\s*stateDiagram(-v2)?/m.test(text))parseStateDiagram(text);
+      else if(/^\s*erDiagram/m.test(text))parseERDiagram(text);
       else if(/^\s*graph\s/m.test(text))parseMermaid(text);
       else parseArrow(text);
-    }catch(e){try{parseArrow(text);isSeq=false;}catch(e2){console.error(e2);}}
-    if(!isSeq)autoLayout();
+    }catch(e){try{parseArrow(text);skipAutoLayout=false;}catch(e2){console.error(e2);}}
+    if(!skipAutoLayout)autoLayout();
     fitView();showProps();draw();autoSave();
   },
   loadDiagramJSON:(obj)=>{snap();nodes=obj.nodes||[];edges=obj.edges||[];lanes=obj.lanes||[];sel=null;selE=null;selSet.clear();fitView();showProps();draw();autoSave();},
@@ -1298,17 +1332,19 @@ window.__flowAPI={
 function parseDSL(){
   const raw=document.getElementById('dsl-input').value.trim();if(!raw)return;
   snap();nodes=[];edges=[];sel=null;selE=null;selSet.clear();
-  let isSeq=false;
+  let skipAutoLayout=false; // true only for diagrams that self-position (sequence diagrams use seqY/seqFromX)
   try{
     if(raw.trim().startsWith('{'))parseJSON(raw);
-    else if(/^sequenceDiagram/m.test(raw)){parseMermaid(raw);isSeq=true;}
+    else if(/^sequenceDiagram/m.test(raw)){parseMermaid(raw);skipAutoLayout=true;}
+    else if(/^stateDiagram(-v2)?/m.test(raw))parseStateDiagram(raw);
+    else if(/^erDiagram/m.test(raw))parseERDiagram(raw);
     else if(/^graph\s/m.test(raw))parseMermaid(raw);
     else if(/^nodes:/m.test(raw))parseYAML(raw);
     else if(/^#+\s|^\s*[-*]\s/m.test(raw))parseMarkdown(raw);
-    else if(/->.*:\s/.test(raw)){parseSequence(raw);isSeq=true;}
+    else if(/->.*:\s/.test(raw)){parseSequence(raw);skipAutoLayout=true;}
     else parseArrow(raw);
   }catch(err){console.error(err);toast('Parse error','ti-alert-triangle');return;}
-  if(!isSeq)autoLayout();
+  if(!skipAutoLayout)autoLayout();
   if(autoRouteOn)applyAutoRoute();
   fitView();showProps();draw();autoSave();toast('Diagram generated');
 }
@@ -1371,6 +1407,103 @@ function parseSequence(raw){
     });
   });
 }
+// ── State Diagram (Mermaid stateDiagram / stateDiagram-v2) ──
+// Reuses existing shape primitives: [*] -> stadium (start/end terminal),
+// regular states -> rect. No new renderer needed for state diagrams.
+function parseStateDiagram(raw){
+  const states={};let startUsed=false;
+  const getS=(name)=>{
+    name=name.trim();
+    if(name==='[*]'){
+      // First [*] in the diagram = Start. Every subsequent [*] = the SAME shared End node
+      // (Mermaid semantics: [*] always means "the" initial/final pseudostate, not a new one each time)
+      const key=!startUsed?'__start__':'__end__';
+      if(!startUsed)startUsed=true;
+      if(!states[key])states[key]=addNode(0,0,key==='__start__'?'Start':'End','stadium',key==='__start__'?'teal':'coral');
+      return states[key];
+    }
+    if(!states[name])states[name]=addNode(0,0,name,'rect','blue');
+    return states[name];
+  };
+
+  const lines=raw.split('\n').filter(l=>l.trim()&&!/^\s*stateDiagram(-v2)?/.test(l));
+  lines.forEach(line=>{
+    const m=line.match(/^\s*(\[\*\]|\w+)\s*-->\s*(\[\*\]|\w+)\s*(?::\s*(.+))?$/);
+    if(!m)return;
+    const[,fromRaw,toRaw,label]=m;
+    const s=getS(fromRaw),t=getS(toRaw);
+    if(!edges.find(e=>e.src===s.id&&e.tgt===t.id&&e.label===(label||'').trim())){
+      edges.push({id:uid(),src:s.id,tgt:t.id,label:(label||'').trim(),arrow:'arrow',_ap:Math.random()});
+    }
+  });
+}
+
+// ── ER Diagram (Mermaid erDiagram) ──
+// New visual: entity box with header + internal attribute rows (PK/FK markers).
+function parseERDiagram(raw){
+  const entities={};const order=[];
+  const getE=(name)=>{
+    name=name.trim();
+    if(!entities[name]){order.push(name);entities[name]={name,attrs:[]};}
+    return entities[name];
+  };
+
+  const lines=raw.split('\n').filter(l=>l.trim()&&!/^\s*erDiagram/.test(l));
+  let currentEntityBlock=null;
+  lines.forEach(line=>{
+    const rel=line.match(/^\s*(\w+)\s*([|o}{]+)--([|o}{]+)\s*(\w+)\s*:\s*(.+)$/);
+    if(rel){
+      const[,a,leftCard,rightCard,b,label]=rel;
+      getE(a);getE(b);
+      entities[a]._relTo=entities[a]._relTo||[];
+      entities[a]._relTo.push({to:b,label:label.trim(),leftCard,rightCard});
+      currentEntityBlock=null;
+      return;
+    }
+    const blockOpen=line.match(/^\s*(\w+)\s*\{\s*$/);
+    if(blockOpen){currentEntityBlock=getE(blockOpen[1]);return;}
+    if(/^\s*\}\s*$/.test(line)){currentEntityBlock=null;return;}
+    if(currentEntityBlock){
+      const attr=line.match(/^\s*(\w+)\s+(\w+)\s*(PK|FK|UK)?/i);
+      if(attr){
+        const[,type,name,key]=attr;
+        currentEntityBlock.attrs.push({type,name,key:key?key.toUpperCase():''});
+      }
+    }
+  });
+
+  const ROW_H=18,HEADER_H=26,MIN_W=140;
+  order.forEach(name=>{
+    const ent=entities[name];
+    const longest=Math.max(name.length,...(ent.attrs.map(a=>(a.type+' '+a.name).length)),0);
+    const w=Math.max(MIN_W,18+longest*7);
+    const h=HEADER_H+Math.max(1,ent.attrs.length)*ROW_H+6;
+    const n=addNode(0,0,name,'entity','blue');
+    n.w=w;n.h=h;n.attrs=ent.attrs;
+    ent.node=n;
+  });
+
+  order.forEach(name=>{
+    const ent=entities[name];
+    (ent._relTo||[]).forEach(r=>{
+      const target=entities[r.to];
+      if(!target)return;
+      const cardLabel=cardinalityLabel(r.leftCard,r.rightCard);
+      edges.push({
+        id:uid(),src:ent.node.id,tgt:target.node.id,
+        label:r.label+(cardLabel?'  '+cardLabel:''),arrow:'arrow',_ap:Math.random()
+      });
+    });
+  });
+}
+function cardinalityLabel(left,right){
+  // Mermaid ER cardinality tokens differ for left vs right side of the relationship
+  const leftMap={'||':'1','|o':'0..1','}o':'0..N','}|':'1..N'};
+  const rightMap={'||':'1','o|':'0..1','o{':'0..N','|{':'1..N'};
+  const l=leftMap[left]||'';const r=rightMap[right]||'';
+  return l&&r?`${l} : ${r}`:'';
+}
+
 function parseMermaid(raw){
   if(raw.includes('sequenceDiagram')){parseSequence(raw);return;}
   const nm={};const gn=(id,lbl,sh)=>{if(!nm[id]){const s=sh||'rect',c=s==='diamond'?'amber':s==='oval'?'teal':'blue';nm[id]=addNode(0,0,(lbl||id).replace(/["[\]{}()]/g,''),s,c);}return nm[id];};
@@ -1555,6 +1688,19 @@ function renderFrame(oc,bx,by,scale,atTick,noShadow){
     oc.beginPath();drawShape(oc,n.shape,hw,hh,1);oc.fill();oc.stroke();
     if(n.shape==='cylinder'){const ry=hh*.22;oc.beginPath();oc.ellipse(0,hh-ry,hw,ry,0,0,Math.PI*2);oc.fillStyle=c.f;oc.fill();oc.stroke();oc.beginPath();oc.moveTo(-hw,-hh+ry);oc.lineTo(-hw,hh-ry);oc.moveTo(hw,-hh+ry);oc.lineTo(hw,hh-ry);oc.stroke();oc.beginPath();oc.ellipse(0,-hh+ry,hw,ry,0,0,Math.PI*2);oc.fillStyle=c.f;oc.fill();oc.stroke();}
     if(n.shape==='note'){const fold=hh*.28;oc.beginPath();oc.moveTo(hw-fold,-hh);oc.lineTo(hw-fold,-hh+fold);oc.lineTo(hw,-hh+fold);oc.strokeStyle=c.s;oc.lineWidth=.5;oc.stroke();}
+    if(n.shape==='entity'){
+      const headerH=26,rowH=18;
+      oc.beginPath();oc.moveTo(-hw,-hh+headerH);oc.lineTo(hw,-hh+headerH);oc.strokeStyle=c.s;oc.lineWidth=.75;oc.stroke();
+      oc.font=`700 11px system-ui,sans-serif`;oc.fillStyle=c.t;oc.textAlign='center';oc.textBaseline='middle';
+      oc.fillText(n.label,0,-hh+headerH/2);
+      const attrs=n.attrs||[];oc.font=`500 9.5px system-ui,sans-serif`;oc.textAlign='left';
+      attrs.forEach((a,i)=>{
+        const ry=-hh+headerH+rowH*i+rowH/2;
+        oc.fillStyle=a.key==='PK'?'#fcd34d':(a.key==='FK'?'#93c5fd':c.t);
+        oc.fillText(`${a.type} ${a.name}${a.key?' '+a.key:''}`,-hw+8,ry);
+      });
+      oc.restore();return;
+    }
     let ty2=0;if(n.shape==='cylinder')ty2=hh*.1;if(n.shape==='callout')ty2=-hh*.18;
     oc.fillStyle=c.t;oc.font=`${n.fontItalic?'italic':'normal'} ${n.fontBold?'700':'500'} ${n.fontSize||12}px system-ui,sans-serif`;oc.textAlign='center';oc.textBaseline='middle';oc.fillText(n.label,0,ty2);
     oc.restore();
@@ -1622,6 +1768,17 @@ function buildSVG(withAnim,forceLight){
     s+=`<g transform="translate(${n.x},${n.y})"${filt}>`;
     if(n.shape==='actor'){const hr=Math.min(hw*.25,12);s+=`<circle cx="0" cy="${-hh+hr}" r="${hr}" fill="${c.f}" stroke="${c.s}" stroke-width="0.75">${ao}</circle><line x1="0" y1="${-hh+hr*2}" x2="0" y2="${hh-n.h*.3}" stroke="${c.s}" stroke-width="1.2"/><line x1="${-hw*.3}" y1="${-hh+hr*2+n.h*.16}" x2="${hw*.3}" y2="${-hh+hr*2+n.h*.16}" stroke="${c.s}" stroke-width="1.2"/><line x1="0" y1="${hh-n.h*.3}" x2="${-hw*.3}" y2="${hh}" stroke="${c.s}" stroke-width="1.2"/><line x1="0" y1="${hh-n.h*.3}" x2="${hw*.3}" y2="${hh}" stroke="${c.s}" stroke-width="1.2"/><text x="0" y="${hh+4}" text-anchor="middle" dominant-baseline="hanging" fill="${c.t}" ${fontAttrs}>${n.label}</text>`;}
     else if(n.shape==='oval'){s+=`<ellipse cx="0" cy="0" rx="${hw}" ry="${hh}" fill="${c.f}" stroke="${c.s}" stroke-width="0.75">${ao}</ellipse><text x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="${c.t}" ${fontAttrs}>${n.label}</text>`;}
+    else if(n.shape==='entity'){
+      const headerH=26,rowH=18;
+      s+=`<rect x="${-hw}" y="${-hh}" width="${hw*2}" height="${hh*2}" rx="4" fill="${c.f}" stroke="${c.s}" stroke-width="0.75">${ao}</rect>`;
+      s+=`<line x1="${-hw}" y1="${-hh+headerH}" x2="${hw}" y2="${-hh+headerH}" stroke="${c.s}" stroke-width="0.75"/>`;
+      s+=`<text x="0" y="${-hh+headerH/2}" text-anchor="middle" dominant-baseline="central" fill="${c.t}" font-size="11" font-weight="700">${n.label}</text>`;
+      (n.attrs||[]).forEach((a,idx)=>{
+        const ry=-hh+headerH+rowH*idx+rowH/2;
+        const keyCol=a.key==='PK'?'#fcd34d':(a.key==='FK'?'#93c5fd':c.t);
+        s+=`<text x="${-hw+8}" y="${ry}" text-anchor="start" dominant-baseline="central" fill="${keyCol}" font-size="9.5">${a.type} ${a.name}${a.key?' '+a.key:''}</text>`;
+      });
+    }
     else{
       s+=`<path d="${shapeSVGPath(n.shape,hw,hh)}" fill="${c.f}" stroke="${c.s}" stroke-width="0.75">${ao}</path>`;
       if(n.shape==='cylinder'){const ry=hh*.22;s+=`<ellipse cx="0" cy="${hh-ry}" rx="${hw}" ry="${ry}" fill="${c.f}" stroke="${c.s}" stroke-width="0.75"/><ellipse cx="0" cy="${-hh+ry}" rx="${hw}" ry="${ry}" fill="${c.f}" stroke="${c.s}" stroke-width="0.75"/>`;}

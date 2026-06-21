@@ -17,6 +17,8 @@ const EXPORT_SHIM = `
   parseJSON,
   parseYAML,
   parseMarkdown,
+  parseStateDiagram,
+  parseERDiagram,
   autoLayout,
   setDSLValue: (v) => { document.getElementById('dsl-input').value = v; }
 };

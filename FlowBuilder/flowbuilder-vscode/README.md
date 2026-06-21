@@ -97,9 +97,11 @@ Once installed, open it any of these ways:
 
 ```
 Arrow flow:      A -> B -> C
-Labels:          A --yes--> B
+Labels:          [A] --yes--> [B]
 Sequence:        User -> Server: login
-Mermaid:         graph TD ...
+Mermaid flow:    graph TD ...
+State diagram:   stateDiagram-v2 ...
+ER diagram:      erDiagram ...
 JSON:            {"nodes":[...], "edges":[...]}
 Markdown list:   # Title / - item
 ```
@@ -288,59 +290,72 @@ If the extension doesn't load or commands are missing:
 
 ## Future Roadmap / TODO
 
-### 🤖 GitHub Copilot Chat Integration
+### 🤖 GitHub Copilot Chat Integration — ✅ Shipped
 
-**Goal:** User types a prompt in Copilot Chat and the diagram renders live on the Flow Builder board.
+Generate diagrams by typing in Copilot Chat — no need to open the DSL tab manually.
 
-**How it will work:**
-
+**How it works:**
 ```
-User types in Copilot Chat
+You type in Copilot Chat
         ↓
-Extension registers @flowbuilder as a Chat Participant
+@flowbuilder participant receives your message
         ↓
-Copilot LLM generates Mermaid / JSON / DSL text
+Copilot's language model generates Mermaid syntax for your chosen diagram type
         ↓
-extension.js sends it to WebView via postMessage
-        ↓
-flowbuilder.html parseDSL() renders it on the board instantly
+Diagram is sent to the open Flow Builder panel and rendered instantly
 ```
 
-**Example usage (once implemented):**
+**Usage — explicit type selection (no guessing):**
 ```
-@flowbuilder draw an auth flow with JWT and refresh tokens
-@flowbuilder create a CI/CD pipeline with staging and rollback
-@flowbuilder sequence diagram for a payment checkout flow
+@flowbuilder /diagram flowchart: auth flow with JWT and refresh tokens
+@flowbuilder /diagram sequence: payment checkout flow
+@flowbuilder /diagram state: order approval workflow
+@flowbuilder /diagram er: e-commerce schema with customers, orders, products
 ```
 
-**What needs to be built:**
-- VS Code 1.90+ required (Chat Participant API)
-- GitHub Copilot subscription required (provides the LLM)
-- Add `"extensionDependencies": ["github.copilot-chat"]` to `package.json`
-- Register `@flowbuilder` participant in `contributes.chatParticipants`
-- ~50 lines added to `extension.js` to call `vscode.lm.selectChatModels()`
-- System prompt instructs Copilot to respond in Mermaid / JSON / DSL only
-- `postMessage({ command: 'loadDSL', text: mermaidOutput })` sends result to board
-- **Zero changes to `flowbuilder.html`** — existing `parseDSL()` handles rendering
+Or use the slash commands directly:
+```
+@flowbuilder /flowchart auth flow with JWT and refresh tokens
+@flowbuilder /sequence payment checkout flow
+@flowbuilder /state order approval workflow
+@flowbuilder /er e-commerce schema with customers, orders, products
+```
 
-**Supported output formats from Copilot:**
+If you don't specify a type, Flow Builder asks which one you want instead of guessing — this avoids generating the wrong diagram type from an ambiguous prompt.
 
-| Prompt type | Format generated | Reason |
+**Modifying an existing diagram:**
+```
+@flowbuilder /modify add a retry node after the API call
+```
+Applies your change to the last diagram generated *in this chat session*. Note: this only knows what Copilot last generated — manual edits you made on the canvas afterward are not visible to `/modify` and will be overwritten if you run it.
+
+**Requirements:**
+- VS Code 1.90+ (Chat Participant API)
+- Active GitHub Copilot subscription
+- Flow Builder panel open (or it opens automatically on first generation)
+
+**Supported diagram types:**
+
+| Type | Command | Status |
 |---|---|---|
-| Simple flows | Mermaid `graph TD` | Most reliable from LLMs |
-| Sequence diagrams | Mermaid `sequenceDiagram` | Native support |
-| Complex with colors | JSON `{"nodes":[],"edges":[]}` | Full node control |
-| Architecture | Arrow DSL `A -> B -> C` | Lightweight |
+| Flowchart | `/diagram flowchart:` or `/flowchart` | ✅ Full support |
+| Sequence diagram | `/diagram sequence:` or `/sequence` | ✅ Full support |
+| State diagram | `/diagram state:` or `/state` | ✅ Full support |
+| Entity-relationship | `/diagram er:` or `/er` | ✅ Full support |
+| Class diagram | `/diagram class:` | ❌ Not rendered yet — Copilot will tell you to use state/ER instead |
 
-**Known limitation:** Copilot Chat API is currently read-only from the extension side — the board can receive generated diagrams but cannot send current board state back to Copilot for iteration prompts like *"add an error state to the existing diagram"*. Workaround: track diagram JSON in `extension.js` state and include it as LLM context on each message.
+**Known limitation:** the extension only tracks the last diagram *it* generated, not your manual canvas edits. `/modify` will overwrite manual changes made after generation. There's no live read of current board state back into Copilot.
 
 ---
 
 ### 📋 Other Planned Features
+- **Code-to-diagram for state/ER types** — currently "Visualize Selected Code" only generates flowchart/sequence; extending it to detect state machines and data models in code
+- **Class diagram rendering** — requires structural (AST-level) extraction for accuracy; LLM-only extraction was judged too unreliable to ship for this type
 - **Presentation mode** — step-through animation highlighting one path at a time
 - **Draw.io XML import** — open existing `.drawio` files directly
+- **Token-walk animation** — animated marker traveling sequence-diagram lifelines in execution order (decorative pulse animation exists today; true ordered walk does not)
 
-> ✅ Shipped: Multi-select, edge waypoints, localStorage auto-save, shareable URL — see Usage section above.
+> ✅ Shipped: Multi-select, edge waypoints, localStorage auto-save, shareable URL, Copilot Chat generation (flowchart/sequence/state/ER), swim lanes, auto-route — see Usage section above.
 
 ---
 

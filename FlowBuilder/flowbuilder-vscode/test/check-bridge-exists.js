@@ -41,20 +41,20 @@ check('loadMermaid checks for sequenceDiagram before calling autoLayout (regress
   const m = html.match(/loadMermaid\s*:\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\n\s*\},/);
   if (!m) throw new Error('Could not locate loadMermaid function body to inspect');
   const body = m[1];
-  if (!/isSeq/.test(body)) {
-    throw new Error('loadMermaid no longer tracks isSeq flag — autoLayout may run unconditionally again');
+  if (!/skipAutoLayout/.test(body)) {
+    throw new Error('loadMermaid no longer tracks skipAutoLayout flag — autoLayout may run unconditionally again');
   }
-  if (!/if\(!isSeq\)autoLayout\(\)/.test(body.replace(/\s/g, ''))) {
-    throw new Error('loadMermaid does not gate autoLayout() behind !isSeq — REGRESSION: sequence diagrams will be scrambled again');
+  if (!/if\(!skipAutoLayout\)autoLayout\(\)/.test(body.replace(/\s/g, ''))) {
+    throw new Error('loadMermaid does not gate autoLayout() behind !skipAutoLayout — REGRESSION: sequence diagrams will be scrambled again');
   }
 });
 
-check('parseDSL also gates autoLayout behind isSeq flag', () => {
+check('parseDSL also gates autoLayout behind skipAutoLayout flag', () => {
   const m = html.match(/function parseDSL\(\)\{([\s\S]*?)\n\}/);
   if (!m) throw new Error('Could not locate parseDSL function body');
   const body = m[1].replace(/\s/g, '');
-  if (!/if\(!isSeq\)autoLayout\(\)/.test(body)) {
-    throw new Error('parseDSL does not gate autoLayout() behind !isSeq — REGRESSION risk for DSL-tab sequence paste');
+  if (!/if\(!skipAutoLayout\)autoLayout\(\)/.test(body)) {
+    throw new Error('parseDSL does not gate autoLayout() behind !skipAutoLayout — REGRESSION risk for DSL-tab sequence paste');
   }
 });
 

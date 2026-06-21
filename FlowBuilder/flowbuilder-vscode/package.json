@@ -2,7 +2,7 @@
   "name": "flowbuilder",
   "displayName": "Flow Diagram Builder",
   "description": "AI-native visual flow diagram builder — generate from Copilot Chat or code, export SVG/PNG/GIF/WebM",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "publisher": "inovexa",
   "license": "MIT",
   "repository": {
@@ -52,8 +52,11 @@
         "description": "Generate flow diagrams from natural language — renders live on the Flow Builder board",
         "isSticky": true,
         "commands": [
-          { "name": "diagram", "description": "Generate a new diagram from your description" },
+          { "name": "diagram", "description": "Generate a diagram — specify type: flowchart, sequence, state, er (e.g. /diagram state: order workflow)" },
+          { "name": "flowchart", "description": "Generate a flowchart" },
           { "name": "sequence", "description": "Generate a sequence diagram" },
+          { "name": "state", "description": "Generate a state diagram" },
+          { "name": "er", "description": "Generate an entity-relationship diagram" },
           { "name": "modify", "description": "Modify the currently open diagram" }
         ]
       }

@@ -310,6 +310,134 @@ test('markdown produces tree-shaped edges (each child connects to immediate pare
   assertEqual(edges.length, 3, 'exactly 3 parent-child edges expected');
 });
 
+console.log('\n── State Diagram (stateDiagram-v2) ─────────────');
+
+test('basic state transitions parse with start/end terminals', (t) => {
+  t.setDSLValue(`stateDiagram-v2
+  [*] --> Pending
+  Pending --> Approved : approve
+  Pending --> Rejected : reject
+  Approved --> [*]
+  Rejected --> [*]`);
+  t.parseDSL();
+  const nodes = t.getNodes();
+  const edges = t.getEdges();
+  assertEqual(nodes.length, 5, 'Start, Pending, Approved, Rejected, End = 5 nodes (two distinct [*] terminals)');
+  assertEqual(edges.length, 5, 'should create exactly 5 transitions');
+  const start = nodes.find(n => n.label === 'Start');
+  assertTrue(start && start.shape === 'stadium', 'start terminal must use stadium shape');
+});
+
+test('state transition labels captured correctly', (t) => {
+  t.setDSLValue(`stateDiagram-v2
+  [*] --> Idle
+  Idle --> Running : start
+  Running --> Idle : stop`);
+  t.parseDSL();
+  const edges = t.getEdges();
+  assertTrue(edges.some(e => e.label === 'start'), 'should capture "start" transition label');
+  assertTrue(edges.some(e => e.label === 'stop'), 'should capture "stop" transition label');
+});
+
+test('state diagram runs autoLayout (nodes must not all sit at 0,0)', (t) => {
+  t.setDSLValue(`stateDiagram-v2
+  [*] --> A
+  A --> B : next
+  B --> [*]`);
+  t.parseDSL();
+  const nodes = t.getNodes();
+  const positions = new Set(nodes.map(n => `${n.x},${n.y}`));
+  assertTrue(positions.size > 1, 'REGRESSION: state diagram nodes must be positioned by autoLayout, not all stuck at origin');
+});
+
+test('repeated transitions between same states do not create duplicate edges', (t) => {
+  t.setDSLValue(`stateDiagram-v2
+  [*] --> A
+  A --> B : go
+  A --> B : go`);
+  t.parseDSL();
+  const edges = t.getEdges().filter(e => e.label === 'go');
+  assertEqual(edges.length, 1, 'duplicate identical transitions should be deduped');
+});
+
+console.log('\n── ER Diagram (erDiagram) ──────────────────────');
+
+test('entities with attribute blocks parse into entity-shaped nodes', (t) => {
+  t.setDSLValue(`erDiagram
+  CUSTOMER {
+    int id PK
+    string name
+    string email
+  }
+  ORDER {
+    int id PK
+    int customer_id FK
+    decimal total
+  }
+  CUSTOMER ||--o{ ORDER : places`);
+  t.parseDSL();
+  const nodes = t.getNodes();
+  assertEqual(nodes.length, 2, 'should create exactly 2 entity nodes');
+  const customer = nodes.find(n => n.label === 'CUSTOMER');
+  assertTrue(customer && customer.shape === 'entity', 'entity nodes must use the entity shape');
+  assertEqual(customer.attrs.length, 3, 'CUSTOMER should have 3 attributes captured');
+});
+
+test('PK and FK key markers captured on attributes', (t) => {
+  t.setDSLValue(`erDiagram
+  ORDER {
+    int id PK
+    int customer_id FK
+    decimal total
+  }`);
+  t.parseDSL();
+  const order = t.getNodes().find(n => n.label === 'ORDER');
+  assertEqual(order.attrs[0].key, 'PK', 'id should be marked PK');
+  assertEqual(order.attrs[1].key, 'FK', 'customer_id should be marked FK');
+  assertEqual(order.attrs[2].key, '', 'total should have no key marker');
+});
+
+test('relationship cardinality renders as a readable edge label', (t) => {
+  t.setDSLValue(`erDiagram
+  CUSTOMER {
+    int id PK
+  }
+  ORDER {
+    int id PK
+  }
+  CUSTOMER ||--o{ ORDER : places`);
+  t.parseDSL();
+  const edges = t.getEdges();
+  assertEqual(edges.length, 1);
+  assertTrue(edges[0].label.includes('places'), 'edge label should include relationship verb "places"');
+  assertTrue(edges[0].label.includes('0..N') || edges[0].label.includes('1'), 'edge label should include cardinality notation');
+});
+
+test('entity node width scales with longest attribute line (no text clipping by default)', (t) => {
+  t.setDSLValue(`erDiagram
+  VERY_LONG_ENTITY_NAME_HERE {
+    string a_very_long_attribute_name_for_testing
+  }`);
+  t.parseDSL();
+  const node = t.getNodes()[0];
+  assertTrue(node.w > 140, 'entity box should widen beyond minimum width for long content');
+});
+
+test('entity diagram runs autoLayout (entities must not all stack at origin)', (t) => {
+  t.setDSLValue(`erDiagram
+  A {
+    int id PK
+  }
+  B {
+    int id PK
+  }
+  A ||--o{ B : has`);
+  t.parseDSL();
+  const nodes = t.getNodes();
+  const positions = new Set(nodes.map(n => `${n.x},${n.y}`));
+  assertTrue(positions.size > 1, 'REGRESSION: ER diagram nodes must be positioned by autoLayout, not all stuck at origin');
+});
+
 console.log('\n── Cross-cutting / Format Detection ────────────');
 
 test('parseDSL correctly routes JSON vs Mermaid vs Markdown vs plain arrow', (t) => {
