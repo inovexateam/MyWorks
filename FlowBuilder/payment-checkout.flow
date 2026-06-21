@@ -1,0 +1,140 @@
+{
+  "nodes": [
+    {
+      "id": "user",
+      "label": "User",
+      "x": 80,
+      "y": 100,
+      "color": "blue",
+      "shape": "circle"
+    },
+    {
+      "id": "checkout",
+      "label": "Checkout",
+      "x": 280,
+      "y": 100,
+      "color": "teal",
+      "shape": "rect"
+    },
+    {
+      "id": "payment",
+      "label": "Payment\nProcessor",
+      "x": 480,
+      "y": 100,
+      "color": "purple",
+      "shape": "rect"
+    },
+    {
+      "id": "gateway",
+      "label": "Payment\nGateway",
+      "x": 680,
+      "y": 100,
+      "color": "coral",
+      "shape": "rect"
+    },
+    {
+      "id": "db",
+      "label": "Database",
+      "x": 880,
+      "y": 100,
+      "color": "gray",
+      "shape": "rect"
+    },
+    {
+      "id": "order_save",
+      "label": "Save Order",
+      "x": 280,
+      "y": 200,
+      "color": "amber",
+      "shape": "diamond"
+    },
+    {
+      "id": "authorize",
+      "label": "Authorize Card",
+      "x": 680,
+      "y": 200,
+      "color": "amber",
+      "shape": "diamond"
+    },
+    {
+      "id": "success",
+      "label": "Order\nConfirmed",
+      "x": 480,
+      "y": 300,
+      "color": "green",
+      "shape": "rect"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "user",
+      "to": "checkout",
+      "label": "Submit cart",
+      "color": "blue"
+    },
+    {
+      "id": "e2",
+      "from": "checkout",
+      "to": "order_save",
+      "label": "1",
+      "color": "teal"
+    },
+    {
+      "id": "e3",
+      "from": "order_save",
+      "to": "db",
+      "label": "Save",
+      "color": "gray"
+    },
+    {
+      "id": "e4",
+      "from": "checkout",
+      "to": "payment",
+      "label": "Charge request",
+      "color": "purple"
+    },
+    {
+      "id": "e5",
+      "from": "payment",
+      "to": "authorize",
+      "label": "2",
+      "color": "purple"
+    },
+    {
+      "id": "e6",
+      "from": "authorize",
+      "to": "gateway",
+      "label": "Authorize",
+      "color": "coral"
+    },
+    {
+      "id": "e7",
+      "from": "gateway",
+      "to": "payment",
+      "label": "Approval",
+      "color": "green"
+    },
+    {
+      "id": "e8",
+      "from": "payment",
+      "to": "checkout",
+      "label": "Success",
+      "color": "green"
+    },
+    {
+      "id": "e9",
+      "from": "checkout",
+      "to": "success",
+      "label": "3",
+      "color": "green"
+    },
+    {
+      "id": "e10",
+      "from": "success",
+      "to": "user",
+      "label": "Confirm",
+      "color": "green"
+    }
+  ]
+}

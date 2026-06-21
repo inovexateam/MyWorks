@@ -337,11 +337,100 @@ flowbuilder.html parseDSL() renders it on the board instantly
 ---
 
 ### 📋 Other Planned Features
-- **Multi-select** — drag rectangle to select multiple nodes at once
-- **Swim lanes** — group nodes into labelled lanes (essential for process docs)
-- **Auto-route edges** — edges avoid overlapping nodes
-- **Edge waypoints** — drag the middle of an edge to bend it
-- **Save/restore via localStorage** — diagram persists on browser refresh
-- **Shareable URL** — diagram state encoded in URL hash for easy sharing
 - **Presentation mode** — step-through animation highlighting one path at a time
 - **Draw.io XML import** — open existing `.drawio` files directly
+
+> ✅ Shipped: Multi-select, edge waypoints, localStorage auto-save, shareable URL — see Usage section above.
+
+---
+
+## 🗺️ Value-Add Roadmap
+
+Ranked by leverage. Each phase reuses infrastructure from the previous one where noted.
+
+### Phase 1 — AI-native generation via Copilot Chat
+**Effort: Medium | Impact: Highest**
+
+| Step | Task |
+|---|---|
+| 1.1 | Add `"extensionDependencies": ["github.copilot-chat"]` to `package.json` |
+| 1.2 | Register `@flowbuilder` chat participant in `contributes.chatParticipants` |
+| 1.3 | Implement `vscode.chat.createChatParticipant()` handler in `extension.js` |
+| 1.4 | Call `vscode.lm.selectChatModels()`, system prompt forces Mermaid/JSON output |
+| 1.5 | Parse LLM response, `postMessage({command:'loadDSL', text})` to WebView |
+| 1.6 | Wire `loadDSL` message handler — reuses existing `parseDSL()` in `flowbuilder.html` |
+| 1.7 | Track last diagram JSON in extension state for iterative prompts |
+
+**Files touched:** `package.json`, `extension.js` only.
+
+---
+
+### Phase 2 — Git-diffable ADRs (quick win, no dependencies)
+**Effort: Low | Impact: Medium**
+
+| Step | Task |
+|---|---|
+| 2.1 | Sort node/edge arrays by `id` on save for stable, diffable JSON |
+| 2.2 | Add command `flowbuilder.newADR` — scaffolds `docs/adr/NNNN-title.md` with embedded diagram |
+| 2.3 | `.flow` syntax highlighting via `contributes.languages` |
+| 2.4 | *(Stretch)* Visual diff provider for two `.flow` JSONs side-by-side |
+
+---
+
+### Phase 3 — Code-to-diagram generation
+**Effort: High | Impact: High (unique differentiator)**
+
+| Step | Task |
+|---|---|
+| 3.1 | Add command `flowbuilder.generateFromSelection` |
+| 3.2 | Start with LLM-based extraction: send selected code to Copilot, prompt "extract control flow as Mermaid sequenceDiagram" |
+| 3.3 | Map function calls → sequence nodes; if/else/switch → decision diamonds |
+| 3.4 | Add context menu: right-click code → "Flow Builder: Visualize this function" |
+| 3.5 | Render via same `loadDSL` pipeline as Phase 1 |
+| 3.6 | *(Later)* Replace LLM extraction with real AST parsing (TS Compiler API) for accuracy |
+
+**Dependency:** Reuses Phase 1 plumbing.
+
+---
+
+### Phase 4 — Swim lanes + auto-route edges
+**Effort: High | Impact: Table-stakes for credibility**
+
+| Step | Task |
+|---|---|
+| 4.1 | Add `lane` container object: `{id,label,x,y,w,h,color}` rendered behind nodes |
+| 4.2 | Nodes get optional `laneId`; drag-into-lane bounds auto-assigns |
+| 4.3 | Update `autoLayout()` to group/order nodes by lane |
+| 4.4 | Auto-route: detect edge-node collisions, insert 90° detour via existing `waypoints[]` array |
+| 4.5 | Toolbar toggle: "Auto-route" on/off |
+
+**Reuses:** waypoints system already shipped.
+
+---
+
+### Phase 5 — Live sync with code
+**Effort: High | Impact: Medium-high (long-term differentiator)**
+
+| Step | Task |
+|---|---|
+| 5.1 | Define embed syntax: ` ```flowbuilder\n{json}\n``` ` in `.md` files |
+| 5.2 | `CodeLensProvider` for `.md` — "▶ Open in Flow Builder" above the block |
+| 5.3 | "Refresh from source" command — reruns Phase 3 extraction, diffs against saved diagram |
+| 5.4 | On code save, check linked diagrams, prompt "Diagram may be outdated — regenerate?" |
+| 5.5 | Store source file path + symbol name in `.flow` metadata for re-sync |
+
+**Dependency:** Requires Phase 3.
+
+---
+
+### Suggested Timeline
+
+```
+Phase 1 (1-2 wks)  AI Copilot generation      → highest leverage, ships first
+Phase 2 (1 wk)     ADR / diff support         → quick win, parallel-safe
+Phase 3 (2-3 wks)  Code-to-diagram            → reuses Phase 1
+Phase 4 (1-2 wks)  Swim lanes + auto-route    → table stakes, independent
+Phase 5 (2 wks)    Live sync                  → depends on Phase 3
+```
+
+**Total: ~8–10 weeks** for all five. Phases 1+2 alone (~3 weeks) deliver the highest-leverage majority of the value.

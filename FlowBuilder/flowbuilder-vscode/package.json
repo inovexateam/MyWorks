@@ -1,58 +1,69 @@
 {
   "name": "flowbuilder",
   "displayName": "Flow Diagram Builder",
-  "description": "Visual drag-and-drop flow diagram builder with animated export — SVG, PNG, GIF, WebM",
-  "version": "1.0.0",
+  "description": "AI-native visual flow diagram builder — generate from Copilot Chat or code, export SVG/PNG/GIF/WebM",
+  "version": "2.1.0",
   "publisher": "inovexa",
-  "engines": { "vscode": "^1.80.0" },
-  "categories": ["Visualization", "Other"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inovexa/flowbuilder-vscode"
+  },
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Visualization", "Other", "Machine Learning"],
   "icon": "icon.png",
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:flow",
+    "onLanguage:markdown"
+  ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "flowbuilder.open",
-        "title": "Flow Builder: Open Diagram"
-      },
-      {
-        "command": "flowbuilder.openInSide",
-        "title": "Flow Builder: Open in Side Panel"
-      }
+      { "command": "flowbuilder.open", "title": "Flow Builder: Open Diagram" },
+      { "command": "flowbuilder.openInSide", "title": "Flow Builder: Open in Side Panel" },
+      { "command": "flowbuilder.generateFromSelection", "title": "Flow Builder: Visualize Selected Code" },
+      { "command": "flowbuilder.newADR", "title": "Flow Builder: New Architecture Decision Record" },
+      { "command": "flowbuilder.refreshFromSource", "title": "Flow Builder: Refresh Diagram From Source" },
+      { "command": "flowbuilder.openEmbedded", "title": "Flow Builder: Open Embedded Diagram" }
     ],
     "menus": {
       "editor/title": [
-        {
-          "command": "flowbuilder.open",
-          "group": "navigation",
-          "when": "resourceExtname == .flow"
-        }
+        { "command": "flowbuilder.open", "group": "navigation", "when": "resourceExtname == .flow" }
       ],
       "explorer/context": [
-        {
-          "command": "flowbuilder.open",
-          "when": "resourceExtname == .flow"
-        }
+        { "command": "flowbuilder.open", "when": "resourceExtname == .flow" }
+      ],
+      "editor/context": [
+        { "command": "flowbuilder.generateFromSelection", "when": "editorHasSelection", "group": "flowbuilder" }
       ]
     },
     "languages": [
-      {
-        "id": "flow",
-        "extensions": [".flow"],
-        "mimetypes": ["application/json"]
-      }
+      { "id": "flow", "extensions": [".flow"], "mimetypes": ["application/json"] }
     ],
     "keybindings": [
+      { "command": "flowbuilder.open", "key": "ctrl+shift+f", "mac": "cmd+shift+f" },
+      { "command": "flowbuilder.generateFromSelection", "key": "ctrl+shift+v", "mac": "cmd+shift+v", "when": "editorHasSelection" }
+    ],
+    "chatParticipants": [
       {
-        "command": "flowbuilder.open",
-        "key": "ctrl+shift+f",
-        "mac": "cmd+shift+f"
+        "id": "flowbuilder.chat",
+        "name": "flowbuilder",
+        "fullName": "Flow Builder",
+        "description": "Generate flow diagrams from natural language — renders live on the Flow Builder board",
+        "isSticky": true,
+        "commands": [
+          { "name": "diagram", "description": "Generate a new diagram from your description" },
+          { "name": "sequence", "description": "Generate a sequence diagram" },
+          { "name": "modify", "description": "Modify the currently open diagram" }
+        ]
       }
     ]
   },
+  "extensionDependencies": [],
   "scripts": {
     "package": "vsce package",
-    "install-extension": "code --install-extension flowbuilder-1.0.0.vsix"
+    "install-extension": "code --install-extension flowbuilder-2.0.0.vsix",
+    "test": "node test/run.js && node test/check-bridge-exists.js"
   },
   "devDependencies": {
     "@vscode/vsce": "^2.22.0"
